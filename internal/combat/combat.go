@@ -116,14 +116,27 @@ func (m *Meter) Ended() time.Time {
 }
 
 func (m *Meter) Players() []PlayerStats {
-	players := make([]PlayerStats, 0, len(m.players))
+	merged := make(map[string]*PlayerStats, len(m.players))
 	for _, stats := range m.players {
-		player := *stats
-		player.DamageTypes = make(map[string]int, len(stats.DamageTypes))
-		for name, amount := range stats.DamageTypes {
-			player.DamageTypes[name] = amount
+		if owner, petName, ok := possessiveOwner(stats.Name); ok {
+			if _, ownerExists := m.players[owner]; ownerExists {
+				ownerStats := merged[owner]
+				if ownerStats == nil {
+					ownerStats = copyStats(m.players[owner])
+					merged[owner] = ownerStats
+				}
+				mergePetStats(ownerStats, stats, petName)
+				continue
+			}
 		}
-		players = append(players, player)
+		if _, exists := merged[stats.Name]; !exists {
+			merged[stats.Name] = copyStats(stats)
+		}
+	}
+
+	players := make([]PlayerStats, 0, len(merged))
+	for _, stats := range merged {
+		players = append(players, *stats)
 	}
 
 	sort.Slice(players, func(i, j int) bool {
@@ -134,6 +147,45 @@ func (m *Meter) Players() []PlayerStats {
 	})
 
 	return players
+}
+
+func copyStats(stats *PlayerStats) *PlayerStats {
+	if stats == nil {
+		return nil
+	}
+	copied := *stats
+	copied.DamageTypes = make(map[string]int, len(stats.DamageTypes))
+	for name, amount := range stats.DamageTypes {
+		copied.DamageTypes[name] = amount
+	}
+	return &copied
+}
+
+func mergePetStats(owner, pet *PlayerStats, petName string) {
+	owner.Damage += pet.Damage
+	owner.Hits += pet.Hits
+	owner.Crits += pet.Crits
+	if owner.FirstSeen.IsZero() || (!pet.FirstSeen.IsZero() && pet.FirstSeen.Before(owner.FirstSeen)) {
+		owner.FirstSeen = pet.FirstSeen
+	}
+	if owner.LastSeen.IsZero() || pet.LastSeen.After(owner.LastSeen) {
+		owner.LastSeen = pet.LastSeen
+		owner.LastTarget = pet.LastTarget
+	}
+	if owner.DamageTypes == nil {
+		owner.DamageTypes = make(map[string]int)
+	}
+	owner.DamageTypes["Pet: "+petName] += pet.Damage
+}
+
+func possessiveOwner(name string) (string, string, bool) {
+	for _, separator := range []string{"`s ", "'s "} {
+		owner, petName, ok := strings.Cut(name, separator)
+		if ok && owner != "" && petName != "" {
+			return owner, petName, true
+		}
+	}
+	return "", "", false
 }
 
 func (s PlayerStats) DamageBreakdown() []DamageBreakdown {

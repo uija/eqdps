@@ -113,8 +113,18 @@ func TestParseLinePetDamageAttributesOwner(t *testing.T) {
 	if !ok {
 		t.Fatal("expected damage event")
 	}
-	if event.Source != "Sobatin" || event.Amount != 4 {
+	if event.Source != "Sobatin`s warder" || event.Amount != 4 {
 		t.Fatalf("unexpected event: %#v", event)
+	}
+}
+
+func TestParseLinePossessiveMobNameIsNotPetOwner(t *testing.T) {
+	event, ok := ParseLine("[Wed Jul 08 17:21:17 2026] Innoruuk`s Chosen hits YOU for 37 points of damage.")
+	if !ok {
+		t.Fatal("expected damage event")
+	}
+	if event.Source != "Innoruuk`s Chosen" {
+		t.Fatalf("unexpected source: %#v", event)
 	}
 }
 

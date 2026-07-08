@@ -153,9 +153,6 @@ func normalizeSource(source string) string {
 	if source == "You" {
 		return "You"
 	}
-	if owner, ok := petOwner(source); ok {
-		return owner
-	}
 	return normalizeCombatantName(source)
 }
 
@@ -173,12 +170,4 @@ func normalizeCombatantName(name string) string {
 		}
 	}
 	return name
-}
-
-func petOwner(source string) (string, bool) {
-	owner, _, ok := strings.Cut(source, "`s ")
-	if !ok || owner == "" || strings.Contains(owner, " ") {
-		return "", false
-	}
-	return owner, true
 }

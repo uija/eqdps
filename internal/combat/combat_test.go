@@ -85,6 +85,53 @@ func TestMeterTracksDamageBreakdown(t *testing.T) {
 	}
 }
 
+func TestMeterKeepsPossessiveMobAsOwnCombatant(t *testing.T) {
+	meter := NewMeter()
+	now := time.Date(2026, 7, 8, 12, 0, 0, 0, time.UTC)
+
+	meter.Add(Event{Time: now, Source: "Innoruuk`s Chosen", Target: "YOU", Amount: 37})
+
+	players := meter.Players()
+	if len(players) != 1 {
+		t.Fatalf("expected one combatant, got %#v", players)
+	}
+	if players[0].Name != "Innoruuk`s Chosen" {
+		t.Fatalf("unexpected combatant: %#v", players[0])
+	}
+}
+
+func TestMeterMergesPossessivePetWhenOwnerIsInFight(t *testing.T) {
+	meter := NewMeter()
+	now := time.Date(2026, 7, 8, 12, 0, 0, 0, time.UTC)
+
+	meter.Add(Event{Time: now, Source: "Sobatin`s warder", Target: "an orc raider", Amount: 4})
+	meter.Add(Event{Time: now.Add(time.Second), Source: "Sobatin", Target: "an orc raider", Amount: 11, Ability: "Burst of Fire"})
+
+	players := meter.Players()
+	if len(players) != 1 {
+		t.Fatalf("expected merged owner combatant, got %#v", players)
+	}
+	if players[0].Name != "Sobatin" || players[0].Damage != 15 {
+		t.Fatalf("unexpected merged stats: %#v", players[0])
+	}
+	if players[0].DamageTypes["Pet: warder"] != 4 {
+		t.Fatalf("expected pet damage bucket, got %#v", players[0].DamageTypes)
+	}
+}
+
+func TestMeterMergesApostrophePossessivePetWhenOwnerIsInFight(t *testing.T) {
+	meter := NewMeter()
+	now := time.Date(2026, 7, 8, 12, 0, 0, 0, time.UTC)
+
+	meter.Add(Event{Time: now, Source: "Sobatin's warder", Target: "an orc raider", Amount: 4})
+	meter.Add(Event{Time: now.Add(time.Second), Source: "Sobatin", Target: "an orc raider", Amount: 11})
+
+	players := meter.Players()
+	if len(players) != 1 || players[0].Name != "Sobatin" || players[0].Damage != 15 {
+		t.Fatalf("unexpected merged stats: %#v", players)
+	}
+}
+
 func TestFightTrackerStartsNewFightForDifferentMobAfterDeathWithinGracePeriod(t *testing.T) {
 	tracker := NewFightTracker()
 	now := time.Date(2026, 7, 5, 17, 21, 50, 0, time.UTC)
