@@ -6,7 +6,7 @@ It tails an EQ log, detects fights, and shows damage per combatant in a live
 terminal UI. It can also replay recent log history to compare parses or debug
 fight detection.
 
-`Because I am lazy and wanted to play EverQuest Legends Open Beta, Codex did most of the work.'
+`Because I am lazy and wanted to play EverQuest Legends Open Beta, Codex did most of the work.`
 
 ## Features
 
