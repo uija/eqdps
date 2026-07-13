@@ -17,7 +17,7 @@ const timestampLayout = "Mon Jan 02 15:04:05 2006"
 var (
 	lineRE = regexp.MustCompile(`^\[([^\]]+)\] (.*)$`)
 
-	damageRE     = regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`)
+	damageRE     = regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`)
 	dotRE        = regexp.MustCompile(`^(.+?) (?:has|have) taken ([0-9]+) damage from (.+?) by ([^.]+)\.(?: \(([^)]+)\))?$`)
 	yourDotRE    = regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`)
 	yourShieldRE = regexp.MustCompile(`^(.+?) is .+? by YOUR (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)\.(?: \(([^)]+)\))?$`)
@@ -67,6 +67,7 @@ func ParseLine(line string) (combat.Event, bool) {
 			Kind:     strings.TrimSpace(yourShield[4]),
 			Ability:  strings.TrimSpace(yourShield[2]),
 			Critical: isCritical(yourShield[5]),
+			Passive:  true,
 		}, true
 	}
 
@@ -85,6 +86,7 @@ func ParseLine(line string) (combat.Event, bool) {
 			Kind:     strings.TrimSpace(shield[5]),
 			Ability:  strings.TrimSpace(shield[3]),
 			Critical: isCritical(shield[6]),
+			Passive:  true,
 		}, true
 	}
 
@@ -103,6 +105,7 @@ func ParseLine(line string) (combat.Event, bool) {
 			Kind:     "damage",
 			Ability:  strings.TrimSpace(yourDot[3]),
 			Critical: isCritical(yourDot[4]),
+			Passive:  true,
 		}, true
 	}
 
@@ -124,6 +127,7 @@ func ParseLine(line string) (combat.Event, bool) {
 		Kind:     "damage",
 		Ability:  strings.TrimSpace(dot[3]),
 		Critical: isCritical(dot[5]),
+		Passive:  true,
 	}, true
 }
 

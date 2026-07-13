@@ -152,6 +152,75 @@ func TestFightTrackerStartsNewFightForDifferentMobAfterDeathWithinGracePeriod(t 
 	}
 }
 
+func TestFightTrackerIgnoresPetDeathWhilePlayersActiveTargetLives(t *testing.T) {
+	tracker := NewFightTracker()
+	now := time.Date(2026, 7, 5, 17, 21, 50, 0, time.UTC)
+
+	tracker.AddDamage(Event{Time: now, Source: "You", Target: "a necromancer", Amount: 10})
+	tracker.AddDamage(Event{Time: now.Add(time.Second), Source: "a necromancer's pet", Target: "YOU", Amount: 4})
+	tracker.AddDamage(Event{
+		Time:    now.Add(2 * time.Second),
+		Source:  "You",
+		Target:  "a necromancer's pet",
+		Amount:  2,
+		Ability: "thorns",
+		Passive: true,
+	})
+	tracker.AddDeath(Death{Time: now.Add(3 * time.Second), Victim: "a necromancer's pet", Killer: "You"})
+	tracker.AddDamage(Event{Time: now.Add(4 * time.Second), Source: "You", Target: "a necromancer", Amount: 12})
+
+	fight, current := tracker.DisplayFight()
+	if fight == nil || !current {
+		t.Fatalf("expected pet death to leave the fight current, got fight=%#v current=%v", fight, current)
+	}
+	if fight.Meter.Events() != 4 {
+		t.Fatalf("expected one unsplit fight with four events, got %d", fight.Meter.Events())
+	}
+
+	tracker.AddDeath(Death{Time: now.Add(5 * time.Second), Victim: "a necromancer", Killer: "You"})
+	fight, current = tracker.DisplayFight()
+	if fight == nil || current || fight.Death.Victim != "a necromancer" {
+		t.Fatalf("expected active target death to end fight, got fight=%#v current=%v", fight, current)
+	}
+}
+
+func TestFightTrackerIgnoresPreviousTargetDeathAfterPlayerSwitchesTargets(t *testing.T) {
+	tracker := NewFightTracker()
+	now := time.Date(2026, 7, 5, 17, 21, 50, 0, time.UTC)
+
+	tracker.AddDamage(Event{Time: now, Source: "You", Target: "first mob", Amount: 10})
+	tracker.AddDamage(Event{Time: now.Add(time.Second), Source: "You", Target: "second mob", Amount: 10})
+	tracker.AddDamage(Event{Time: now.Add(2 * time.Second), Source: "You", Target: "first mob", Amount: 2, Ability: "a damage over time spell", Passive: true})
+	tracker.AddDeath(Death{Time: now.Add(3 * time.Second), Victim: "first mob", Killer: "You"})
+
+	if fight, current := tracker.DisplayFight(); fight == nil || !current {
+		t.Fatalf("expected switched-to target to keep fight current, got fight=%#v current=%v", fight, current)
+	}
+
+	tracker.AddDeath(Death{Time: now.Add(4 * time.Second), Victim: "second mob", Killer: "You"})
+	if fight, current := tracker.DisplayFight(); fight == nil || current || fight.Death.Victim != "second mob" {
+		t.Fatalf("expected current target death to end fight, got fight=%#v current=%v", fight, current)
+	}
+}
+
+func TestFightTrackerEndsWhenAllHostileMobsDieWithoutActiveTarget(t *testing.T) {
+	tracker := NewFightTracker()
+	now := time.Date(2026, 7, 5, 17, 21, 50, 0, time.UTC)
+
+	tracker.AddDamage(Event{Time: now, Source: "first mob", Target: "YOU", Amount: 10})
+	tracker.AddDamage(Event{Time: now.Add(time.Second), Source: "second mob", Target: "YOU", Amount: 10})
+	tracker.AddDeath(Death{Time: now.Add(2 * time.Second), Victim: "first mob", Killer: "You"})
+
+	if fight, current := tracker.DisplayFight(); fight == nil || !current {
+		t.Fatalf("expected fight to continue while a hostile mob lives, got fight=%#v current=%v", fight, current)
+	}
+
+	tracker.AddDeath(Death{Time: now.Add(3 * time.Second), Victim: "second mob", Killer: "You"})
+	if fight, current := tracker.DisplayFight(); fight == nil || current || fight.Death.Victim != "second mob" {
+		t.Fatalf("expected final hostile death to end fight, got fight=%#v current=%v", fight, current)
+	}
+}
+
 func TestFightTrackerKeepsLateDamageFromSlainMobCompleted(t *testing.T) {
 	tracker := NewFightTracker()
 	now := time.Date(2026, 7, 5, 17, 22, 20, 0, time.UTC)

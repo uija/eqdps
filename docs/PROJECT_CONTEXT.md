@@ -161,8 +161,8 @@ or mob total. `Name dies.` is also not a death signal: the sample log shows it
 for Feign Death.
 
 See `docs/PARSER_RECHECK.md` before changing parser expressions. The reference
-audit on 2026-07-13 found 223,422 accepted damage events and no remaining
-source-attributable damage-like rejection in the sample corpus.
+audit on 2026-07-13 found 395,576 accepted damage events and no remaining
+source-attributable damage-like rejection in the merged sample corpus.
 
 ## Fight State Machine
 
@@ -172,9 +172,14 @@ Important constants:
 - Death grace period: 8 seconds
 - Default history limit: 0, meaning unlimited
 
-A damage event creates the current fight. A mob death becomes a pending death
-rather than finalizing immediately, because EverQuest can emit late damage near
-the death message.
+A damage event creates the current fight. A death becomes a pending fight end
+only when the victim is the mob most recently attacked by `You`, when every
+hostile mob observed fighting `You` is dead, or when `You` dies. Damage-shield
+and damage-over-time events are passive: they identify involved hostiles but do
+not replace the active target. This prevents a pet that only hits `You` or
+triggers a damage shield from splitting the owner's fight. EverQuest can emit
+late damage near a death message, so a qualifying mob death is not finalized
+immediately.
 
 While death is pending:
 
@@ -183,6 +188,9 @@ While death is pending:
   and starts a new one.
 - Exceeding the grace period finalizes the old fight.
 - Local-player death finalizes immediately.
+
+Deaths of other involved mobs are recorded but do not end the fight while the
+active target or another observed hostile remains alive.
 
 Without a death message, an idle gap finalizes the fight with reason
 `idle timeout`. Live detection measures time since the line was observed;

@@ -18,6 +18,7 @@ type Event struct {
 	Kind     string
 	Ability  string
 	Critical bool
+	Passive  bool
 }
 
 type Death struct {
@@ -231,6 +232,9 @@ type FightTracker struct {
 	pendingDeath *Death
 	lastWallSeen time.Time
 	historyLimit int
+	activeTarget string
+	hostiles     map[string]bool
+	deadHostiles map[string]bool
 }
 
 func NewFightTracker() *FightTracker {
@@ -261,6 +265,7 @@ func (t *FightTracker) AddDamageWithIdle(event Event, idleTimeout time.Duration)
 		t.current = NewMeter()
 	}
 	t.current.Add(event)
+	t.trackHostiles(event)
 }
 
 func (t *FightTracker) AddDeath(death Death) {
@@ -268,11 +273,23 @@ func (t *FightTracker) AddDeath(death Death) {
 		return
 	}
 	t.lastWallSeen = time.Now()
+	if sameCombatant(death.Victim, "You") {
+		t.current.ended = death.Time
+		t.pendingDeath = &death
+		t.finalizePendingDeath()
+		return
+	}
+
+	victimKey := combatantKey(death.Victim)
+	if t.hostiles[victimKey] {
+		t.deadHostiles[victimKey] = true
+	}
+	if !sameCombatant(death.Victim, t.activeTarget) && !t.allHostilesDead() {
+		return
+	}
+
 	t.current.ended = death.Time
 	t.pendingDeath = &death
-	if sameCombatant(death.Victim, "You") {
-		t.finalizePendingDeath()
-	}
 }
 
 func (t *FightTracker) EndIdle(now time.Time, idleTimeout time.Duration) bool {
@@ -364,6 +381,7 @@ func (t *FightTracker) finalizePendingDeath() {
 	t.trimHistory()
 	t.current = nil
 	t.pendingDeath = nil
+	t.resetEncounterState()
 }
 
 func (t *FightTracker) finalizeIdle(reason string) {
@@ -374,6 +392,7 @@ func (t *FightTracker) finalizeIdle(reason string) {
 	t.trimHistory()
 	t.current = nil
 	t.pendingDeath = nil
+	t.resetEncounterState()
 }
 
 func (t *FightTracker) trimHistory() {
@@ -384,4 +403,55 @@ func (t *FightTracker) trimHistory() {
 
 func sameCombatant(left, right string) bool {
 	return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
+}
+
+func combatantKey(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
+func (t *FightTracker) trackHostiles(event Event) {
+	if event.Amount <= 0 || event.Source == "" {
+		return
+	}
+	if sameCombatant(event.Source, "You") && !sameCombatant(event.Target, "You") {
+		t.addHostile(event.Target)
+		if !event.Passive {
+			t.activeTarget = event.Target
+		}
+	}
+	if sameCombatant(event.Target, "You") && !sameCombatant(event.Source, "You") {
+		t.addHostile(event.Source)
+	}
+}
+
+func (t *FightTracker) addHostile(name string) {
+	key := combatantKey(name)
+	if key == "" {
+		return
+	}
+	if t.hostiles == nil {
+		t.hostiles = make(map[string]bool)
+	}
+	if t.deadHostiles == nil {
+		t.deadHostiles = make(map[string]bool)
+	}
+	t.hostiles[key] = true
+}
+
+func (t *FightTracker) allHostilesDead() bool {
+	if len(t.hostiles) == 0 {
+		return false
+	}
+	for hostile := range t.hostiles {
+		if !t.deadHostiles[hostile] {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *FightTracker) resetEncounterState() {
+	t.activeTarget = ""
+	t.hostiles = nil
+	t.deadHostiles = nil
 }

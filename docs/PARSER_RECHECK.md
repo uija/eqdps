@@ -15,12 +15,15 @@ Baseline measured on 2026-07-13:
 
 | Measurement | Count |
 | --- | ---: |
-| Log lines | 552,112 |
-| Parsed damage events | 223,422 |
-| Rejected damage-like lines | 203 |
-| Deliberately ignored source-less spell/DoT lines | 189 |
-| Deliberately ignored source-less non-melee lines | 1 |
-| Rejected chat lines containing damage-like text | 13 |
+| Log lines | 927,420 |
+| Parsed damage events | 395,576 |
+| Rejected damage-like lines | 224 |
+| Deliberately ignored source-less spell/DoT lines | 205 |
+| Deliberately ignored source-less non-melee lines | 3 |
+| Rejected chat lines containing damage-like text | 16 |
+
+Reference SHA-256:
+`27a79caf2819be75be5a3e35ea25a4d8ea91da4e2280307f5cb9af82ec982067`.
 
 These counts only apply while the reference file is unchanged. Record the file
 line count and checksum when using a different or updated corpus:
@@ -56,8 +59,9 @@ counted in the future if reliable source inference is designed and tested.
 - Deaths: `You have slain Target!` and `Victim has been slain by Killer!`.
 
 Direct-damage verbs are an explicit allowlist. Review `damageRE` whenever a log
-contains a new verb. Current examples include `reaves` and `smashes` in addition
-to common attacks such as `hits`, `slashes`, `pierces`, and `kicks`.
+contains a new verb. Current examples include `frenzy on`, `frenzies on`,
+`reaves`, and `smashes` in addition to common attacks such as `hits`, `slashes`,
+`pierces`, and `kicks`.
 
 ## Recheck Workflow
 

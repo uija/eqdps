@@ -102,13 +102,16 @@ A fight starts when a damage event is parsed.
 
 A fight ends when one of these happens:
 
-- a slain/death message is found
+- the mob most recently attacked by `You` dies
+- every hostile mob involved with `You` has died
 - `You have been slain by ...` is found
 - no combat is seen for the idle timeout
 
-If the log prints late damage from the same slain mob immediately after the
-death line, `eqdps` keeps that damage in the completed fight. Damage involving a
-different mob starts a new fight.
+Damage shields and damage-over-time ticks do not change the active target. This
+keeps a pet's death from splitting its owner's fight when the pet only damaged
+`You` or triggered a damage shield. If the log prints late damage from the mob
+that ended the fight immediately after its death line, `eqdps` keeps that damage
+in the completed fight. Damage involving a different mob starts a new fight.
 
 ## Development
 

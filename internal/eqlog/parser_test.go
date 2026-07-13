@@ -37,6 +37,7 @@ func TestParseLineYouSingularMeleeVerbs(t *testing.T) {
 		"[Sun Jul 05 17:21:44 2026] You strike an elemental crusader for 22 points of damage.",
 		"[Sun Jul 05 17:21:45 2026] You crush an elemental crusader for 99 points of damage. (Critical)",
 		"[Sun Jul 05 17:21:48 2026] You smite an elemental crusader for 38 points of damage.",
+		"[Fri Jul 03 11:26:29 2026] You frenzy on a necro neophyte for 32 points of damage.",
 	} {
 		if _, ok := ParseLine(line); !ok {
 			t.Fatalf("expected damage event for %q", line)
@@ -69,7 +70,7 @@ func TestParseLineThornsDamage(t *testing.T) {
 	if !ok {
 		t.Fatal("expected thorns damage event")
 	}
-	if event.Source != "You" || event.Target != "a rock golem" || event.Amount != 20 || event.Ability != "thorns" {
+	if event.Source != "You" || event.Target != "a rock golem" || event.Amount != 20 || event.Ability != "thorns" || !event.Passive {
 		t.Fatalf("unexpected event: %#v", event)
 	}
 }
@@ -203,7 +204,7 @@ func TestParseLineYourDotDamage(t *testing.T) {
 	if !ok {
 		t.Fatal("expected damage event")
 	}
-	if event.Source != "You" || event.Target != "a zol ghoul knight" || event.Amount != 49 || event.Ability != "Tuyen's Chant of Flame" {
+	if event.Source != "You" || event.Target != "a zol ghoul knight" || event.Amount != 49 || event.Ability != "Tuyen's Chant of Flame" || !event.Passive {
 		t.Fatalf("unexpected event: %#v", event)
 	}
 }
