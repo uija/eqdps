@@ -1,11 +1,13 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
+	"github.com/uija/eqdps/internal/xp"
 )
 
 func TestFitTextTruncatesWithEllipsis(t *testing.T) {
@@ -40,6 +42,51 @@ func TestHistoryDuration(t *testing.T) {
 		if got != expected {
 			t.Fatalf("expected %q to map to %s, got %s", label, expected, got)
 		}
+	}
+}
+
+func TestStatusTextShowsSessionXP(t *testing.T) {
+	got := statusText(xp.Snapshot{
+		Percent:        97.085,
+		LevelPercent:   97.085,
+		PercentPerHour: 81.06,
+		ActiveDuration: 71*time.Minute + 15*time.Second,
+		Gains:          81,
+	})
+	for _, want := range []string{"XP ~97.1%", "81.1%/h", "~00:03 to level", "reset"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected status %q to contain %q", got, want)
+		}
+	}
+}
+
+func TestStatusTextShowsKnownProgressWithoutApproximationMarker(t *testing.T) {
+	got := statusText(xp.Snapshot{
+		LevelPercent:   27,
+		ProgressKnown:  true,
+		PercentPerHour: 60,
+		Gains:          20,
+	})
+	if !strings.Contains(got, "XP 27.0%") {
+		t.Fatalf("expected known level progress, got %q", got)
+	}
+	if strings.Contains(got, "XP ~27.0%") {
+		t.Fatalf("did not expect approximation marker, got %q", got)
+	}
+}
+
+func TestProcessLineUpdatesCombatAndXPTrackers(t *testing.T) {
+	combatTracker := combat.NewFightTracker()
+	xpSession := xp.NewSession()
+	processLine("[Mon Jul 13 16:46:18 2026] You pierce an elemental visier for 44 points of damage.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	processLine("[Mon Jul 13 16:46:49 2026] You gain experience! (1.239%)", combatTracker, xpSession, combat.DefaultIdleTimeout)
+
+	snapshot := xpSession.SnapshotAtLatestLog()
+	if snapshot.Percent != 1.239 || snapshot.Gains != 1 {
+		t.Fatalf("unexpected session XP: %#v", snapshot)
+	}
+	if snapshot.ActiveDuration != 31*time.Second {
+		t.Fatalf("expected combat through XP line to count as active, got %s", snapshot.ActiveDuration)
 	}
 }
 

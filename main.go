@@ -15,6 +15,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
 	"github.com/uija/eqdps/internal/eqlog"
+	"github.com/uija/eqdps/internal/xp"
 )
 
 func main() {
@@ -41,12 +42,12 @@ func main() {
 		os.Exit(2)
 	}
 	if *textMode {
-		tracker, err := replayLog(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit)
+		tracker, xpSession, err := replayLog(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
-		printText(tracker)
+		printText(tracker, xpSession)
 		return
 	}
 
@@ -76,19 +77,20 @@ func parseSince(value string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("parse --since: expected YYYY-MM-DD HH:MM, got %q", value)
 }
 
-func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) (*combat.FightTracker, error) {
+func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) (*combat.FightTracker, *xp.Session, error) {
 	cutoff, err := replayCutoff(logPath, back, since)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	file, err := os.Open(logPath)
 	if err != nil {
-		return nil, fmt.Errorf("open log: %w", err)
+		return nil, nil, fmt.Errorf("open log: %w", err)
 	}
 	defer file.Close()
 
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
+	xpSession := xp.NewSession()
 	var latest time.Time
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
@@ -101,15 +103,15 @@ func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time,
 		if !cutoff.IsZero() && (!hasTimestamp || timestamp.Before(cutoff)) {
 			continue
 		}
-		processLine(line, tracker, idleTimeout)
+		processLine(line, tracker, xpSession, idleTimeout)
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("read log: %w", err)
+		return nil, nil, fmt.Errorf("read log: %w", err)
 	}
 	if !latest.IsZero() {
 		tracker.EndIdleAtLogTime(latest, idleTimeout)
 	}
-	return tracker, nil
+	return tracker, xpSession, nil
 }
 
 func replayCutoff(logPath string, back time.Duration, since time.Time) (time.Time, error) {
@@ -143,7 +145,15 @@ func replayCutoff(logPath string, back time.Duration, since time.Time) (time.Tim
 	return latest.Add(-back), nil
 }
 
-func printText(tracker *combat.FightTracker) {
+func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
+	if snapshot := xpSession.SnapshotAtLatestLog(); snapshot.Gains > 0 {
+		fmt.Printf("Session XP: %.3f%%, %.2f%%/h over %s active (%d gains)\n\n",
+			snapshot.Percent,
+			snapshot.PercentPerHour,
+			formatDuration(snapshot.ActiveDuration),
+			snapshot.Gains,
+		)
+	}
 	sections := tracker.DisplaySections()
 	if len(sections) == 0 {
 		fmt.Println("No fight found.")
@@ -174,17 +184,19 @@ func printText(tracker *combat.FightTracker) {
 func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) error {
 	app := tview.NewApplication()
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
+	xpSession := xp.NewSession()
 	var mu sync.Mutex
 	expandedRows := make(map[string]bool)
 	expandableRows := make(map[int]string)
 	terminalWidth := 100
 
 	if back > 0 || !since.IsZero() {
-		backfill, err := replayLog(logPath, idleTimeout, back, since, historyLimit)
+		backfill, backfillXP, err := replayLog(logPath, idleTimeout, back, since, historyLimit)
 		if err != nil {
 			return err
 		}
 		tracker = backfill
+		xpSession = backfillXP
 	}
 
 	table := tview.NewTable().
@@ -195,8 +207,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	header := tview.NewTextView().
 		SetDynamicColors(true)
 	status := tview.NewTextView().
-		SetDynamicColors(true).
-		SetText(statusText())
+		SetDynamicColors(true)
 
 	render := func() {
 		mu.Lock()
@@ -204,6 +215,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 
 		sections := tracker.DisplaySections()
 		header.SetText(titleText(logPath, terminalWidth))
+		status.SetText(statusText(xpSession.SnapshotLive(time.Now())))
 		expandableRows = fillTable(table, sections, expandedRows, terminalWidth)
 	}
 	render()
@@ -228,7 +240,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	go func() {
 		if err := followLog(logPath, done, func(line string) {
 			mu.Lock()
-			processLine(line, tracker, idleTimeout)
+			processLine(line, tracker, xpSession, idleTimeout)
 			mu.Unlock()
 			app.QueueUpdateDraw(render)
 		}); err != nil {
@@ -245,11 +257,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				return
 			case now := <-ticker.C:
 				mu.Lock()
-				changed := tracker.EndIdle(now, idleTimeout)
+				tracker.EndIdle(now, idleTimeout)
 				mu.Unlock()
-				if changed {
-					app.QueueUpdateDraw(render)
-				}
+				app.QueueUpdateDraw(render)
 			}
 		}
 	}()
@@ -289,15 +299,18 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				}
 
 				nextTracker := combat.NewFightTrackerWithHistory(historyLimit)
+				nextXP := xp.NewSession()
 				if duration > 0 {
-					replayed, err := replayLog(logPath, idleTimeout, duration, time.Time{}, historyLimit)
+					replayed, replayedXP, err := replayLog(logPath, idleTimeout, duration, time.Time{}, historyLimit)
 					if err == nil {
 						nextTracker = replayed
+						nextXP = replayedXP
 					}
 				}
 
 				mu.Lock()
 				tracker = nextTracker
+				xpSession = nextXP
 				expandedRows = make(map[string]bool)
 				expandableRows = make(map[int]string)
 				mu.Unlock()
@@ -338,6 +351,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		case 'r', 'R':
 			mu.Lock()
 			tracker = combat.NewFightTrackerWithHistory(historyLimit)
+			xpSession = xp.NewSession()
 			expandedRows = make(map[string]bool)
 			expandableRows = make(map[int]string)
 			mu.Unlock()
@@ -366,9 +380,21 @@ func resetTableView(table *tview.Table) {
 	table.Select(1, 0)
 }
 
-func processLine(line string, tracker *combat.FightTracker, idleTimeout time.Duration) {
+func processLine(line string, tracker *combat.FightTracker, xpSession *xp.Session, idleTimeout time.Duration) {
+	if timestamp, ok := eqlog.ParseTime(line); ok {
+		xpSession.Observe(timestamp, time.Now())
+	}
 	if event, ok := eqlog.ParseLine(line); ok {
+		xpSession.AddCombat(event.Time)
 		tracker.AddDamageWithIdle(event, idleTimeout)
+		return
+	}
+	if gain, ok := eqlog.ParseExperienceLine(line); ok {
+		xpSession.AddGain(gain.Time, gain.Percent)
+		return
+	}
+	if levelUp, ok := eqlog.ParseLevelUpLine(line); ok {
+		xpSession.AddLevelUp(levelUp.Time)
 		return
 	}
 	if death, ok := eqlog.ParseDeathLine(line); ok {
@@ -419,8 +445,26 @@ func titleText(logPath string, terminalWidth int) string {
 	return fmt.Sprintf("[::b]%s[::-]  %s", title, fitText(logPath, maxPathWidth))
 }
 
-func statusText() string {
-	return "[gray]o[::-] history   [gray]Enter[::-] expand/details   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+func statusText(snapshot xp.Snapshot) string {
+	controls := "[gray]o[::-] history   [gray]Enter[::-] expand/details   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+	if snapshot.Gains == 0 {
+		return controls
+	}
+	etaText := "~--:-- to level"
+	if eta, ok := snapshot.TimeToLevel(); ok {
+		etaText = "~" + formatHoursMinutes(eta) + " to level"
+	}
+	progressPrefix := "~"
+	if snapshot.ProgressKnown {
+		progressPrefix = ""
+	}
+	return fmt.Sprintf("[green]XP %s%.1f%%  %.1f%%/h  %s[::-]   %s",
+		progressPrefix,
+		snapshot.LevelPercent,
+		snapshot.PercentPerHour,
+		etaText,
+		controls,
+	)
 }
 
 func historyDuration(label string) (time.Duration, bool) {
@@ -698,4 +742,12 @@ func formatDuration(d time.Duration) string {
 		seconds = 0
 	}
 	return fmt.Sprintf("%02d:%02d", seconds/60, seconds%60)
+}
+
+func formatHoursMinutes(d time.Duration) string {
+	minutes := int(d / time.Minute)
+	if minutes < 0 {
+		minutes = 0
+	}
+	return fmt.Sprintf("%02d:%02d", minutes/60, minutes%60)
 }

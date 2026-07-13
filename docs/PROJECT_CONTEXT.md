@@ -30,6 +30,8 @@ intentionally not duplicated under `docs/`.
 | `internal/eqlog/parser_test.go` | Exact production log format regressions |
 | `internal/combat/combat.go` | Stats, pet merging, per-mob lifecycle, history |
 | `internal/combat/combat_test.go` | Meter and per-mob state behavior |
+| `internal/xp/session.go` | Session XP totals, active time, and XP/hour |
+| `internal/xp/session_test.go` | Pause-capping and XP-rate behavior |
 | `README.md` | User-facing installation and usage |
 | `docs/PARSER_RECHECK.md` | Full-corpus parser quality audit procedure |
 
@@ -37,10 +39,10 @@ intentionally not duplicated under `docs/`.
 
 ```text
 log line
-  -> eqlog.ParseLine / ParseDeathLine
+  -> eqlog.ParseLine / ParseDeathLine / ParseExperienceLine
   -> main.processLine
-  -> combat.FightTracker
-  -> combat.Meter
+  -> combat.FightTracker / xp.Session
+  -> combat.Meter / XP snapshot
   -> text renderer or tview table
 ```
 
@@ -71,7 +73,9 @@ location and compared to timestamps parsed from the log in the same way.
 ## TUI Behavior and Constraints
 
 The layout is a one-line title/path header, the mob table, and a one-line status
-bar. Columns are Combatant, Damage, DPS, Hits, Crits, Active, and Last Target.
+bar. The status bar shows approximate current-level progress, XP/hour, estimated
+time to the next level, and hotkeys. Columns are Combatant, Damage, DPS, Hits,
+Crits, Active, and Last Target.
 Combatant and target widths adapt to terminal width and use `...` when
 truncated. Active mobs are expanded by default; completed mobs start collapsed.
 There is no player-row limit and the table scrolls normally.
@@ -82,7 +86,7 @@ Hotkeys:
 | --- | --- |
 | `o` | History overlay: Now, 1h, 4h, 8h, 1d |
 | `Enter` | Expand/collapse a mob section or details on its `You` row |
-| `r` | Clear the in-memory tracker |
+| `r` | Clear the combat tracker and session XP meter |
 | `q` or `Esc` | Quit |
 
 When the history overlay is open, it owns input. `Enter` selects its button and
@@ -100,6 +104,32 @@ Important tview concurrency rule: background goroutines use
 `app.QueueUpdateDraw(render)`. UI event handlers call `render()` directly;
 queueing an update from inside an event handler can freeze the application.
 Access to the replaceable `tracker` and associated row maps is guarded by `mu`.
+
+## Session XP Model
+
+`eqlog.ParseExperienceLine` accepts exact local messages of the form `You gain
+experience! (N.NNN%)`. `eqlog.ParseLevelUpLine` recognizes the local level-up
+message. `xp.Session` keeps both a full-session total for XP/hour and a progress
+total that resets at each observed level-up.
+
+The XP message paired with a level-up is the award that caused the ding, so it
+remains in the full-session rate total but is excluded from new-level progress.
+After an observed level-up, progress is treated as known and shown without `~`.
+When replay or live mode starts partway through a level, the log does not reveal
+starting progress, so the displayed gain since startup is prefixed with `~`.
+The ETA is always approximate, uses the current session XP/hour, and is rounded
+up to the next minute for display as hours and minutes.
+
+Combat damage timestamps drive the active clock. Intervals up to one minute
+count in full; longer intervals contribute exactly one minute. The live status
+continues growing for at most one minute after the latest combat event, then
+stops until combat resumes. This includes ordinary pull time while excluding
+most travel and longer breaks. Replay and text mode use log time rather than
+wall-clock time.
+
+The XP session starts with the first observed combat or XP gain. Startup replay,
+history reloads, choosing `Now`, and `r` each create the corresponding fresh or
+replayed XP session alongside the combat tracker.
 
 ## Damage and DPS Model
 
@@ -204,10 +234,10 @@ completed records; active mobs and players are never capped.
 History is stored only in memory. A positive `--history` value trims completed
 mob records; zero keeps all completed mobs parsed during that process.
 
-The `o` overlay replaces the tracker with a replayed tracker. Choosing `Now`
-creates an empty tracker and continues from newly appended lines. The live tail
-goroutine is not reopened at a historical offset; replay reads history once,
-while the existing tail continues to follow EOF.
+The `o` overlay replaces the combat and XP trackers with replayed trackers.
+Choosing `Now` creates empty trackers and continues from newly appended lines.
+The live tail goroutine is not reopened at a historical offset; replay reads
+history once, while the existing tail continues to follow EOF.
 
 ## Known Limitations
 
@@ -215,6 +245,8 @@ while the existing tail continues to follow EOF.
   or truncation.
 - History and fight data are in memory only; restarting reconstructs them only
   when replay flags are used.
+- Session XP is based on percentage messages rather than raw character XP;
+  EverQuest does not include the raw XP total in these log lines.
 - Unlimited history can consume increasing memory during very large replays.
 - Source-less damage remains excluded because attribution is unknowable.
 - Simultaneous mobs with exactly the same log name cannot be distinguished
@@ -257,6 +289,7 @@ Do not leave a generated `eqdps` binary in the repository root after checks.
 - Keep row ordering stable by first appearance.
 - Use one shared mob duration for every source's per-mob DPS.
 - Keep completed-mob history unlimited by default, with an optional cap.
+- Show session XP/hour using a one-minute cap on combat-inactivity gaps.
 - Collapse mob sections and local damage details with Enter.
 - Attribute player pets to an owner only when the owner is observed in the same
   mob record.

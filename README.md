@@ -15,6 +15,7 @@ parses or debug combat detection.
 - Independent mob endings from death, player death, and idle timeout
 - Player, pet, mob, spell, proc, DoT, and damage shield parsing
 - Per-mob combatant rows with damage, DPS, hits, crits, duration, and target
+- Session XP percentage and XP/hour with long pauses excluded
 - Expandable `You` row with damage breakdown by melee/spell/proc type
 - Adaptive table widths for narrow terminals
 - In-app history reload menu
@@ -57,7 +58,7 @@ new lines written after startup.
 | --- | --- |
 | `o` | Open history menu |
 | `Enter` | Expand/collapse a mob or the damage breakdown on its `You` row |
-| `r` | Reset the in-memory meter and start fresh |
+| `r` | Reset the combat and session XP meters and start fresh |
 | `q` / `Esc` | Quit |
 
 ## History And Replay
@@ -85,6 +86,24 @@ Print text output instead of opening the TUI:
 ```bash
 eqdps --text --back=30 /path/to/log.txt
 ```
+
+## Session XP Rate
+
+The status bar shows progress in the current level, average XP/hour, and
+estimated time until the next level. Progress resets when a level-up is observed,
+and the paired XP award from the dinging kill is not counted in the new level.
+When the app starts partway through a level, progress is prefixed with `~`
+because the log does not reveal the character's starting XP bar. The ETA always
+uses `~` because it is a projection. XP comes from the log's `You gain
+experience! (N.NNN%)` messages.
+
+XP/hour continues across level-ups and covers the full period since startup,
+replay cutoff, history reload, or the last reset.
+
+Ordinary combat and pull time counts toward the average. When combat activity
+stops for more than one minute, only the first minute of that idle period counts.
+This keeps travel and longer breaks from depressing the session rate while still
+including normal time between fights. The same summary appears in text mode.
 
 ## Flags
 

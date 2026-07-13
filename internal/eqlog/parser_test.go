@@ -1,6 +1,9 @@
 package eqlog
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestParseTime(t *testing.T) {
 	timestamp, ok := ParseTime("[Thu Jul 02 05:19:07 2026] Lobantik pierces a lizardman scout for 14 points of damage.")
@@ -246,5 +249,33 @@ func TestParseDeathLineSlainBy(t *testing.T) {
 	}
 	if death.Victim != "a shadow wolf" || death.Killer != "Lobantik" {
 		t.Fatalf("unexpected death: %#v", death)
+	}
+}
+
+func TestParseExperienceLine(t *testing.T) {
+	gain, ok := ParseExperienceLine("[Mon Jul 13 16:46:49 2026] You gain experience! (1.239%)")
+	if !ok {
+		t.Fatal("expected experience gain")
+	}
+	if gain.Percent != 1.239 {
+		t.Fatalf("unexpected experience percentage: %#v", gain)
+	}
+	want := time.Date(2026, 7, 13, 16, 46, 49, 0, time.UTC)
+	if !gain.Time.Equal(want) {
+		t.Fatalf("expected timestamp %s, got %s", want, gain.Time)
+	}
+}
+
+func TestParseLevelUpLine(t *testing.T) {
+	levelUp, ok := ParseLevelUpLine("[Mon Jul 13 15:34:31 2026] You have gained a level! Welcome to level 43!")
+	if !ok {
+		t.Fatal("expected level-up event")
+	}
+	if levelUp.Level != 43 {
+		t.Fatalf("unexpected level-up: %#v", levelUp)
+	}
+	want := time.Date(2026, 7, 13, 15, 34, 31, 0, time.UTC)
+	if !levelUp.Time.Equal(want) {
+		t.Fatalf("expected timestamp %s, got %s", want, levelUp.Time)
 	}
 }

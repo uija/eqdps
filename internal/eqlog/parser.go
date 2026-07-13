@@ -24,7 +24,19 @@ var (
 	shieldRE     = regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$")
 	youSlainRE   = regexp.MustCompile(`^You have slain (.+)!$`)
 	slainByRE    = regexp.MustCompile(`^(.+) has been slain by (.+)!$`)
+	experienceRE = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
+	levelUpRE    = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
 )
+
+type ExperienceGain struct {
+	Time    time.Time
+	Percent float64
+}
+
+type LevelUp struct {
+	Time  time.Time
+	Level int
+}
 
 func ParseLine(line string) (combat.Event, bool) {
 	timestamp, message, ok := parseEnvelope(line)
@@ -160,6 +172,38 @@ func ParseDeathLine(line string) (combat.Death, bool) {
 	}
 
 	return combat.Death{}, false
+}
+
+func ParseExperienceLine(line string) (ExperienceGain, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return ExperienceGain{}, false
+	}
+	matches := experienceRE.FindStringSubmatch(message)
+	if matches == nil {
+		return ExperienceGain{}, false
+	}
+	percent, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil {
+		return ExperienceGain{}, false
+	}
+	return ExperienceGain{Time: timestamp, Percent: percent}, true
+}
+
+func ParseLevelUpLine(line string) (LevelUp, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return LevelUp{}, false
+	}
+	matches := levelUpRE.FindStringSubmatch(message)
+	if matches == nil {
+		return LevelUp{}, false
+	}
+	level, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return LevelUp{}, false
+	}
+	return LevelUp{Time: timestamp, Level: level}, true
 }
 
 func ParseTime(line string) (time.Time, bool) {
