@@ -20,6 +20,7 @@ type Event struct {
 	Critical       bool
 	Passive        bool
 	DamageOverTime bool
+	Incidental     bool
 }
 
 type Death struct {
@@ -37,6 +38,7 @@ type PlayerStats struct {
 	LastSeen    time.Time
 	LastTarget  string
 	DamageTypes map[string]int
+	EngagedAt   time.Time
 }
 
 func (s PlayerStats) ActiveDuration() time.Duration {
@@ -59,6 +61,13 @@ func (s PlayerStats) DPSForDuration(duration time.Duration) float64 {
 		return 0
 	}
 	return float64(s.Damage) / seconds
+}
+
+func (s PlayerStats) EngagedDPS(ended time.Time) (float64, bool) {
+	if s.EngagedAt.IsZero() || ended.IsZero() || ended.Before(s.EngagedAt) {
+		return 0, false
+	}
+	return s.DPSForDuration(ended.Sub(s.EngagedAt) + time.Second), true
 }
 
 type Meter struct {
@@ -100,6 +109,9 @@ func (m *Meter) Add(event Event) {
 		stats.LastSeen = event.Time
 	}
 	stats.LastTarget = event.Target
+	if event.Source == "You" && !event.Incidental && (!event.Passive || event.DamageOverTime) && stats.EngagedAt.IsZero() {
+		stats.EngagedAt = event.Time
+	}
 	m.events++
 	if m.started.IsZero() || event.Time.Before(m.started) {
 		m.started = event.Time
@@ -119,6 +131,12 @@ func (m *Meter) Started() time.Time {
 
 func (m *Meter) Ended() time.Time {
 	return m.ended
+}
+
+func (m *Meter) resetEngagement() {
+	if stats := m.players["You"]; stats != nil {
+		stats.EngagedAt = time.Time{}
+	}
 }
 
 func (m *Meter) Players() []PlayerStats {
@@ -378,6 +396,11 @@ func (t *FightTracker) AddDeath(death Death) {
 	}
 	if aliased && record.primarySeen {
 		return
+	}
+	for activeKey, activeRecord := range t.active {
+		if activeKey != key {
+			activeRecord.fight.Meter.resetEngagement()
+		}
 	}
 	if record.pendingDeath != nil {
 		buffered := append([]Event(nil), record.buffered...)

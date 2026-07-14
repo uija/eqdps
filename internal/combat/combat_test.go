@@ -121,6 +121,63 @@ func TestFightTrackerUsesSharedMobDurationForPlayerDPS(t *testing.T) {
 	}
 }
 
+func TestMeterEngagedDPSIncludesIncidentalDamageButStartsOnDeliberateDamage(t *testing.T) {
+	meter := NewMeter()
+	now := time.Date(2026, 7, 13, 14, 0, 0, 0, time.UTC)
+	meter.Add(Event{Time: now, Source: "You", Target: "mob", Amount: 20, Passive: true, Incidental: true})
+	meter.Add(Event{Time: now.Add(4 * time.Second), Source: "You", Target: "mob", Amount: 30, Incidental: true})
+	meter.Add(Event{Time: now.Add(9 * time.Second), Source: "You", Target: "mob", Amount: 50, Ability: "Nuke"})
+	meter.Add(Event{Time: now.Add(18 * time.Second), Source: "mob", Target: "YOU", Amount: 10})
+
+	players := meter.Players()
+	if len(players) != 2 || players[0].Damage != 100 {
+		t.Fatalf("expected all damage to remain counted: %#v", players)
+	}
+	if !players[0].EngagedAt.Equal(now.Add(9 * time.Second)) {
+		t.Fatalf("unexpected engagement start: %v", players[0].EngagedAt)
+	}
+	if got, ok := players[0].EngagedDPS(meter.Ended()); !ok || got != 10 {
+		t.Fatalf("expected 100 damage over ten engaged seconds, got %.2f, ok=%v", got, ok)
+	}
+}
+
+func TestMeterDotCanInitializeEngagement(t *testing.T) {
+	meter := NewMeter()
+	now := time.Date(2026, 7, 13, 14, 0, 0, 0, time.UTC)
+	meter.Add(Event{Time: now, Source: "You", Target: "mob", Amount: 20, Passive: true, DamageOverTime: true})
+
+	player := meter.Players()[0]
+	if !player.EngagedAt.Equal(now) {
+		t.Fatalf("DoT should initialize engagement: %#v", player)
+	}
+}
+
+func TestMobDeathResetsSurvivingMobEngagement(t *testing.T) {
+	tracker := NewFightTracker()
+	now := time.Date(2026, 7, 14, 12, 52, 55, 0, time.UTC)
+	tracker.AddDamage(Event{Time: now, Source: "You", Target: "King Tranix", Amount: 100})
+	tracker.AddDamage(Event{Time: now.Add(time.Second), Source: "You", Target: "a fire giant warrior", Amount: 16, Passive: true, Incidental: true})
+	tracker.AddDamage(Event{Time: now.Add(5 * time.Second), Source: "You", Target: "a fire giant warrior", Amount: 30, Incidental: true})
+	tracker.AddDeath(Death{Time: now.Add(10 * time.Second), Victim: "King Tranix", Killer: "You"})
+	tracker.AddDamage(Event{Time: now.Add(12 * time.Second), Source: "You", Target: "a fire giant warrior", Amount: 54})
+	tracker.AddDamage(Event{Time: now.Add(21 * time.Second), Source: "a fire giant warrior", Target: "YOU", Amount: 10})
+
+	for _, section := range tracker.DisplaySections() {
+		if section.Fight.Mob != "a fire giant warrior" {
+			continue
+		}
+		player := section.Fight.Meter.Players()[0]
+		if !player.EngagedAt.Equal(now.Add(12 * time.Second)) {
+			t.Fatalf("surviving mob should engage after the first mob dies, got %v", player.EngagedAt)
+		}
+		if got, ok := player.EngagedDPS(section.Fight.Meter.Ended()); !ok || got != 10 {
+			t.Fatalf("expected all 100 damage over ten focused seconds, got %.2f, ok=%v", got, ok)
+		}
+		return
+	}
+	t.Fatal("missing surviving mob section")
+}
+
 func TestFightTrackerAOStrikesDoNotChangeAnotherMobsLifecycle(t *testing.T) {
 	tracker := NewFightTracker()
 	now := time.Date(2026, 7, 13, 14, 7, 30, 0, time.UTC)

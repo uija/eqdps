@@ -151,3 +151,16 @@ func TestFillTableShowsExpandableMobSectionsWithSharedDPS(t *testing.T) {
 		t.Fatalf("expected Alice DPS over shared ten-second mob duration, got %q", got)
 	}
 }
+
+func TestFormatPlayerDPSShowsEngagedOnlyWhenMateriallyDifferent(t *testing.T) {
+	started := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	player := combat.PlayerStats{Name: "You", Damage: 100, EngagedAt: started.Add(10 * time.Second)}
+
+	if got := formatPlayerDPS(player, started.Add(19*time.Second), 20*time.Second); got != "5.00/10.00" {
+		t.Fatalf("expected materially different engaged DPS, got %q", got)
+	}
+	player.EngagedAt = started.Add(time.Second)
+	if got := formatPlayerDPS(player, started.Add(19*time.Second), 20*time.Second); got != "5.00" {
+		t.Fatalf("expected DPS values within ten percent to collapse, got %q", got)
+	}
+}

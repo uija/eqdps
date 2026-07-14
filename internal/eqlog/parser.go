@@ -55,13 +55,14 @@ func ParseLine(line string) (combat.Event, bool) {
 		}
 
 		return combat.Event{
-			Time:     timestamp,
-			Source:   normalizeSource(source),
-			Target:   normalizeTarget(target),
-			Amount:   amount,
-			Kind:     strings.TrimSpace(damage[5]),
-			Ability:  strings.TrimSpace(damage[6]),
-			Critical: isCritical(damage[7]),
+			Time:       timestamp,
+			Source:     normalizeSource(source),
+			Target:     normalizeTarget(target),
+			Amount:     amount,
+			Kind:       strings.TrimSpace(damage[5]),
+			Ability:    strings.TrimSpace(damage[6]),
+			Critical:   isCritical(damage[7]),
+			Incidental: isIncidentalDamage(damage[2], damage[7]),
 		}, true
 	}
 
@@ -73,14 +74,15 @@ func ParseLine(line string) (combat.Event, bool) {
 		}
 
 		return combat.Event{
-			Time:     timestamp,
-			Source:   "You",
-			Target:   normalizeTarget(strings.TrimSpace(yourShield[1])),
-			Amount:   amount,
-			Kind:     strings.TrimSpace(yourShield[4]),
-			Ability:  strings.TrimSpace(yourShield[2]),
-			Critical: isCritical(yourShield[5]),
-			Passive:  true,
+			Time:       timestamp,
+			Source:     "You",
+			Target:     normalizeTarget(strings.TrimSpace(yourShield[1])),
+			Amount:     amount,
+			Kind:       strings.TrimSpace(yourShield[4]),
+			Ability:    strings.TrimSpace(yourShield[2]),
+			Critical:   isCritical(yourShield[5]),
+			Passive:    true,
+			Incidental: true,
 		}, true
 	}
 
@@ -92,14 +94,15 @@ func ParseLine(line string) (combat.Event, bool) {
 		}
 
 		return combat.Event{
-			Time:     timestamp,
-			Source:   normalizeSource(strings.TrimSpace(shield[2])),
-			Target:   normalizeTarget(strings.TrimSpace(shield[1])),
-			Amount:   amount,
-			Kind:     strings.TrimSpace(shield[5]),
-			Ability:  strings.TrimSpace(shield[3]),
-			Critical: isCritical(shield[6]),
-			Passive:  true,
+			Time:       timestamp,
+			Source:     normalizeSource(strings.TrimSpace(shield[2])),
+			Target:     normalizeTarget(strings.TrimSpace(shield[1])),
+			Amount:     amount,
+			Kind:       strings.TrimSpace(shield[5]),
+			Ability:    strings.TrimSpace(shield[3]),
+			Critical:   isCritical(shield[6]),
+			Passive:    true,
+			Incidental: true,
 		}, true
 	}
 
@@ -148,6 +151,14 @@ func ParseLine(line string) (combat.Event, bool) {
 
 func isCritical(marker string) bool {
 	return strings.Contains(marker, "Critical")
+}
+
+func isIncidentalDamage(verb, marker string) bool {
+	switch strings.ToLower(strings.TrimSpace(verb)) {
+	case "cleave", "cleaves", "kick", "kicks", "punch", "punches", "reave", "reaves", "strike", "strikes":
+		return true
+	}
+	return strings.Contains(marker, "Riposte")
 }
 
 func ParseDeathLine(line string) (combat.Death, bool) {

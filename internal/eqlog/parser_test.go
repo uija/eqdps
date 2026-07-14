@@ -66,6 +66,23 @@ func TestParseLineRiposteCritical(t *testing.T) {
 	if !event.Critical {
 		t.Fatalf("expected riposte critical event: %#v", event)
 	}
+	if !event.Incidental {
+		t.Fatalf("riposte must not initialize engagement: %#v", event)
+	}
+}
+
+func TestParseLineIncidentalAOEMelee(t *testing.T) {
+	for _, line := range []string{
+		"[Thu Jul 02 09:19:37 2026] You cleave a plague rat for 8 points of damage.",
+		"[Thu Jul 02 09:19:37 2026] You kick a plague rat for 8 points of damage.",
+		"[Tue Jul 14 12:53:01 2026] You strike a fire giant warrior for 30 points of damage.",
+		"[Tue Jul 14 12:53:48 2026] You punch a fire giant warrior for 39 points of damage.",
+	} {
+		event, ok := ParseLine(line)
+		if !ok || !event.Incidental {
+			t.Fatalf("AoE-style melee must not initialize engagement: %#v, ok=%v", event, ok)
+		}
+	}
 }
 
 func TestParseLineThornsDamage(t *testing.T) {
@@ -75,6 +92,9 @@ func TestParseLineThornsDamage(t *testing.T) {
 	}
 	if event.Source != "You" || event.Target != "a rock golem" || event.Amount != 20 || event.Ability != "thorns" || !event.Passive {
 		t.Fatalf("unexpected event: %#v", event)
+	}
+	if !event.Incidental {
+		t.Fatalf("damage shield must not initialize engagement: %#v", event)
 	}
 }
 

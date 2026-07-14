@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 	"sync"
@@ -165,13 +166,13 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 			fmt.Println()
 		}
 		fmt.Println(sectionTitle(section))
-		fmt.Printf("%-24s %10s %8s %6s %6s %8s %s\n", "Combatant", "Damage", "DPS", "Hits", "Crits", "Active", "Last Target")
+		fmt.Printf("%-24s %10s %17s %6s %6s %8s %s\n", "Combatant", "Damage", "DPS/Engaged", "Hits", "Crits", "Active", "Last Target")
 		duration := section.Fight.ActiveDuration()
 		for _, player := range section.Fight.Meter.Players() {
-			fmt.Printf("%-24s %10d %8.2f %6d %6d %8s %s\n",
+			fmt.Printf("%-24s %10d %17s %6d %6d %8s %s\n",
 				player.Name,
 				player.Damage,
-				player.DPSForDuration(duration),
+				formatPlayerDPS(player, section.Fight.Meter.Ended(), duration),
 				player.Hits,
 				player.Crits,
 				formatDuration(duration),
@@ -512,7 +513,7 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 	table.Clear()
 	expandableRows := make(map[int]string)
 	layout := tableLayoutForWidth(terminalWidth)
-	headers := []string{"Combatant", "Damage", "DPS", "Hits", "Crits", "Active", "Last Target"}
+	headers := []string{"Combatant", "Damage", "DPS/Eng", "Hits", "Crits", "Active", "Last Target"}
 	for col, header := range headers {
 		table.SetCell(0, col, tableCell(header, col, layout).
 			SetTextColor(tcell.ColorYellow).
@@ -576,7 +577,7 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 			values := []string{
 				"  " + player.Name,
 				fmt.Sprintf("%d", player.Damage),
-				fmt.Sprintf("%.2f", player.DPSForDuration(duration)),
+				formatPlayerDPS(player, section.Fight.Meter.Ended(), duration),
 				fmt.Sprintf("%d", player.Hits),
 				fmt.Sprintf("%d", player.Crits),
 				formatDuration(duration),
@@ -630,7 +631,7 @@ func tableLayoutForWidth(width int) tableLayout {
 	}
 
 	// Numeric columns plus a small allowance for table spacing.
-	textBudget := width - 48
+	textBudget := width - 57
 	combatantWidth := clamp(textBudget/2, 10, 28)
 	targetWidth := clamp(textBudget-combatantWidth, 8, 44)
 	if textBudget < 22 {
@@ -664,7 +665,7 @@ func columnWidth(col int, layout tableLayout) int {
 	case 1:
 		return 10
 	case 2:
-		return 8
+		return 17
 	case 3, 4:
 		return 6
 	case 5:
@@ -721,6 +722,22 @@ func damageDPS(damage int, activeDuration time.Duration) float64 {
 		return 0
 	}
 	return float64(damage) / seconds
+}
+
+func formatPlayerDPS(player combat.PlayerStats, ended time.Time, duration time.Duration) string {
+	sharedDPS := player.DPSForDuration(duration)
+	shared := fmt.Sprintf("%.2f", sharedDPS)
+	if player.Name != "You" {
+		return shared
+	}
+	engaged, ok := player.EngagedDPS(ended)
+	if !ok {
+		return shared + "/-"
+	}
+	if sharedDPS == 0 || math.Abs(engaged-sharedDPS)/sharedDPS < 0.10 {
+		return shared
+	}
+	return fmt.Sprintf("%s/%.2f", shared, engaged)
 }
 
 func mobStatus(section combat.DisplaySection) string {
