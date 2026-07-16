@@ -144,8 +144,8 @@ func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 	}}
 	table := tview.NewTable()
 	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1})
-	if table.GetRowCount() != 8 {
-		t.Fatalf("row count = %d, want 8", table.GetRowCount())
+	if table.GetRowCount() != 9 {
+		t.Fatalf("row count = %d, want 9", table.GetRowCount())
 	}
 	contents := ""
 	for row := 0; row < table.GetRowCount(); row++ {
@@ -160,6 +160,39 @@ func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 	}
 	if strings.Contains(contents, "Bard Test of Tone") {
 		t.Fatalf("Sky table repeats class in quest name:\n%s", contents)
+	}
+}
+
+func TestFillSkyQuestTableReadySectionIncludesHandInDetailsAndSpacer(t *testing.T) {
+	quest := skyquest.Quest{
+		Name: "Necromancer Test of Power", QuestGiver: "Drakis Bloodcaster", Rewards: []string{"Cloak of Spiroc Feathers"},
+		Requirements: []skyquest.Requirement{
+			{Name: "Wind Rune Neza", Kind: "rune", Quantity: 1},
+			{Name: "Black Silk Cape", Kind: "item", Quantity: 1, Island: 4, DropsFrom: "Keeper of Souls"},
+		},
+	}
+	table := tview.NewTable()
+	fillSkyQuestTable(table, []skyquest.QuestProgress{{Class: "Necromancer", Quest: quest, Ready: true}}, map[string]int{"Wind Rune Neza": 1, "Black Silk Cape": 1})
+	contents := ""
+	for row := 0; row < table.GetRowCount(); row++ {
+		for column := 0; column < table.GetColumnCount(); column++ {
+			contents += table.GetCell(row, column).Text + "\n"
+		}
+	}
+	for _, want := range []string{"READY TO TURN IN (1)", "Necromancer — Test of Power", "Drakis Bloodcaster", "Cloak of Spiroc Feathers", "Wind Rune Neza", "Plane of Sky random drop", "Black Silk Cape", "Island 4 — Keeper of Souls"} {
+		if !strings.Contains(contents, want) {
+			t.Fatalf("ready section does not contain %q:\n%s", want, contents)
+		}
+	}
+	allClassesRow := -1
+	for row := 0; row < table.GetRowCount(); row++ {
+		if table.GetCell(row, 0).Text == "ALL CLASSES" {
+			allClassesRow = row
+			break
+		}
+	}
+	if allClassesRow < 1 || table.GetCell(allClassesRow-1, 0).Text != "" {
+		t.Fatalf("expected empty spacer before ALL CLASSES, row = %d", allClassesRow)
 	}
 }
 

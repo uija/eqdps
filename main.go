@@ -1097,17 +1097,24 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 			ready = append(ready, item)
 		}
 	}
-	table.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("READY TO TURN IN (%d)", len(ready))).SetTextColor(skyCompleteColor).SetSelectable(false))
+	table.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("READY TO TURN IN (%d)", len(ready))).SetTextColor(skyCompleteColor).SetSelectable(true))
 	row++
 	if len(ready) == 0 {
-		table.SetCell(row, 0, tview.NewTableCell("  No quests currently have every required item").SetTextColor(tcell.ColorGray).SetSelectable(false))
+		table.SetCell(row, 0, tview.NewTableCell("  No quests currently have every required item").SetTextColor(tcell.ColorGray).SetSelectable(true))
 		row++
 	} else {
 		for _, item := range ready {
-			setSkyRow(table, row, "  ✓ "+item.Class+" — "+skyQuestDisplayName(item.Class, item.Quest.Name), "READY", "", "", questDetails(item.Quest), skyCompleteColor, false)
+			setSkyRow(table, row, "  ✓ "+item.Class+" — "+skyQuestDisplayName(item.Class, item.Quest.Name), "READY", "", "", questDetails(item.Quest), skyCompleteColor, true)
 			row++
+			for _, requirement := range item.Quest.Requirements {
+				owned := inventory[requirement.Name]
+				setSkyRow(table, row, "      ↳ "+requirement.Name, "", fmt.Sprint(owned), fmt.Sprint(requirement.Quantity), skyRequirementSource(requirement), skyCompleteColor, false)
+				row++
+			}
 		}
 	}
+	setSkyRow(table, row, "", "", "", "", "", tcell.ColorDefault, false)
+	row++
 
 	table.SetCell(row, 0, tview.NewTableCell("ALL CLASSES").SetTextColor(tcell.ColorYellow).SetSelectable(false))
 	row++
