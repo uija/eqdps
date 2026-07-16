@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	apiURL    = "https://eqlwiki.com/api.php?action=parse&page=Plane_of_Sky&prop=wikitext%7Crevid&format=json&formatversion=2"
 	sourceURL = "https://eqlwiki.com/Plane_of_Sky#Plane_of_Sky_Class_Quests"
 )
 
@@ -27,9 +26,12 @@ type database struct {
 }
 
 type class struct {
-	Name     string  `json:"name"`
-	QuestNPC string  `json:"quest_npc"`
-	Quests   []quest `json:"quests"`
+	Name           string  `json:"name"`
+	QuestNPC       string  `json:"quest_npc"`
+	Source         string  `json:"source,omitempty"`
+	SourcePageID   int     `json:"source_page_id,omitempty"`
+	SourceRevision int     `json:"source_revision,omitempty"`
+	Quests         []quest `json:"quests"`
 }
 
 type quest struct {
@@ -65,6 +67,9 @@ var (
 	rewardRE  = regexp.MustCompile(`\{\{:([^}|]+)`)
 	hintRE    = regexp.MustCompile(`\(([2-8])-([^)]+)\)`)
 	tagRE     = regexp.MustCompile(`<[^>]+>`)
+	npcRE     = regexp.MustCompile(`(?i)Find\s+(?:\[\[)?([^\]\n]+?)(?:\]\])?\s+and Hail`)
+	talkRE    = regexp.MustCompile(`(?i)Talk to\s+(?:\[\[)?([^\]\n]+?)(?:\]\])?\s+in the`)
+	testRE    = regexp.MustCompile(`(?m)^==+\s*((?:\w+(?:\s+\w+)*\s+)?Test of [^=\n]+?)\s*==+\s*$`)
 )
 
 var sourceNames = map[string]string{
@@ -88,7 +93,7 @@ func main() {
 	if *input != "" {
 		err = decodeFile(*input, &response)
 	} else {
-		err = fetch(&response)
+		err = fetchPage("Plane_of_Sky", &response)
 	}
 	if err != nil {
 		fatal(err)
@@ -97,6 +102,11 @@ func main() {
 	db, err := extract(response)
 	if err != nil {
 		fatal(err)
+	}
+	if *input == "" {
+		if err := enrichFromClassPages(&db); err != nil {
+			fatal(err)
+		}
 	}
 	data, err := json.MarshalIndent(db, "", "  ")
 	if err != nil {
@@ -111,9 +121,10 @@ func main() {
 	fmt.Printf("wrote %s: %d classes, %d quests, %d unique required items\n", *output, len(db.Classes), quests, items)
 }
 
-func fetch(target *apiResponse) error {
+func fetchPage(page string, target *apiResponse) error {
 	client := &http.Client{Timeout: 30 * time.Second}
-	response, err := client.Get(apiURL)
+	url := "https://eqlwiki.com/api.php?action=parse&page=" + page + "&prop=wikitext%7Crevid&format=json&formatversion=2"
+	response, err := client.Get(url)
 	if err != nil {
 		return err
 	}
@@ -122,6 +133,64 @@ func fetch(target *apiResponse) error {
 		return fmt.Errorf("EQL Wiki returned %s", response.Status)
 	}
 	return json.NewDecoder(response.Body).Decode(target)
+}
+
+func enrichFromClassPages(db *database) error {
+	for index := range db.Classes {
+		entry := &db.Classes[index]
+		page := strings.ReplaceAll(entry.Name, " ", "_") + "_Plane_of_Sky_Tests"
+		var response apiResponse
+		if err := fetchPage(page, &response); err != nil || response.Parse.PageID == 0 || strings.HasPrefix(response.Parse.Wikitext, "#Redirect") {
+			continue
+		}
+		npc := ""
+		if match := npcRE.FindStringSubmatch(response.Parse.Wikitext); match != nil {
+			npc = clean(match[1])
+		}
+		if npc == "" {
+			if match := talkRE.FindStringSubmatch(response.Parse.Wikitext); match != nil {
+				npc = clean(match[1])
+			}
+		}
+		if npc == "" {
+			continue
+		}
+		updated := 0
+		source := response.Parse.Wikitext
+		headings := testRE.FindAllStringSubmatchIndex(source, -1)
+		for _, match := range headings {
+			name := clean(source[match[2]:match[3]])
+			for questIndex := range entry.Quests {
+				if sameTest(entry.Quests[questIndex].Name, name) {
+					entry.Quests[questIndex].Name = name
+					entry.Quests[questIndex].QuestGiver = npc
+					updated++
+					break
+				}
+			}
+		}
+		if updated != len(entry.Quests) {
+			return fmt.Errorf("%s class page matched %d of %d quests", entry.Name, updated, len(entry.Quests))
+		}
+		entry.QuestNPC = npc
+		entry.Source = "https://eqlwiki.com/" + page
+		entry.SourcePageID = response.Parse.PageID
+		entry.SourceRevision = response.Parse.Revision
+	}
+	return nil
+}
+
+func sameTest(left, right string) bool {
+	normalize := func(value string) string {
+		var words []string
+		for _, word := range strings.Fields(strings.ToLower(value)) {
+			if word != "test" && word != "of" {
+				words = append(words, word)
+			}
+		}
+		return strings.Join(words, " ")
+	}
+	return normalize(left) == normalize(right)
 }
 
 func decodeFile(path string, target *apiResponse) error {
@@ -210,13 +279,24 @@ func requirements(cell, kind string) []requirement {
 func triggers(cell string) []string {
 	cell = strings.ReplaceAll(cell, "<br />", "\n")
 	cell = strings.ReplaceAll(cell, "<br/>", "\n")
-	var result []string
+	var questPhrases, npcPhrases []string
 	for _, value := range strings.Split(cell, "\n") {
-		if value = clean(value); value != "" {
-			result = append(result, value)
+		value = clean(value)
+		if phrase, found := strings.CutPrefix(value, "Quest:"); found {
+			if phrase = strings.TrimSpace(phrase); phrase != "" {
+				questPhrases = append(questPhrases, phrase)
+			}
+		}
+		if phrase, found := strings.CutPrefix(value, "NPC:"); found {
+			if phrase = strings.TrimSpace(phrase); phrase != "" {
+				npcPhrases = append(npcPhrases, phrase)
+			}
 		}
 	}
-	return result
+	if len(questPhrases) > 0 {
+		return questPhrases
+	}
+	return npcPhrases
 }
 
 func rewards(cell string) []string {

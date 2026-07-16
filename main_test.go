@@ -133,7 +133,7 @@ func TestOperationsShareDetailedProgressText(t *testing.T) {
 
 func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 	quest := skyquest.Quest{
-		Name: "Bard Test of Tone", QuestGiver: "Clarisa Spiritsong", Rewards: []string{"Mask of Song"},
+		Name: "Bard Test of Tone", QuestGiver: "Clarisa Spiritsong", Triggers: []string{"tone"}, Rewards: []string{"Mask of Song"},
 		Requirements: []skyquest.Requirement{
 			{Name: "Wind Rune Meda", Kind: "rune", Quantity: 1},
 			{Name: "Light Woolen Mask", Kind: "item", Quantity: 1, Island: 3, DropsFrom: "Gorgalosk"},
@@ -153,7 +153,7 @@ func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 			contents += table.GetCell(row, column).Text + "\n"
 		}
 	}
-	for _, want := range []string{"READY TO TURN IN (0)", "Bard — Clarisa Spiritsong", "Test of Tone", "Reward: Mask of Song", "Wind Rune Meda", "Plane of Sky random drop", "Light Woolen Mask", "Island 3 — Gorgalosk"} {
+	for _, want := range []string{"READY TO TURN IN (0)", "Bard", "Test of Tone", "Say: tone — Clarisa Spiritsong — Reward: Mask of Song", "Wind Rune Meda", "Plane of Sky random drop", "Light Woolen Mask", "Island 3 — Gorgalosk"} {
 		if !strings.Contains(contents, want) {
 			t.Fatalf("Sky table does not contain %q:\n%s", want, contents)
 		}

@@ -12,8 +12,7 @@
           "name": "Bard Test of Tone",
           "quest_giver": "Clarisa Spiritsong",
           "trigger_phrases": [
-            "NPC: choose Clarisa",
-            "Quest: tone"
+            "tone"
           ],
           "requirements": [
             {
@@ -39,8 +38,7 @@
           "name": "Bard Test of Voice",
           "quest_giver": "Clarisa Spiritsong",
           "trigger_phrases": [
-            "NPC: choose Clarisa",
-            "Quest: voice"
+            "voice"
           ],
           "requirements": [
             {
@@ -66,8 +64,7 @@
           "name": "Bard Test of Pitch",
           "quest_giver": "Clarisa Spiritsong",
           "trigger_phrases": [
-            "NPC: choose Clarisa",
-            "Quest: pitch"
+            "pitch"
           ],
           "requirements": [
             {
@@ -93,8 +90,7 @@
           "name": "Bard Test of Wind",
           "quest_giver": "Denise Songweaver",
           "trigger_phrases": [
-            "NPC: choose Denise",
-            "Quest: wind"
+            "wind"
           ],
           "requirements": [
             {
@@ -120,8 +116,7 @@
           "name": "Bard Test of Brass",
           "quest_giver": "Denise Songweaver",
           "trigger_phrases": [
-            "NPC: choose Denise",
-            "Quest: brass"
+            "brass"
           ],
           "requirements": [
             {
@@ -152,8 +147,7 @@
           "name": "Bard Test of Harmony",
           "quest_giver": "Denise Songweaver",
           "trigger_phrases": [
-            "NPC: choose Denise",
-            "Quest: harmony"
+            "harmony"
           ],
           "requirements": [
             {
@@ -190,7 +184,7 @@
           "name": "Beastlord Test of Aviak",
           "quest_giver": "Animist Kratho",
           "trigger_phrases": [
-            "Quest: aviak"
+            "aviak"
           ],
           "requirements": [
             {
@@ -216,7 +210,7 @@
           "name": "Beastlord Test of Azarack",
           "quest_giver": "Animist Kratho",
           "trigger_phrases": [
-            "Quest: azarack"
+            "azarack"
           ],
           "requirements": [
             {
@@ -242,7 +236,7 @@
           "name": "Beastlord Test of Claw",
           "quest_giver": "Animist Kratho",
           "trigger_phrases": [
-            "Quest: claw"
+            "claw"
           ],
           "requirements": [
             {
@@ -283,7 +277,7 @@
           "name": "Beastlord Test of Harpy",
           "quest_giver": "Animist Kratho",
           "trigger_phrases": [
-            "Quest: harpy"
+            "harpy"
           ],
           "requirements": [
             {
@@ -309,7 +303,7 @@
           "name": "Beastlord Test of Wind",
           "quest_giver": "Animist Kratho",
           "trigger_phrases": [
-            "Quest: wind"
+            "wind"
           ],
           "requirements": [
             {
@@ -341,7 +335,7 @@
           "name": "Berserker Test of Sharpness",
           "quest_giver": "Stragen The Hewer",
           "trigger_phrases": [
-            "Quest: sharpness"
+            "sharpness"
           ],
           "requirements": [
             {
@@ -372,7 +366,7 @@
           "name": "Berserker Test of Will",
           "quest_giver": "Stragen The Hewer",
           "trigger_phrases": [
-            "Quest: will"
+            "will"
           ],
           "requirements": [
             {
@@ -398,7 +392,7 @@
           "name": "Berserker Test of Ferocity",
           "quest_giver": "Stragen The Hewer",
           "trigger_phrases": [
-            "Quest: ferocity"
+            "ferocity"
           ],
           "requirements": [
             {
@@ -424,7 +418,7 @@
           "name": "Berserker Test of Burden",
           "quest_giver": "Stragen The Hewer",
           "trigger_phrases": [
-            "Quest: burden"
+            "burden"
           ],
           "requirements": [
             {
@@ -450,7 +444,7 @@
           "name": "Berserker Test of Blood",
           "quest_giver": "Stragen The Hewer",
           "trigger_phrases": [
-            "Quest: blood"
+            "blood"
           ],
           "requirements": [
             {
@@ -476,7 +470,7 @@
           "name": "Berserker Test of Fools Errand",
           "quest_giver": "Stragen The Hewer",
           "trigger_phrases": [
-            "Quest: fools errand"
+            "fools errand"
           ],
           "requirements": [
             {
@@ -508,13 +502,15 @@
     {
       "name": "Cleric",
       "quest_npc": "Josin Faithbringer",
+      "source": "https://eqlwiki.com/Cleric_Plane_of_Sky_Tests",
+      "source_page_id": 15113,
+      "source_revision": 30275,
       "quests": [
         {
           "name": "Cleric Test of Courage",
-          "quest_giver": "Alan Harten",
+          "quest_giver": "Josin Faithbringer",
           "trigger_phrases": [
-            "NPC: choose Alan",
-            "Quest: courage"
+            "courage"
           ],
           "requirements": [
             {
@@ -538,10 +534,9 @@
         },
         {
           "name": "Cleric Test of Skill",
-          "quest_giver": "Alan Harten",
+          "quest_giver": "Josin Faithbringer",
           "trigger_phrases": [
-            "NPC: choose Alan",
-            "Quest: skill"
+            "skill"
           ],
           "requirements": [
             {
@@ -565,10 +560,9 @@
         },
         {
           "name": "Cleric Test of Protection",
-          "quest_giver": "Alan Harten",
+          "quest_giver": "Josin Faithbringer",
           "trigger_phrases": [
-            "NPC: choose Alan",
-            "Quest: protection"
+            "protection"
           ],
           "requirements": [
             {
@@ -592,10 +586,9 @@
         },
         {
           "name": "Cleric Test of Resolution",
-          "quest_giver": "Deric Lennox",
+          "quest_giver": "Josin Faithbringer",
           "trigger_phrases": [
-            "NPC: choose Deric",
-            "Quest: resolution"
+            "resolution"
           ],
           "requirements": [
             {
@@ -619,10 +612,9 @@
         },
         {
           "name": "Cleric Test of Theurgy",
-          "quest_giver": "Deric Lennox",
+          "quest_giver": "Josin Faithbringer",
           "trigger_phrases": [
-            "NPC: choose Deric",
-            "Quest: theurgy"
+            "theurgy"
           ],
           "requirements": [
             {
@@ -651,10 +643,9 @@
         },
         {
           "name": "Cleric Test of The Weak",
-          "quest_giver": "Deric Lennox",
+          "quest_giver": "Josin Faithbringer",
           "trigger_phrases": [
-            "NPC: choose Deric",
-            "Quest: weak"
+            "weak"
           ],
           "requirements": [
             {
@@ -686,13 +677,15 @@
     {
       "name": "Druid",
       "quest_npc": "Strandar Pinemist",
+      "source": "https://eqlwiki.com/Druid_Plane_of_Sky_Tests",
+      "source_page_id": 15114,
+      "source_revision": 30277,
       "quests": [
         {
           "name": "Druid Test of Wolf",
-          "quest_giver": "Will Treewalker",
+          "quest_giver": "Strandar Pinemist",
           "trigger_phrases": [
-            "NPC: choose Will",
-            "Quest: wolf"
+            "wolf"
           ],
           "requirements": [
             {
@@ -716,10 +709,9 @@
         },
         {
           "name": "Druid Test of Bear",
-          "quest_giver": "Will Treewalker",
+          "quest_giver": "Strandar Pinemist",
           "trigger_phrases": [
-            "NPC: choose Will",
-            "Quest: bear"
+            "bear"
           ],
           "requirements": [
             {
@@ -743,10 +735,9 @@
         },
         {
           "name": "Druid Test of Tree",
-          "quest_giver": "Will Treewalker",
+          "quest_giver": "Strandar Pinemist",
           "trigger_phrases": [
-            "NPC: choose Will",
-            "Quest: tree"
+            "tree"
           ],
           "requirements": [
             {
@@ -775,10 +766,9 @@
         },
         {
           "name": "Druid Test of The Bee",
-          "quest_giver": "Fenalla Moonshadow",
+          "quest_giver": "Strandar Pinemist",
           "trigger_phrases": [
-            "NPC: choose Fenalla",
-            "Quest: bee"
+            "bee"
           ],
           "requirements": [
             {
@@ -802,10 +792,9 @@
         },
         {
           "name": "Druid Test of Eagle",
-          "quest_giver": "Fenalla Moonshadow",
+          "quest_giver": "Strandar Pinemist",
           "trigger_phrases": [
-            "NPC: choose Fenalla",
-            "Quest: eagle"
+            "eagle"
           ],
           "requirements": [
             {
@@ -838,10 +827,9 @@
         },
         {
           "name": "Druid Test of Nature",
-          "quest_giver": "Fenalla Moonshadow",
+          "quest_giver": "Strandar Pinemist",
           "trigger_phrases": [
-            "NPC: choose Fenalla",
-            "Quest: nature"
+            "nature"
           ],
           "requirements": [
             {
@@ -873,13 +861,15 @@
     {
       "name": "Enchanter",
       "quest_npc": "Enchanter Jolas",
+      "source": "https://eqlwiki.com/Enchanter_Plane_of_Sky_Tests",
+      "source_page_id": 15115,
+      "source_revision": 151372,
       "quests": [
         {
           "name": "Enchanter Test of Illusion",
-          "quest_giver": "Lelulean",
+          "quest_giver": "Enchanter Jolas",
           "trigger_phrases": [
-            "NPC: choose Lelulean",
-            "Quest: illusion"
+            "illusion"
           ],
           "requirements": [
             {
@@ -903,10 +893,9 @@
         },
         {
           "name": "Enchanter Test of Metamorphism",
-          "quest_giver": "Lelulean",
+          "quest_giver": "Enchanter Jolas",
           "trigger_phrases": [
-            "NPC: choose Lelulean",
-            "Quest: metamorphism"
+            "metamorphism"
           ],
           "requirements": [
             {
@@ -930,10 +919,9 @@
         },
         {
           "name": "Enchanter Test of Deception",
-          "quest_giver": "Lelulean",
+          "quest_giver": "Enchanter Jolas",
           "trigger_phrases": [
-            "NPC: choose Lelulean",
-            "Quest: deception"
+            "deception"
           ],
           "requirements": [
             {
@@ -957,10 +945,9 @@
         },
         {
           "name": "Enchanter Test of Disillusion",
-          "quest_giver": "Enderbite",
+          "quest_giver": "Enchanter Jolas",
           "trigger_phrases": [
-            "NPC: choose Enderbite",
-            "Quest: disillusion"
+            "disillusion"
           ],
           "requirements": [
             {
@@ -984,10 +971,9 @@
         },
         {
           "name": "Enchanter Test of Memorization",
-          "quest_giver": "Enderbite",
+          "quest_giver": "Enchanter Jolas",
           "trigger_phrases": [
-            "NPC: choose Enderbite",
-            "Quest: memorization"
+            "memorization"
           ],
           "requirements": [
             {
@@ -1011,10 +997,9 @@
         },
         {
           "name": "Enchanter Test of Incapacitation",
-          "quest_giver": "Enderbite",
+          "quest_giver": "Enchanter Jolas",
           "trigger_phrases": [
-            "NPC: choose Enderbite",
-            "Quest: incapacitation"
+            "incapacitation"
           ],
           "requirements": [
             {
@@ -1045,14 +1030,16 @@
     },
     {
       "name": "Magician",
-      "quest_npc": "Magus Frinon",
+      "quest_npc": "Magi Frinon",
+      "source": "https://eqlwiki.com/Magician_Plane_of_Sky_Tests",
+      "source_page_id": 15126,
+      "source_revision": 124794,
       "quests": [
         {
           "name": "Magician Test of Clarification",
-          "quest_giver": "Frederic Calermin",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Frederic",
-            "Quest: clarification"
+            "clarification"
           ],
           "requirements": [
             {
@@ -1076,10 +1063,9 @@
         },
         {
           "name": "Magician Test of Empowerment",
-          "quest_giver": "Frederic Calermin",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Frederic",
-            "Quest: empowerment"
+            "empowerment"
           ],
           "requirements": [
             {
@@ -1103,10 +1089,9 @@
         },
         {
           "name": "Magician Test of Shielding",
-          "quest_giver": "Frederic Calermin",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Frederic",
-            "Quest: shielding"
+            "shielding"
           ],
           "requirements": [
             {
@@ -1130,10 +1115,9 @@
         },
         {
           "name": "Magician Test of Summoning",
-          "quest_giver": "Roanis Elindar",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Roanis",
-            "Quest: summoning"
+            "summoning"
           ],
           "requirements": [
             {
@@ -1157,10 +1141,9 @@
         },
         {
           "name": "Magician Test of Interpretation",
-          "quest_giver": "Roanis Elindar",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Roanis",
-            "Quest: interpretation"
+            "interpretation"
           ],
           "requirements": [
             {
@@ -1184,10 +1167,9 @@
         },
         {
           "name": "Magician Test of Gesticulation",
-          "quest_giver": "Roanis Elindar",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Roanis",
-            "Quest: gesticulation"
+            "gesticulation"
           ],
           "requirements": [
             {
@@ -1216,10 +1198,9 @@
         },
         {
           "name": "Magician Test of Displacement",
-          "quest_giver": "Roanis Elindar",
+          "quest_giver": "Magi Frinon",
           "trigger_phrases": [
-            "NPC: choose Roanis",
-            "Quest: displacement"
+            "displacement"
           ],
           "requirements": [
             {
@@ -1264,13 +1245,15 @@
     {
       "name": "Monk",
       "quest_npc": "Holwin",
+      "source": "https://eqlwiki.com/Monk_Plane_of_Sky_Tests",
+      "source_page_id": 15116,
+      "source_revision": 156336,
       "quests": [
         {
           "name": "Monk Test of Strength",
-          "quest_giver": "Ton Po",
+          "quest_giver": "Holwin",
           "trigger_phrases": [
-            "NPC: Ton Po",
-            "Quest: strength"
+            "strength"
           ],
           "requirements": [
             {
@@ -1294,10 +1277,9 @@
         },
         {
           "name": "Monk Test of Sight",
-          "quest_giver": "Ton Po",
+          "quest_giver": "Holwin",
           "trigger_phrases": [
-            "NPC: Ton Po",
-            "Quest: sight"
+            "sight"
           ],
           "requirements": [
             {
@@ -1321,10 +1303,9 @@
         },
         {
           "name": "Monk Test of Speed",
-          "quest_giver": "Ton Po",
+          "quest_giver": "Holwin",
           "trigger_phrases": [
-            "NPC: Ton Po",
-            "Quest: speed"
+            "speed"
           ],
           "requirements": [
             {
@@ -1348,10 +1329,9 @@
         },
         {
           "name": "Monk Test of Tears",
-          "quest_giver": "Wu the Enlightened",
+          "quest_giver": "Holwin",
           "trigger_phrases": [
-            "NPC: Wu",
-            "Quest: tears"
+            "tears"
           ],
           "requirements": [
             {
@@ -1375,10 +1355,9 @@
         },
         {
           "name": "Monk Test of Fists",
-          "quest_giver": "Wu the Enlightened",
+          "quest_giver": "Holwin",
           "trigger_phrases": [
-            "NPC: Wu",
-            "Quest: fists"
+            "fists"
           ],
           "requirements": [
             {
@@ -1407,10 +1386,9 @@
         },
         {
           "name": "Monk Test of Tranquility",
-          "quest_giver": "Wu the Enlightened",
+          "quest_giver": "Holwin",
           "trigger_phrases": [
-            "NPC: Wu",
-            "Quest: tranquility"
+            "tranquility"
           ],
           "requirements": [
             {
@@ -1437,13 +1415,15 @@
     {
       "name": "Necromancer",
       "quest_npc": "Drakis Bloodcaster",
+      "source": "https://eqlwiki.com/Necromancer_Plane_of_Sky_Tests",
+      "source_page_id": 15117,
+      "source_revision": 151298,
       "quests": [
         {
           "name": "Necromancer Test of Flight",
-          "quest_giver": "Jzil Gsix",
+          "quest_giver": "Drakis Bloodcaster",
           "trigger_phrases": [
-            "NPC: choose Jzil",
-            "Quest: flight"
+            "flight"
           ],
           "requirements": [
             {
@@ -1467,10 +1447,9 @@
         },
         {
           "name": "Necromancer Test of Power",
-          "quest_giver": "Jzil Gsix",
+          "quest_giver": "Drakis Bloodcaster",
           "trigger_phrases": [
-            "NPC: choose Jzil",
-            "Quest: power"
+            "power"
           ],
           "requirements": [
             {
@@ -1494,10 +1473,9 @@
         },
         {
           "name": "Necromancer Test of Mind",
-          "quest_giver": "Jzil Gsix",
+          "quest_giver": "Drakis Bloodcaster",
           "trigger_phrases": [
-            "NPC: choose Jzil",
-            "Quest: mind"
+            "mind"
           ],
           "requirements": [
             {
@@ -1521,10 +1499,9 @@
         },
         {
           "name": "Necromancer Test of Heart",
-          "quest_giver": "Dugaas Helpyre",
+          "quest_giver": "Drakis Bloodcaster",
           "trigger_phrases": [
-            "NPC: choose Dugaas",
-            "Quest: heart"
+            "heart"
           ],
           "requirements": [
             {
@@ -1548,10 +1525,9 @@
         },
         {
           "name": "Necromancer Test of Finger",
-          "quest_giver": "Dugaas Helpyre",
+          "quest_giver": "Drakis Bloodcaster",
           "trigger_phrases": [
-            "NPC: choose Dugaas",
-            "Quest: finger"
+            "finger"
           ],
           "requirements": [
             {
@@ -1575,10 +1551,9 @@
         },
         {
           "name": "Necromancer Test of Hands",
-          "quest_giver": "Dugaas Helpyre",
+          "quest_giver": "Drakis Bloodcaster",
           "trigger_phrases": [
-            "NPC: choose Dugaas",
-            "Quest: hands"
+            "hands"
           ],
           "requirements": [
             {
@@ -1610,13 +1585,15 @@
     {
       "name": "Paladin",
       "quest_npc": "Dason Goldblade",
+      "source": "https://eqlwiki.com/Paladin_Plane_of_Sky_Tests",
+      "source_page_id": 15121,
+      "source_revision": 30291,
       "quests": [
         {
           "name": "Paladin Test of Spirit",
-          "quest_giver": "Dirkog Steelhand",
+          "quest_giver": "Dason Goldblade",
           "trigger_phrases": [
-            "NPC: wish to be tested by Dirkog",
-            "Quest: spirit"
+            "spirit"
           ],
           "requirements": [
             {
@@ -1640,10 +1617,9 @@
         },
         {
           "name": "Paladin Test of Sacrifice",
-          "quest_giver": "Gregori Lightbringer",
+          "quest_giver": "Dason Goldblade",
           "trigger_phrases": [
-            "NPC: wish to be tested by Gregori",
-            "Quest: sacrifice"
+            "sacrifice"
           ],
           "requirements": [
             {
@@ -1667,10 +1643,9 @@
         },
         {
           "name": "Paladin Test of Love",
-          "quest_giver": "Gregori Lightbringer",
+          "quest_giver": "Dason Goldblade",
           "trigger_phrases": [
-            "NPC: wish to be tested by Gregori",
-            "Quest: love"
+            "love"
           ],
           "requirements": [
             {
@@ -1700,10 +1675,9 @@
         },
         {
           "name": "Paladin Test of Compassion",
-          "quest_giver": "Gregori Lightbringer",
+          "quest_giver": "Dason Goldblade",
           "trigger_phrases": [
-            "NPC: wish to be tested by Gregori",
-            "Quest: compassion"
+            "compassion"
           ],
           "requirements": [
             {
@@ -1734,14 +1708,16 @@
     },
     {
       "name": "Ranger",
-      "quest_npc": "Ranger Spirit",
+      "quest_npc": "the Ranger Spirit",
+      "source": "https://eqlwiki.com/Ranger_Plane_of_Sky_Tests",
+      "source_page_id": 15118,
+      "source_revision": 30285,
       "quests": [
         {
           "name": "Ranger Test of Body",
-          "quest_giver": "Relinin Skyrunner",
+          "quest_giver": "the Ranger Spirit",
           "trigger_phrases": [
-            "NPC: choose Relinin",
-            "Quest: body"
+            "body"
           ],
           "requirements": [
             {
@@ -1765,10 +1741,9 @@
         },
         {
           "name": "Ranger Test of Defense",
-          "quest_giver": "Relinin Skyrunner",
+          "quest_giver": "the Ranger Spirit",
           "trigger_phrases": [
-            "NPC: choose Relinin",
-            "Quest: defense"
+            "defense"
           ],
           "requirements": [
             {
@@ -1792,10 +1767,9 @@
         },
         {
           "name": "Ranger Test of The Earth",
-          "quest_giver": "Relinin Skyrunner",
+          "quest_giver": "the Ranger Spirit",
           "trigger_phrases": [
-            "NPC: choose Relinin",
-            "Quest: elemental earth"
+            "elemental earth"
           ],
           "requirements": [
             {
@@ -1819,10 +1793,9 @@
         },
         {
           "name": "Ranger Test of Thunder",
-          "quest_giver": "Gordon Treecaller",
+          "quest_giver": "the Ranger Spirit",
           "trigger_phrases": [
-            "NPC: choose Gordon",
-            "Quest: thunder"
+            "thunder"
           ],
           "requirements": [
             {
@@ -1846,10 +1819,9 @@
         },
         {
           "name": "Ranger Test of Blade",
-          "quest_giver": "Gordon Treecaller",
+          "quest_giver": "the Ranger Spirit",
           "trigger_phrases": [
-            "NPC: choose Gordon",
-            "Quest: blade"
+            "blade"
           ],
           "requirements": [
             {
@@ -1878,10 +1850,9 @@
         },
         {
           "name": "Ranger Test of Ranged Attack",
-          "quest_giver": "Gordon Treecaller",
+          "quest_giver": "the Ranger Spirit",
           "trigger_phrases": [
-            "NPC: choose Gordon",
-            "Quest: ranged attack"
+            "ranged attack"
           ],
           "requirements": [
             {
@@ -1913,13 +1884,15 @@
     {
       "name": "Rogue",
       "quest_npc": "Thalik Silenthand",
+      "source": "https://eqlwiki.com/Rogue_Plane_of_Sky_Tests",
+      "source_page_id": 15119,
+      "source_revision": 30287,
       "quests": [
         {
           "name": "Rogue Test of Thievery",
-          "quest_giver": "Kendrick the Great",
+          "quest_giver": "Thalik Silenthand",
           "trigger_phrases": [
-            "NPC: kendrick",
-            "Quest: thievery"
+            "thievery"
           ],
           "requirements": [
             {
@@ -1943,10 +1916,9 @@
         },
         {
           "name": "Rogue Test of Trickery",
-          "quest_giver": "Kendrick the Great",
+          "quest_giver": "Thalik Silenthand",
           "trigger_phrases": [
-            "NPC: kendrick",
-            "Quest: trickery"
+            "trickery"
           ],
           "requirements": [
             {
@@ -1970,10 +1942,9 @@
         },
         {
           "name": "Rogue Test of Silence",
-          "quest_giver": "Kendrick the Great",
+          "quest_giver": "Thalik Silenthand",
           "trigger_phrases": [
-            "NPC: kendrick",
-            "Quest: silence"
+            "silence"
           ],
           "requirements": [
             {
@@ -1997,10 +1968,9 @@
         },
         {
           "name": "Rogue Test of Cunning",
-          "quest_giver": "Rayne",
+          "quest_giver": "Thalik Silenthand",
           "trigger_phrases": [
-            "NPC: rayne",
-            "Quest: cunning"
+            "cunning"
           ],
           "requirements": [
             {
@@ -2024,10 +1994,9 @@
         },
         {
           "name": "Rogue Test of Stealth",
-          "quest_giver": "Rayne",
+          "quest_giver": "Thalik Silenthand",
           "trigger_phrases": [
-            "NPC: rayne",
-            "Quest: stealth"
+            "stealth"
           ],
           "requirements": [
             {
@@ -2051,10 +2020,9 @@
         },
         {
           "name": "Rogue Test of Deception",
-          "quest_giver": "Rayne",
+          "quest_giver": "Thalik Silenthand",
           "trigger_phrases": [
-            "NPC: rayne",
-            "Quest: deception"
+            "deception"
           ],
           "requirements": [
             {
@@ -2090,13 +2058,15 @@
     {
       "name": "Shadow Knight",
       "quest_npc": "Sarkis Ebonblade",
+      "source": "https://eqlwiki.com/Shadow_Knight_Plane_of_Sky_Tests",
+      "source_page_id": 15123,
+      "source_revision": 30295,
       "quests": [
         {
           "name": "Shadow Knight Test of Bash",
-          "quest_giver": "Gragrot",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Gragrot",
-            "Quest: bash"
+            "bash"
           ],
           "requirements": [
             {
@@ -2120,10 +2090,9 @@
         },
         {
           "name": "Shadow Knight Test of Smash",
-          "quest_giver": "Gragrot",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Gragrot",
-            "Quest: smash"
+            "smash"
           ],
           "requirements": [
             {
@@ -2147,10 +2116,9 @@
         },
         {
           "name": "Shadow Knight Test of Slash",
-          "quest_giver": "Gragrot",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Gragrot",
-            "Quest: slash"
+            "slash"
           ],
           "requirements": [
             {
@@ -2174,10 +2142,9 @@
         },
         {
           "name": "Shadow Knight Test of Disempowerment",
-          "quest_giver": "Tynicon Dlin",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Tynicon",
-            "Quest: disempowerment"
+            "disempowerment"
           ],
           "requirements": [
             {
@@ -2201,10 +2168,9 @@
         },
         {
           "name": "Shadow Knight Test of Envenoming",
-          "quest_giver": "Tynicon Dlin",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Tynicon",
-            "Quest: envenoming"
+            "envenoming"
           ],
           "requirements": [
             {
@@ -2223,11 +2189,10 @@
           ]
         },
         {
-          "name": "Shadow Knight Raising of the Dead",
-          "quest_giver": "Tynicon Dlin",
+          "name": "Shadow Knight Test of Raising of the Dead",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Tynicon",
-            "Quest: raising of the dead"
+            "raising of the dead"
           ],
           "requirements": [
             {
@@ -2260,10 +2225,9 @@
         },
         {
           "name": "Shadow Knight Test of Necropotence",
-          "quest_giver": "Tynicon Dlin",
+          "quest_giver": "Sarkis Ebonblade",
           "trigger_phrases": [
-            "NPC: choose Tynicon",
-            "Quest: necropotence"
+            "necropotence"
           ],
           "requirements": [
             {
@@ -2295,13 +2259,15 @@
     {
       "name": "Shaman",
       "quest_npc": "Medicine Man Veetra",
+      "source": "https://eqlwiki.com/Shaman_Plane_of_Sky_Tests",
+      "source_page_id": 15122,
+      "source_revision": 30293,
       "quests": [
         {
           "name": "Shaman Test of Might",
-          "quest_giver": "Gina MacStargan",
+          "quest_giver": "Medicine Man Veetra",
           "trigger_phrases": [
-            "NPC: Gina",
-            "Quest: might"
+            "might"
           ],
           "requirements": [
             {
@@ -2325,10 +2291,9 @@
         },
         {
           "name": "Shaman Test of Health",
-          "quest_giver": "Gina MacStargan",
+          "quest_giver": "Medicine Man Veetra",
           "trigger_phrases": [
-            "NPC: Gina",
-            "Quest: health"
+            "health"
           ],
           "requirements": [
             {
@@ -2352,10 +2317,9 @@
         },
         {
           "name": "Shaman Test of Sight",
-          "quest_giver": "Gina MacStargan",
+          "quest_giver": "Medicine Man Veetra",
           "trigger_phrases": [
-            "NPC: Gina",
-            "Quest: sight"
+            "sight"
           ],
           "requirements": [
             {
@@ -2379,10 +2343,9 @@
         },
         {
           "name": "Shaman Test of Shrink",
-          "quest_giver": "Ooga",
+          "quest_giver": "Medicine Man Veetra",
           "trigger_phrases": [
-            "NPC: Ooga",
-            "Quest: shrink"
+            "shrink"
           ],
           "requirements": [
             {
@@ -2411,10 +2374,9 @@
         },
         {
           "name": "Shaman Test of Snake",
-          "quest_giver": "Ooga",
+          "quest_giver": "Medicine Man Veetra",
           "trigger_phrases": [
-            "NPC: Ooga",
-            "Quest: snake"
+            "snake"
           ],
           "requirements": [
             {
@@ -2444,10 +2406,9 @@
         },
         {
           "name": "Shaman Test of The Witch Doctor",
-          "quest_giver": "Ooga",
+          "quest_giver": "Medicine Man Veetra",
           "trigger_phrases": [
-            "NPC: Ooga",
-            "Quest: witch doctor"
+            "witch doctor"
           ],
           "requirements": [
             {
@@ -2479,12 +2440,15 @@
     {
       "name": "Warrior",
       "quest_npc": "Torgon Blademaster",
+      "source": "https://eqlwiki.com/Warrior_Plane_of_Sky_Tests",
+      "source_page_id": 15124,
+      "source_revision": 30297,
       "quests": [
         {
           "name": "Warrior Test of Skill",
-          "quest_giver": "Falorn",
+          "quest_giver": "Torgon Blademaster",
           "trigger_phrases": [
-            "NPC: wish to be tested by Falorn"
+            "wish to be tested by Falorn"
           ],
           "requirements": [
             {
@@ -2508,9 +2472,9 @@
         },
         {
           "name": "Warrior Test of Strength",
-          "quest_giver": "Falorn",
+          "quest_giver": "Torgon Blademaster",
           "trigger_phrases": [
-            "NPC: wish to be tested by Falorn"
+            "wish to be tested by Falorn"
           ],
           "requirements": [
             {
@@ -2534,9 +2498,9 @@
         },
         {
           "name": "Warrior Test of Force",
-          "quest_giver": "Falorn",
+          "quest_giver": "Torgon Blademaster",
           "trigger_phrases": [
-            "NPC: wish to be tested by Falorn"
+            "wish to be tested by Falorn"
           ],
           "requirements": [
             {
@@ -2560,9 +2524,9 @@
         },
         {
           "name": "Warrior Test of Think",
-          "quest_giver": "Ogog",
+          "quest_giver": "Torgon Blademaster",
           "trigger_phrases": [
-            "NPC: wish to be tested by Ogog"
+            "wish to be tested by Ogog"
           ],
           "requirements": [
             {
@@ -2591,9 +2555,9 @@
         },
         {
           "name": "Warrior Test of Smash",
-          "quest_giver": "Ogog",
+          "quest_giver": "Torgon Blademaster",
           "trigger_phrases": [
-            "NPC: wish to be tested by Ogog"
+            "wish to be tested by Ogog"
           ],
           "requirements": [
             {
@@ -2626,9 +2590,9 @@
         },
         {
           "name": "Warrior Test of Bash",
-          "quest_giver": "Ogog",
+          "quest_giver": "Torgon Blademaster",
           "trigger_phrases": [
-            "NPC: wish to be tested by Ogog"
+            "wish to be tested by Ogog"
           ],
           "requirements": [
             {
@@ -2660,12 +2624,15 @@
     {
       "name": "Wizard",
       "quest_npc": "Wizard Schrock",
+      "source": "https://eqlwiki.com/Wizard_Plane_of_Sky_Tests",
+      "source_page_id": 15125,
+      "source_revision": 30299,
       "quests": [
         {
           "name": "Wizard Test of Concentration",
-          "quest_giver": "Neasin Leornic",
+          "quest_giver": "Wizard Schrock",
           "trigger_phrases": [
-            "NPC: wish to be tested by Neasin"
+            "wish to be tested by Neasin"
           ],
           "requirements": [
             {
@@ -2689,9 +2656,9 @@
         },
         {
           "name": "Wizard Test of Focus",
-          "quest_giver": "Neasin Leornic",
+          "quest_giver": "Wizard Schrock",
           "trigger_phrases": [
-            "NPC: wish to be tested by Neasin"
+            "wish to be tested by Neasin"
           ],
           "requirements": [
             {
@@ -2715,9 +2682,9 @@
         },
         {
           "name": "Wizard Test of Meditation",
-          "quest_giver": "Neasin Leornic",
+          "quest_giver": "Wizard Schrock",
           "trigger_phrases": [
-            "NPC: wish to be tested by Neasin"
+            "wish to be tested by Neasin"
           ],
           "requirements": [
             {
@@ -2741,9 +2708,9 @@
         },
         {
           "name": "Wizard Test of Conception",
-          "quest_giver": "Abec Lanor",
+          "quest_giver": "Wizard Schrock",
           "trigger_phrases": [
-            "NPC: wish to be tested by Abec"
+            "wish to be tested by Abec"
           ],
           "requirements": [
             {
@@ -2772,9 +2739,9 @@
         },
         {
           "name": "Wizard Test of Visualization",
-          "quest_giver": "Abec Lanor",
+          "quest_giver": "Wizard Schrock",
           "trigger_phrases": [
-            "NPC: wish to be tested by Abec"
+            "wish to be tested by Abec"
           ],
           "requirements": [
             {
@@ -2798,9 +2765,9 @@
         },
         {
           "name": "Wizard Test of Preparation",
-          "quest_giver": "Abec Lanor",
+          "quest_giver": "Wizard Schrock",
           "trigger_phrases": [
-            "NPC: wish to be tested by Abec"
+            "wish to be tested by Abec"
           ],
           "requirements": [
             {

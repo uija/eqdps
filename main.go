@@ -1116,11 +1116,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 			}
 			end++
 		}
-		giver := ""
-		if index < end {
-			giver = progress[index].Quest.QuestGiver
-		}
-		setSkyRow(table, row, className+" — "+giver, fmt.Sprintf("%d ready / %d", readyCount, end-index), "", "", "", tcell.ColorYellow, false)
+		setSkyRow(table, row, className, fmt.Sprintf("%d ready / %d", readyCount, end-index), "", "", "", tcell.ColorYellow, false)
 		row++
 		for _, item := range progress[index:end] {
 			status := fmt.Sprintf("missing %d", len(item.Missing))
@@ -1129,7 +1125,8 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 				status = "READY"
 				color = tcell.ColorGreen
 			}
-			setSkyRow(table, row, "  "+skyQuestDisplayName(item.Class, item.Quest.Name), status, "", "", "Reward: "+strings.Join(item.Quest.Rewards, " / "), color, true)
+			details := "Say: " + strings.Join(item.Quest.Triggers, " / ") + " — " + item.Quest.QuestGiver + " — Reward: " + strings.Join(item.Quest.Rewards, " / ")
+			setSkyRow(table, row, "  "+skyQuestDisplayName(item.Class, item.Quest.Name), status, "", "", details, color, true)
 			row++
 			for _, requirement := range item.Quest.Requirements {
 				owned := inventory[requirement.Name]

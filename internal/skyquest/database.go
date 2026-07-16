@@ -19,9 +19,12 @@ type Database struct {
 }
 
 type Class struct {
-	Name     string  `json:"name"`
-	QuestNPC string  `json:"quest_npc"`
-	Quests   []Quest `json:"quests"`
+	Name           string  `json:"name"`
+	QuestNPC       string  `json:"quest_npc"`
+	Source         string  `json:"source,omitempty"`
+	SourcePageID   int     `json:"source_page_id,omitempty"`
+	SourceRevision int     `json:"source_revision,omitempty"`
+	Quests         []Quest `json:"quests"`
 }
 
 type Quest struct {

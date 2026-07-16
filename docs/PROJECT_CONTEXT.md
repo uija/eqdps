@@ -160,7 +160,10 @@ replayed XP session alongside the combat tracker.
 ## Plane of Sky Quest Holdings
 
 The Plane of Sky class-quest database is generated from the EQL Wiki MediaWiki
-source and embedded into the executable with Go `embed`. Runtime use remains
+overview plus the maintained class-specific `CLASS_Plane_of_Sky_Tests` pages
+when available, and embedded into the executable with Go `embed`. Class pages
+provide current quest NPC and quest names; the overview supplies dialogue
+trigger phrases and compact item drop annotations. Runtime use remains
 offline and single-executable. The generated data currently contains 16
 classes, 95 quests, 222 requirements, and 128 unique required items. Source page
 and revision metadata are retained in the JSON.
