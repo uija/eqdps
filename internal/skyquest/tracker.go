@@ -1,12 +1,15 @@
 package skyquest
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/uija/eqdps/internal/eqlog"
 )
 
 const PlaneOfSkyZone = "The Plane of Sky"
+
+var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
 
 type Tracker struct {
 	database  Database
@@ -56,26 +59,29 @@ func (t *Tracker) ProcessRecord(record eqlog.Record) {
 		t.offer(record.TradeOffer)
 	case eqlog.RecordTradeComplete:
 		t.completeTrade(record.TradeDone)
+	case eqlog.RecordTradeCancel:
+		t.cancelTrade(record.TradeCancel)
 	}
 }
 
 func (t *Tracker) offer(offer eqlog.TradeOffer) {
-	if t.zone != PlaneOfSkyZone {
+	if !isPlaneOfSkyZone(t.zone) {
 		return
 	}
-	if _, known := t.known[offer.Item]; !known {
+	item, known := t.knownItem(offer.Item)
+	if !known {
 		return
 	}
 	if t.pending[offer.NPC] == nil {
 		t.pending[offer.NPC] = make(map[string]int)
 	}
-	t.pending[offer.NPC][offer.Item] += offer.Quantity
+	t.pending[offer.NPC][item] += offer.Quantity
 }
 
 func (t *Tracker) completeTrade(completed eqlog.TradeComplete) {
 	offered := t.pending[completed.NPC]
 	delete(t.pending, completed.NPC)
-	if t.zone != PlaneOfSkyZone || len(offered) == 0 {
+	if !isPlaneOfSkyZone(t.zone) || len(offered) == 0 {
 		return
 	}
 	for _, class := range t.database.Classes {
@@ -90,6 +96,29 @@ func (t *Tracker) completeTrade(completed eqlog.TradeComplete) {
 			return
 		}
 	}
+}
+
+func (t *Tracker) cancelTrade(cancelled eqlog.TradeCancel) {
+	if cancelled.NPC == "" {
+		t.pending = make(map[string]map[string]int)
+		return
+	}
+	delete(t.pending, cancelled.NPC)
+}
+
+func isPlaneOfSkyZone(zone string) bool {
+	zone = strings.TrimSpace(zone)
+	return zone == PlaneOfSkyZone || strings.HasPrefix(zone, PlaneOfSkyZone+" ")
+}
+
+func (t *Tracker) knownItem(item string) (string, bool) {
+	item = strings.TrimSpace(item)
+	if _, known := t.known[item]; known {
+		return item, true
+	}
+	base := itemUpgradeSuffixRE.ReplaceAllString(item, "")
+	_, known := t.known[base]
+	return base, known
 }
 
 func sameRequirements(offered map[string]int, requirements []Requirement) bool {
@@ -109,20 +138,22 @@ func sameRequirements(offered map[string]int, requirements []Requirement) bool {
 }
 
 func (t *Tracker) addLoot(loot eqlog.Loot) {
-	if t.zone != PlaneOfSkyZone {
+	if !isPlaneOfSkyZone(t.zone) {
 		return
 	}
-	if _, ok := t.known[loot.Item]; !ok {
+	item, known := t.knownItem(loot.Item)
+	if !known {
 		return
 	}
 	if loot.Outcome != eqlog.LootRetained && loot.Outcome != eqlog.LootStored {
 		return
 	}
-	t.owned[loot.Item] += loot.Quantity
+	t.owned[item] += loot.Quantity
 }
 
 func (t *Tracker) remove(item string, quantity int) {
-	if _, ok := t.known[item]; !ok || quantity < 1 {
+	item, known := t.knownItem(item)
+	if !known || quantity < 1 {
 		return
 	}
 	t.owned[item] -= quantity

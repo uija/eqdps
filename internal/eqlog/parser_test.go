@@ -456,3 +456,17 @@ func TestParseQuestTradeLines(t *testing.T) {
 		t.Fatalf("unexpected completed trade: %#v", completed)
 	}
 }
+
+func TestParseCancelledTradeLines(t *testing.T) {
+	for _, test := range []struct {
+		line, npc string
+	}{
+		{"[Mon Jul 06 19:52:13 2026] You have cancelled the trade.", ""},
+		{"[Mon Jul 06 19:51:07 2026] Preceptt has cancelled the trade.", "Preceptt"},
+	} {
+		record, ok := ParseRecord(test.line)
+		if !ok || record.Kind != RecordTradeCancel || record.TradeCancel.NPC != test.npc {
+			t.Fatalf("unexpected cancelled trade record for %q: %#v", test.line, record)
+		}
+	}
+}

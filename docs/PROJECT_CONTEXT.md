@@ -178,8 +178,11 @@ Wiki item pages during generation. The item-page `dropsfrom` NPC list is stored
 without the redundant Plane of Sky zone link, replacing the former generic
 `Plane of Sky` display for Efreeti weapons and other components.
 
-The tracker adds only exact known requirements while the last parsed zone is
-`The Plane of Sky`. Normally retained loot and loot stored directly in the
+The tracker adds only known requirements while the last parsed zone is the base
+`The Plane of Sky` or an instance such as `The Plane of Sky 2 (Adaptive)`.
+EverQuest Legends upgrade suffixes such as `+1` and `+3` are stripped before
+matching, so upgraded quest components count under their database base name.
+Normally retained loot and loot stored directly in the
 currency tab count as owned. Items immediately sold, including `sold it for
 free`, or converted into an upgraded item do not count. Exact `You successfully
 destroyed N Item.` messages decrement known holdings in every zone because an
@@ -188,6 +191,8 @@ item may be destroyed after leaving Sky.
 Quest completion is identified from the exact multiset of `You offered ... to
 NPC.` lines followed by `You complete the trade with NPC.` while in Plane of
 Sky. Offers remain pending and do not alter holdings until that confirmation.
+`You have cancelled the trade.` clears all pending offers, while
+`NPC has cancelled the trade.` clears that NPC's pending offer set.
 The matching quest is then stored in `completed_quests`, its requirements are
 consumed from holdings, it is removed from READY, and the table shows it as
 DONE with per-class completion counts. Completed quest and consumed-requirement

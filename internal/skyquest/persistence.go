@@ -115,8 +115,8 @@ func openPersistentTracker(logPath string, database Database, maxBytes int64, on
 	for npc, offered := range state.Pending {
 		persistent.tracker.pending[npc] = make(map[string]int, len(offered))
 		for item, quantity := range offered {
-			if _, known := persistent.tracker.known[item]; known && quantity > 0 {
-				persistent.tracker.pending[npc][item] = quantity
+			if normalized, known := persistent.tracker.knownItem(item); known && quantity > 0 {
+				persistent.tracker.pending[npc][normalized] += quantity
 			}
 		}
 	}

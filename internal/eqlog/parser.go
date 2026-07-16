@@ -14,23 +14,24 @@ const timestampLayout = "Mon Jan 02 15:04:05 2006"
 var (
 	lineRE = regexp.MustCompile(`^\[([^\]]+)\] (.*)$`)
 
-	damageRE     = regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`)
-	dotRE        = regexp.MustCompile(`^(.+?) (?:has|have) taken ([0-9]+) damage from (.+?) by ([^.]+)\.(?: \(([^)]+)\))?$`)
-	yourDotRE    = regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`)
-	yourShieldRE = regexp.MustCompile(`^(.+?) is .+? by YOUR (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)\.(?: \(([^)]+)\))?$`)
-	shieldRE     = regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$")
-	youSlainRE   = regexp.MustCompile(`^You have slain (.+)!$`)
-	slainByRE    = regexp.MustCompile(`^(.+) has been slain by (.+)!$`)
-	experienceRE = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
-	levelUpRE    = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
-	aggroClearRE = regexp.MustCompile(`^Your enemies have forgotten you!$`)
-	castRE       = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
-	zoneRE       = regexp.MustCompile(`^You have entered (.+)\.$`)
-	lootRE       = regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)
-	lootResultRE = regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)
-	destroyRE    = regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)
-	tradeOfferRE = regexp.MustCompile(`^You offered ([0-9]+) (.+) to (.+)\.$`)
-	tradeDoneRE  = regexp.MustCompile(`^You complete the trade with (.+)\.$`)
+	damageRE      = regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`)
+	dotRE         = regexp.MustCompile(`^(.+?) (?:has|have) taken ([0-9]+) damage from (.+?) by ([^.]+)\.(?: \(([^)]+)\))?$`)
+	yourDotRE     = regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`)
+	yourShieldRE  = regexp.MustCompile(`^(.+?) is .+? by YOUR (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)\.(?: \(([^)]+)\))?$`)
+	shieldRE      = regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$")
+	youSlainRE    = regexp.MustCompile(`^You have slain (.+)!$`)
+	slainByRE     = regexp.MustCompile(`^(.+) has been slain by (.+)!$`)
+	experienceRE  = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
+	levelUpRE     = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
+	aggroClearRE  = regexp.MustCompile(`^Your enemies have forgotten you!$`)
+	castRE        = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
+	zoneRE        = regexp.MustCompile(`^You have entered (.+)\.$`)
+	lootRE        = regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)
+	lootResultRE  = regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)
+	destroyRE     = regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)
+	tradeOfferRE  = regexp.MustCompile(`^You offered ([0-9]+) (.+) to (.+)\.$`)
+	tradeDoneRE   = regexp.MustCompile(`^You complete the trade with (.+)\.$`)
+	tradeCancelRE = regexp.MustCompile(`^(You have|(.+) has) cancelled the trade\.$`)
 )
 
 type ExperienceGain struct {
@@ -84,6 +85,11 @@ type TradeComplete struct {
 	NPC  string
 }
 
+type TradeCancel struct {
+	Time time.Time
+	NPC  string
+}
+
 type RecordKind uint8
 
 const (
@@ -99,23 +105,25 @@ const (
 	RecordItemRemoval
 	RecordTradeOffer
 	RecordTradeComplete
+	RecordTradeCancel
 )
 
 // Record is one timestamped EverQuest log entry. Unknown records retain their
 // timestamp so session timing can observe log activity without reparsing lines.
 type Record struct {
-	Time       time.Time
-	Kind       RecordKind
-	Cast       combat.Cast
-	Damage     combat.Event
-	Experience ExperienceGain
-	LevelUp    LevelUp
-	Death      combat.Death
-	ZoneChange ZoneChange
-	Loot       Loot
-	Removal    ItemRemoval
-	TradeOffer TradeOffer
-	TradeDone  TradeComplete
+	Time        time.Time
+	Kind        RecordKind
+	Cast        combat.Cast
+	Damage      combat.Event
+	Experience  ExperienceGain
+	LevelUp     LevelUp
+	Death       combat.Death
+	ZoneChange  ZoneChange
+	Loot        Loot
+	Removal     ItemRemoval
+	TradeOffer  TradeOffer
+	TradeDone   TradeComplete
+	TradeCancel TradeCancel
 }
 
 func ParseRecord(line string) (Record, bool) {
@@ -156,8 +164,18 @@ func ParseRecordAfter(line string, cutoff time.Time) (Record, bool) {
 		record.Kind, record.TradeOffer = RecordTradeOffer, offer
 	} else if completed, ok := parseTradeComplete(timestamp, message); ok {
 		record.Kind, record.TradeDone = RecordTradeComplete, completed
+	} else if cancelled, ok := parseTradeCancel(timestamp, message); ok {
+		record.Kind, record.TradeCancel = RecordTradeCancel, cancelled
 	}
 	return record, true
+}
+
+func parseTradeCancel(timestamp time.Time, message string) (TradeCancel, bool) {
+	matches := tradeCancelRE.FindStringSubmatch(message)
+	if matches == nil {
+		return TradeCancel{}, false
+	}
+	return TradeCancel{Time: timestamp, NPC: strings.TrimSpace(matches[2])}, true
 }
 
 func parseTradeOffer(timestamp time.Time, message string) (TradeOffer, bool) {
