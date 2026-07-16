@@ -22,11 +22,12 @@ import (
 )
 
 var (
-	skyCompleteColor = tcell.NewHexColor(0xbfe8bf)
-	skyMissingColor  = tcell.NewHexColor(0xefb8b8)
-	skyDoneColor     = tcell.NewHexColor(0x8f8f8f)
-	infoBarColor     = tcell.NewHexColor(0x303030)
-	infoNoticeColor  = tcell.NewHexColor(0x285b38)
+	skyCompleteColor  = tcell.NewHexColor(0xbfe8bf)
+	skyMissingColor   = tcell.NewHexColor(0xefb8b8)
+	skyDoneColor      = tcell.NewHexColor(0x8f8f8f)
+	combatantRowColor = tcell.NewHexColor(0x202428)
+	infoBarColor      = tcell.NewHexColor(0x303030)
+	infoNoticeColor   = tcell.NewHexColor(0x285b38)
 )
 
 const skyCatchupOverlayThreshold int64 = 5 * 1024 * 1024
@@ -1543,7 +1544,7 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 				fmt.Sprintf("%d", player.MinHit), fmt.Sprintf("%d", player.MaxHit), formatDuration(player.ActiveDuration()),
 			}
 			for col, value := range values {
-				table.SetCell(row, col, tableCell(value, col, layout))
+				table.SetCell(row, col, tableCell(value, col, layout).SetBackgroundColor(combatantRowColor))
 			}
 			if len(player.Breakdown) == 0 {
 				row++

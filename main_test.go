@@ -471,6 +471,15 @@ func TestFillTableShowsExpandableMobSectionsWithSharedDPS(t *testing.T) {
 	if _, ok := actions[3]; !ok {
 		t.Fatal("expected non-local combatant to be expandable")
 	}
+	for row := 2; row <= 3; row++ {
+		for col := 0; col < 10; col++ {
+			cell := table.GetCell(row, col)
+			_, got, _ := cell.Style.Decompose()
+			if cell.Transparent || got != combatantRowColor {
+				t.Fatalf("combatant row %d column %d has background %v, want %v", row, col, got, combatantRowColor)
+			}
+		}
+	}
 }
 
 func TestFillTableCollapsedMobShowsFightSummary(t *testing.T) {
