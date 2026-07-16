@@ -1,6 +1,11 @@
 package skyquest
 
-import "testing"
+import (
+	"fmt"
+	"sort"
+	"strings"
+	"testing"
+)
 
 func TestEmbeddedDatabaseHasCompleteClassQuestTables(t *testing.T) {
 	database, err := LoadDatabase()
@@ -25,6 +30,28 @@ func TestEmbeddedDatabaseHasCompleteClassQuestTables(t *testing.T) {
 	}
 	if got, want := quests, 95; got != want {
 		t.Fatalf("quests = %d, want %d", got, want)
+	}
+}
+
+func TestQuestGiverAndRequirementsUniquelyIdentifyEveryQuest(t *testing.T) {
+	database, err := LoadDatabase()
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := make(map[string]string)
+	for _, class := range database.Classes {
+		for _, quest := range class.Quests {
+			items := make([]string, 0, len(quest.Requirements))
+			for _, requirement := range quest.Requirements {
+				items = append(items, fmt.Sprintf("%d:%s", requirement.Quantity, requirement.Name))
+			}
+			sort.Strings(items)
+			key := quest.QuestGiver + "\x00" + strings.Join(items, "\x00")
+			if previous, exists := seen[key]; exists {
+				t.Errorf("quests %q and %q share giver and requirements", previous, quest.Name)
+			}
+			seen[key] = quest.Name
+		}
 	}
 }
 

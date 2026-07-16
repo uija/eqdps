@@ -176,6 +176,13 @@ free`, or converted into an upgraded item do not count. Exact `You successfully
 destroyed N Item.` messages decrement known holdings in every zone because an
 item may be destroyed after leaving Sky.
 
+Quest completion is identified from the exact multiset of `You offered ... to
+NPC.` lines followed by `You complete the trade with NPC.` while in Plane of
+Sky. Offers remain pending and do not alter holdings until that confirmation.
+The matching quest is then stored in `completed_quests`, its requirements are
+consumed from holdings, it is removed from READY, and the table shows it as
+DONE with per-class completion counts.
+
 On first enable, the scanner processes the logfile from byte zero in a
 background goroutine, reports byte and line progress, and keeps the result in
 memory until successful completion. Cancellation creates no JSON or partial

@@ -445,3 +445,14 @@ func TestParseAggroClearLine(t *testing.T) {
 		t.Fatalf("expected timestamp %s, got %s", want, got)
 	}
 }
+
+func TestParseQuestTradeLines(t *testing.T) {
+	offer, ok := ParseRecord("[Thu Jul 16 13:08:59 2026] You offered 1 Black Silk Cape to Drakis Bloodcaster.")
+	if !ok || offer.Kind != RecordTradeOffer || offer.TradeOffer.Item != "Black Silk Cape" || offer.TradeOffer.Quantity != 1 || offer.TradeOffer.NPC != "Drakis Bloodcaster" {
+		t.Fatalf("unexpected trade offer: %#v", offer)
+	}
+	completed, ok := ParseRecord("[Thu Jul 16 13:09:20 2026] You complete the trade with Drakis Bloodcaster.")
+	if !ok || completed.Kind != RecordTradeComplete || completed.TradeDone.NPC != "Drakis Bloodcaster" {
+		t.Fatalf("unexpected completed trade: %#v", completed)
+	}
+}

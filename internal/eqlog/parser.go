@@ -29,6 +29,8 @@ var (
 	lootRE       = regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)
 	lootResultRE = regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)
 	destroyRE    = regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)
+	tradeOfferRE = regexp.MustCompile(`^You offered ([0-9]+) (.+) to (.+)\.$`)
+	tradeDoneRE  = regexp.MustCompile(`^You complete the trade with (.+)\.$`)
 )
 
 type ExperienceGain struct {
@@ -70,6 +72,18 @@ type ItemRemoval struct {
 	Quantity int
 }
 
+type TradeOffer struct {
+	Time     time.Time
+	Item     string
+	Quantity int
+	NPC      string
+}
+
+type TradeComplete struct {
+	Time time.Time
+	NPC  string
+}
+
 type RecordKind uint8
 
 const (
@@ -83,6 +97,8 @@ const (
 	RecordZoneChange
 	RecordLoot
 	RecordItemRemoval
+	RecordTradeOffer
+	RecordTradeComplete
 )
 
 // Record is one timestamped EverQuest log entry. Unknown records retain their
@@ -98,6 +114,8 @@ type Record struct {
 	ZoneChange ZoneChange
 	Loot       Loot
 	Removal    ItemRemoval
+	TradeOffer TradeOffer
+	TradeDone  TradeComplete
 }
 
 func ParseRecord(line string) (Record, bool) {
@@ -134,8 +152,32 @@ func ParseRecordAfter(line string, cutoff time.Time) (Record, bool) {
 		record.Kind, record.Loot = RecordLoot, loot
 	} else if removal, ok := parseItemRemoval(timestamp, message); ok {
 		record.Kind, record.Removal = RecordItemRemoval, removal
+	} else if offer, ok := parseTradeOffer(timestamp, message); ok {
+		record.Kind, record.TradeOffer = RecordTradeOffer, offer
+	} else if completed, ok := parseTradeComplete(timestamp, message); ok {
+		record.Kind, record.TradeDone = RecordTradeComplete, completed
 	}
 	return record, true
+}
+
+func parseTradeOffer(timestamp time.Time, message string) (TradeOffer, bool) {
+	matches := tradeOfferRE.FindStringSubmatch(message)
+	if matches == nil {
+		return TradeOffer{}, false
+	}
+	quantity, err := strconv.Atoi(matches[1])
+	if err != nil || quantity < 1 {
+		return TradeOffer{}, false
+	}
+	return TradeOffer{Time: timestamp, Quantity: quantity, Item: strings.TrimSpace(matches[2]), NPC: strings.TrimSpace(matches[3])}, true
+}
+
+func parseTradeComplete(timestamp time.Time, message string) (TradeComplete, bool) {
+	matches := tradeDoneRE.FindStringSubmatch(message)
+	if matches == nil {
+		return TradeComplete{}, false
+	}
+	return TradeComplete{Time: timestamp, NPC: strings.TrimSpace(matches[1])}, true
 }
 
 func ParseZoneChangeLine(line string) (ZoneChange, bool) {

@@ -36,11 +36,13 @@ type ScanProgress struct {
 }
 
 type CharacterState struct {
-	Version    int            `json:"version"`
-	Character  string         `json:"character"`
-	Server     string         `json:"server"`
-	Holdings   map[string]int `json:"holdings"`
-	Checkpoint LogCheckpoint  `json:"log_checkpoint"`
+	Version    int                       `json:"version"`
+	Character  string                    `json:"character"`
+	Server     string                    `json:"server"`
+	Holdings   map[string]int            `json:"holdings"`
+	Completed  map[string]bool           `json:"completed_quests,omitempty"`
+	Pending    map[string]map[string]int `json:"pending_offers,omitempty"`
+	Checkpoint LogCheckpoint             `json:"log_checkpoint"`
 }
 
 type LogCheckpoint struct {
@@ -88,6 +90,8 @@ func openPersistentTracker(logPath string, database Database, maxBytes int64, on
 	statePath := filepath.Join(filepath.Dir(absoluteLogPath), character+"_"+server+"_PoS.json")
 	state := CharacterState{
 		Version: stateVersion, Character: character, Server: server, Holdings: make(map[string]int),
+		Completed:  make(map[string]bool),
+		Pending:    make(map[string]map[string]int),
 		Checkpoint: LogCheckpoint{LogFile: filepath.Base(absoluteLogPath)},
 	}
 	if err := loadState(statePath, &state); err != nil {
@@ -101,6 +105,19 @@ func openPersistentTracker(logPath string, database Database, maxBytes int64, on
 	for item, quantity := range state.Holdings {
 		if _, known := persistent.tracker.known[item]; known && quantity > 0 {
 			persistent.tracker.owned[item] = quantity
+		}
+	}
+	for quest, completed := range state.Completed {
+		if completed {
+			persistent.tracker.completed[quest] = true
+		}
+	}
+	for npc, offered := range state.Pending {
+		persistent.tracker.pending[npc] = make(map[string]int, len(offered))
+		for item, quantity := range offered {
+			if _, known := persistent.tracker.known[item]; known && quantity > 0 {
+				persistent.tracker.pending[npc][item] = quantity
+			}
 		}
 	}
 	persistent.tracker.zone = state.Checkpoint.LastZone
@@ -244,6 +261,7 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) bool
 	changed := false
 	if ok {
 		beforeZone := p.tracker.zone
+		beforeCompleted := len(p.tracker.completed)
 		beforeQuantity := 0
 		item := ""
 		switch record.Kind {
@@ -256,7 +274,7 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) bool
 			beforeQuantity = p.tracker.Owned(item)
 		}
 		p.tracker.ProcessRecord(record)
-		changed = beforeZone != p.tracker.zone || item != "" && beforeQuantity != p.tracker.Owned(item)
+		changed = beforeZone != p.tracker.zone || item != "" && beforeQuantity != p.tracker.Owned(item) || beforeCompleted != len(p.tracker.completed)
 		if record.Time.After(p.state.Checkpoint.LastTimestamp) {
 			p.state.Checkpoint.LastTimestamp = record.Time
 		}
@@ -264,6 +282,8 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) bool
 	p.state.Checkpoint.Offset = endOffset
 	p.state.Checkpoint.LastZone = p.tracker.zone
 	p.state.Holdings = p.tracker.Inventory()
+	p.state.Completed = p.tracker.Completed()
+	p.state.Pending = p.tracker.PendingOffers()
 	return changed
 }
 
@@ -359,6 +379,12 @@ func loadState(path string, state *CharacterState) error {
 	}
 	if state.Holdings == nil {
 		state.Holdings = make(map[string]int)
+	}
+	if state.Completed == nil {
+		state.Completed = make(map[string]bool)
+	}
+	if state.Pending == nil {
+		state.Pending = make(map[string]map[string]int)
 	}
 	return nil
 }

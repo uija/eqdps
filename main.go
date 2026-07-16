@@ -1110,18 +1110,25 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 		className := progress[index].Class
 		end := index
 		readyCount := 0
+		completedCount := 0
 		for end < len(progress) && progress[end].Class == className {
 			if progress[end].Ready {
 				readyCount++
 			}
+			if progress[end].Completed {
+				completedCount++
+			}
 			end++
 		}
-		setSkyRow(table, row, className, fmt.Sprintf("%d ready / %d", readyCount, end-index), "", "", "", tcell.ColorYellow, false)
+		setSkyRow(table, row, className, fmt.Sprintf("%d/%d done · %d ready", completedCount, end-index, readyCount), "", "", "", tcell.ColorYellow, false)
 		row++
 		for _, item := range progress[index:end] {
 			status := fmt.Sprintf("missing %d", len(item.Missing))
 			color := tcell.ColorWhite
-			if item.Ready {
+			if item.Completed {
+				status = "DONE"
+				color = tcell.ColorGreen
+			} else if item.Ready {
 				status = "READY"
 				color = tcell.ColorGreen
 			}
@@ -1132,11 +1139,16 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 				owned := inventory[requirement.Name]
 				mark := "✗"
 				requirementColor := tcell.ColorRed
-				if owned >= requirement.Quantity {
+				ownedText, neededText := fmt.Sprint(owned), fmt.Sprint(requirement.Quantity)
+				if item.Completed {
+					mark = "✓"
+					requirementColor = tcell.ColorGreen
+					ownedText, neededText = "—", "—"
+				} else if owned >= requirement.Quantity {
 					mark = "✓"
 					requirementColor = tcell.ColorGreen
 				}
-				setSkyRow(table, row, "      "+mark+" "+requirement.Name, "", fmt.Sprint(owned), fmt.Sprint(requirement.Quantity), skyRequirementSource(requirement), requirementColor, false)
+				setSkyRow(table, row, "      "+mark+" "+requirement.Name, "", ownedText, neededText, skyRequirementSource(requirement), requirementColor, false)
 				row++
 			}
 		}

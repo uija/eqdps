@@ -124,6 +124,39 @@ func TestPersistentTrackerLeavesPartialFinalLineForNextRead(t *testing.T) {
 	}
 }
 
+func TestPersistentTrackerSavesCompletedQuest(t *testing.T) {
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	content := "[Thu Jul 16 13:08:00 2026] You have entered The Plane of Sky.\n" +
+		"[Thu Jul 16 13:08:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n" +
+		"[Thu Jul 16 13:08:02 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--\n" +
+		"[Thu Jul 16 13:08:59 2026] You offered 1 Light Woolen Mask to Clarisa Spiritsong.\n" +
+		"[Thu Jul 16 13:09:16 2026] You offered 1 Wind Rune Caza to Clarisa Spiritsong.\n" +
+		"[Thu Jul 16 13:09:20 2026] You complete the trade with Clarisa Spiritsong.\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tracker, err := OpenPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	progress := tracker.QuestProgress()[0]
+	if !progress.Completed || len(tracker.Inventory()) != 0 {
+		t.Fatalf("completed quest was not restored from log: %#v, inventory %#v", progress, tracker.Inventory())
+	}
+	data, err := os.ReadFile(filepath.Join(directory, "Wyrmberg_rivervale_PoS.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state CharacterState
+	if err := json.Unmarshal(data, &state); err != nil {
+		t.Fatal(err)
+	}
+	if !state.Completed["Bard Test of Tone"] {
+		t.Fatalf("completed quest missing from state: %#v", state.Completed)
+	}
+}
+
 func TestCancelledInitialScanCreatesNoStateFile(t *testing.T) {
 	directory := t.TempDir()
 	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
