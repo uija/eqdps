@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +83,92 @@ func TestPersistentTrackerScansOnceAndResumesFromExactByteOffset(t *testing.T) {
 	}
 	if state.Checkpoint.LastZone != "East Freeport" || state.Holdings["Wind Rune Caza"] != 1 {
 		t.Fatalf("unexpected persisted state: %#v", state)
+	}
+}
+
+func TestLoadPersistentTrackerDoesNotCatchUpUntilSync(t *testing.T) {
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	initial := "[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n"
+	if err := os.WriteFile(logPath, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := OpenPersistentTracker(logPath, testDatabase()); err != nil {
+		t.Fatal(err)
+	}
+	appended := "[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n"
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString(appended); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := LoadPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Offset() != int64(len(initial)) || loaded.Inventory()["Wind Rune Caza"] != 0 {
+		t.Fatalf("load unexpectedly caught up: offset %d, inventory %#v", loaded.Offset(), loaded.Inventory())
+	}
+	if err := loaded.SyncLogWithProgress(logPath, int64(len(initial)+len(appended)), nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Offset() != int64(len(initial)+len(appended)) || loaded.Inventory()["Wind Rune Caza"] != 1 {
+		t.Fatalf("explicit sync did not catch up: offset %d, inventory %#v", loaded.Offset(), loaded.Inventory())
+	}
+}
+
+func TestCancelledCatchupLeavesSavedCheckpointUnchanged(t *testing.T) {
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	initial := "[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n"
+	if err := os.WriteFile(logPath, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := OpenPersistentTracker(logPath, testDatabase()); err != nil {
+		t.Fatal(err)
+	}
+	appended := strings.Repeat("[Thu Jul 16 10:40:01 2026] ignored catch-up line\n", 6001)
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString(appended); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel := make(chan struct{})
+	err = loaded.SyncLogWithProgress(logPath, int64(len(initial)+len(appended)), func(progress ScanProgress) {
+		if progress.Lines >= 5000 {
+			select {
+			case <-cancel:
+			default:
+				close(cancel)
+			}
+		}
+	}, cancel)
+	if !errors.Is(err, ErrScanCancelled) {
+		t.Fatalf("catch-up error = %v, want ErrScanCancelled", err)
+	}
+	reloaded, err := LoadPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Offset() != int64(len(initial)) {
+		t.Fatalf("cancelled catch-up saved offset %d, want %d", reloaded.Offset(), len(initial))
 	}
 }
 

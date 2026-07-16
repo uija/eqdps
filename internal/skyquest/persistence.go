@@ -62,7 +62,21 @@ type PersistentTracker struct {
 }
 
 func OpenPersistentTracker(logPath string, database Database) (*PersistentTracker, error) {
-	return openPersistentTracker(logPath, database, 0, nil, nil)
+	persistent, absoluteLogPath, err := loadPersistentTracker(logPath, database)
+	if err != nil {
+		return nil, err
+	}
+	if err := persistent.syncLog(absoluteLogPath, 0, nil, nil); err != nil {
+		return nil, err
+	}
+	return persistent, nil
+}
+
+// LoadPersistentTracker loads saved state without reading newer logfile lines.
+// Call SyncLogWithProgress before live processing begins.
+func LoadPersistentTracker(logPath string, database Database) (*PersistentTracker, error) {
+	persistent, _, err := loadPersistentTracker(logPath, database)
+	return persistent, err
 }
 
 func InitializePersistentTracker(logPath string, database Database, maxBytes int64, onProgress func(ScanProgress), cancel <-chan struct{}) (*PersistentTracker, error) {
@@ -79,13 +93,24 @@ func InitializePersistentTracker(logPath string, database Database, maxBytes int
 }
 
 func openPersistentTracker(logPath string, database Database, maxBytes int64, onProgress func(ScanProgress), cancel <-chan struct{}) (*PersistentTracker, error) {
-	character, server, err := CharacterIdentity(logPath)
+	persistent, absoluteLogPath, err := loadPersistentTracker(logPath, database)
 	if err != nil {
 		return nil, err
 	}
+	if err := persistent.syncLog(absoluteLogPath, maxBytes, onProgress, cancel); err != nil {
+		return nil, err
+	}
+	return persistent, nil
+}
+
+func loadPersistentTracker(logPath string, database Database) (*PersistentTracker, string, error) {
+	character, server, err := CharacterIdentity(logPath)
+	if err != nil {
+		return nil, "", err
+	}
 	absoluteLogPath, err := filepath.Abs(logPath)
 	if err != nil {
-		return nil, fmt.Errorf("resolve log path: %w", err)
+		return nil, "", fmt.Errorf("resolve log path: %w", err)
 	}
 	statePath := filepath.Join(filepath.Dir(absoluteLogPath), character+"_"+server+"_PoS.json")
 	state := CharacterState{
@@ -95,10 +120,10 @@ func openPersistentTracker(logPath string, database Database, maxBytes int64, on
 		Checkpoint: LogCheckpoint{LogFile: filepath.Base(absoluteLogPath)},
 	}
 	if err := loadState(statePath, &state); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if state.Version != stateVersion || state.Character != character || state.Server != server || state.Checkpoint.LogFile != filepath.Base(absoluteLogPath) {
-		return nil, fmt.Errorf("%w: state identity does not match %s", ErrInvalidCheckpoint, filepath.Base(absoluteLogPath))
+		return nil, "", fmt.Errorf("%w: state identity does not match %s", ErrInvalidCheckpoint, filepath.Base(absoluteLogPath))
 	}
 
 	persistent := &PersistentTracker{tracker: NewTracker(database), state: state, statePath: statePath}
@@ -121,10 +146,7 @@ func openPersistentTracker(logPath string, database Database, maxBytes int64, on
 		}
 	}
 	persistent.tracker.zone = state.Checkpoint.LastZone
-	if err := persistent.syncLog(absoluteLogPath, maxBytes, onProgress, cancel); err != nil {
-		return nil, err
-	}
-	return persistent, nil
+	return persistent, absoluteLogPath, nil
 }
 
 func StatePath(logPath string) (string, error) {
@@ -229,6 +251,12 @@ func (p *PersistentTracker) SyncLog(logPath string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.syncLog(logPath, 0, nil, nil)
+}
+
+func (p *PersistentTracker) SyncLogWithProgress(logPath string, maxBytes int64, onProgress func(ScanProgress), cancel <-chan struct{}) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.syncLog(logPath, maxBytes, onProgress, cancel)
 }
 
 func (p *PersistentTracker) ProcessLine(line string, endOffset int64) error {

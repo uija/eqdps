@@ -54,7 +54,9 @@ go run . /path/to/eqlog_character_server.txt
 By default, combat live mode starts at the current end of the log file and only
 parses new combat lines written after startup. Once Plane of Sky tracking is
 enabled, its character state resumes from its saved logfile offset and catches
-up missed loot and turn-ins before following live lines.
+up missed loot and turn-ins before following live lines. A backlog larger than
+5 MiB opens the TUI immediately and uses the shared progress overlay; `Esc`
+cancels that catch-up and exits with a valid saved checkpoint.
 
 ## Hotkeys
 

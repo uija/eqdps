@@ -207,6 +207,12 @@ first-line fingerprint and file-size check reject unsafe automatic recovery
 after log replacement or truncation. Combat `--back`, `--since`, and history
 reloads never mutate Sky holdings.
 
+Existing-state catch-up remains silent for backlogs up to 5 MiB. Larger
+backlogs open the TUI at once and reuse the shared byte/line progress overlay.
+Live PoS processing waits at the catch-up snapshot boundary so it cannot skip
+or overtake missed lines. `Esc` cancels and exits; the partially processed
+in-memory tracker is discarded, so the last saved checkpoint remains valid.
+
 Press `p` to open the read-only quest tracker. Its flat, wiki-style table lists
 every quest and required item under its class, puts quests with every required
 item in a ready-to-turn-in section, and shows owned and required quantities plus

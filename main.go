@@ -29,6 +29,8 @@ var (
 	infoNoticeColor  = tcell.NewHexColor(0x285b38)
 )
 
+const skyCatchupOverlayThreshold int64 = 5 * 1024 * 1024
+
 func main() {
 	textMode := flag.Bool("text", false, "print the DPS table to stdout instead of opening the terminal UI")
 	idleTimeout := flag.Duration("idle-timeout", combat.DefaultIdleTimeout, "end the current fight after this much time without combat")
@@ -63,11 +65,30 @@ func main() {
 		os.Exit(1)
 	}
 	var skyTracker *skyquest.PersistentTracker
+	var skyCatchupTarget int64
 	if skyStateExists {
-		skyTracker, err = skyquest.OpenPersistentTracker(logPath, skyDatabase)
+		skyTracker, err = skyquest.LoadPersistentTracker(logPath, skyDatabase)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
+		}
+		info, statErr := os.Stat(logPath)
+		if statErr != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", statErr)
+			os.Exit(1)
+		}
+		backlog := info.Size() - skyTracker.Offset()
+		if backlog < 0 {
+			fmt.Fprintf(os.Stderr, "Plane of Sky checkpoint exceeds logfile size\n")
+			os.Exit(1)
+		}
+		if !needsSkyCatchupOverlay(backlog, *textMode) {
+			if err := skyTracker.SyncLog(logPath); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+		} else {
+			skyCatchupTarget = info.Size()
 		}
 	}
 	if *textMode {
@@ -83,7 +104,7 @@ func main() {
 		return
 	}
 
-	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit, skyDatabase, skyTracker, !skyStateExists); err != nil {
+	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit, skyDatabase, skyTracker, !skyStateExists, skyCatchupTarget); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -94,6 +115,14 @@ func backDuration(minutes int) time.Duration {
 		return 0
 	}
 	return time.Duration(minutes) * time.Minute
+}
+
+func needsSkyCatchupOverlay(backlog int64, textMode bool) bool {
+	return !textMode && backlog > skyCatchupOverlayThreshold
+}
+
+func isLiveLineAfterCatchup(endOffset, catchupTarget int64) bool {
+	return catchupTarget == 0 || endOffset > catchupTarget
 }
 
 func parseSince(value string) (time.Time, error) {
@@ -263,7 +292,7 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 	}
 }
 
-func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, skyDatabase skyquest.Database, skyTracker *skyquest.PersistentTracker, skyNeedsSetup bool) error {
+func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, skyDatabase skyquest.Database, skyTracker *skyquest.PersistentTracker, skyNeedsSetup bool, skyCatchupTarget int64) error {
 	app := tview.NewApplication()
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
 	xpSession := xp.NewSession()
@@ -276,7 +305,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	skyViewOpen := false
 	var renderSkyView = func() {}
 	skyStartOffset := int64(0)
-	if skyTracker != nil {
+	if skyCatchupTarget > 0 {
+		skyStartOffset = skyCatchupTarget
+	} else if skyTracker != nil {
 		skyStartOffset = skyTracker.Offset()
 	} else {
 		info, err := os.Stat(logPath)
@@ -314,6 +345,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		SetDynamicColors(true)
 	var skyNotice string
 	var skyNoticeUntil time.Time
+	skyCatchupOpen := skyCatchupTarget > 0
 
 	render := func() {
 		mu.Lock()
@@ -326,7 +358,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		skyMu.Lock()
 		activeSkyTracker := skyTracker
 		readyCount := 0
-		if activeSkyTracker != nil {
+		if activeSkyTracker != nil && !skyCatchupOpen {
 			readyCount = len(activeSkyTracker.ReadyQuests())
 		}
 		notice := skyNotice
@@ -366,6 +398,10 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	})
 
 	done := make(chan struct{})
+	skyCatchupDone := make(chan struct{})
+	if skyCatchupTarget == 0 {
+		close(skyCatchupDone)
+	}
 	errCh := make(chan error, 1)
 	var stopOnce sync.Once
 	stop := func() {
@@ -374,10 +410,25 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		})
 	}
 	go func() {
-		if err := followLog(logPath, skyStartOffset, done, func(line string, endOffset int64) {
-			mu.Lock()
-			processLine(line, tracker, xpSession, idleTimeout)
-			mu.Unlock()
+		select {
+		case <-skyCatchupDone:
+		case <-done:
+			return
+		}
+		followOffset := skyStartOffset
+		if skyCatchupTarget > 0 {
+			skyMu.Lock()
+			if skyTracker != nil {
+				followOffset = skyTracker.Offset()
+			}
+			skyMu.Unlock()
+		}
+		if err := followLog(logPath, followOffset, done, func(line string, endOffset int64) {
+			if isLiveLineAfterCatchup(endOffset, skyCatchupTarget) {
+				mu.Lock()
+				processLine(line, tracker, xpSession, idleTimeout)
+				mu.Unlock()
+			}
 			skyMu.Lock()
 			activeSkyTracker := skyTracker
 			if activeSkyTracker != nil {
@@ -469,6 +520,8 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	skyScanOpen := false
 	var skyScanCancel chan struct{}
 	var skyScanView *tview.TextView
+	var skyCatchupCancel chan struct{}
+	var skyCatchupView *tview.TextView
 	historyOpen := false
 	filterOpen := false
 	replayOpen := false
@@ -508,6 +561,57 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		skyScanCancel = nil
 		skyScanView = nil
 		app.SetFocus(table)
+	}
+
+	startSkyCatchup := func() {
+		startOffset := skyTracker.Offset()
+		total := skyCatchupTarget - startOffset
+		skyCatchupCancel = make(chan struct{})
+		cancel := skyCatchupCancel
+		skyCatchupView = showProgressOverlay(app, pages, "sky-catchup", " Catching up Plane of Sky tracker — Esc cancel and exit ")
+		skyCatchupView.SetText(operationProgressText("Processing missed Plane of Sky activity…", 0, total, 0))
+
+		go func() {
+			catchupErr := skyTracker.SyncLogWithProgress(
+				logPath, skyCatchupTarget,
+				func(progress skyquest.ScanProgress) {
+					app.QueueUpdateDraw(func() {
+						if skyCatchupOpen && skyCatchupView != nil {
+							processed := progress.Bytes - startOffset
+							if processed < 0 {
+								processed = 0
+							}
+							skyCatchupView.SetText(operationProgressText("Processing missed Plane of Sky activity…", processed, total, progress.Lines))
+						}
+					})
+				},
+				cancel,
+			)
+			app.QueueUpdateDraw(func() {
+				if errors.Is(catchupErr, skyquest.ErrScanCancelled) {
+					skyMu.Lock()
+					skyTracker = nil
+					skyMu.Unlock()
+					app.Stop()
+					return
+				}
+				if catchupErr != nil {
+					skyMu.Lock()
+					skyTracker = nil
+					skyMu.Unlock()
+					errCh <- catchupErr
+					app.Stop()
+					return
+				}
+				skyCatchupOpen = false
+				skyCatchupCancel = nil
+				skyCatchupView = nil
+				pages.RemovePage("sky-catchup")
+				close(skyCatchupDone)
+				app.SetFocus(table)
+				render()
+			})
+		}()
 	}
 
 	startSkyScan := func() {
@@ -738,6 +842,16 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if skyCatchupOpen {
+			if event.Key() == tcell.KeyEsc && skyCatchupCancel != nil {
+				close(skyCatchupCancel)
+				skyCatchupCancel = nil
+				if skyCatchupView != nil {
+					skyCatchupView.SetTitle(" Cancelling Plane of Sky catch-up… ")
+				}
+			}
+			return nil
+		}
 		if skyScanOpen {
 			if event.Key() == tcell.KeyEsc {
 				if skyScanCancel != nil {
@@ -872,7 +986,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	app.SetRoot(pages, true)
-	if !skyNeedsSetup {
+	if skyCatchupOpen {
+		startSkyCatchup()
+	} else if !skyNeedsSetup {
 		app.SetFocus(table)
 	}
 	err := app.Run()

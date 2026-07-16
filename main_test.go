@@ -131,6 +131,28 @@ func TestOperationsShareDetailedProgressText(t *testing.T) {
 	}
 }
 
+func TestLargeSkyCatchupUsesOverlayOnlyInTUI(t *testing.T) {
+	if needsSkyCatchupOverlay(skyCatchupOverlayThreshold, false) {
+		t.Fatal("threshold-sized catch-up should remain silent")
+	}
+	if !needsSkyCatchupOverlay(skyCatchupOverlayThreshold+1, false) {
+		t.Fatal("catch-up above threshold should use overlay")
+	}
+	if needsSkyCatchupOverlay(skyCatchupOverlayThreshold+1, true) {
+		t.Fatal("text mode cannot use TUI overlay")
+	}
+}
+
+func TestCatchupBoundarySuppressesHistoricalCombatButKeepsCompletedPartialLine(t *testing.T) {
+	const target = int64(1000)
+	if isLiveLineAfterCatchup(target, target) {
+		t.Fatal("line ending at catch-up boundary is historical")
+	}
+	if !isLiveLineAfterCatchup(target+1, target) {
+		t.Fatal("line completed after catch-up boundary must remain live")
+	}
+}
+
 func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 	quest := skyquest.Quest{
 		Name: "Bard Test of Tone", QuestGiver: "Clarisa Spiritsong", Rewards: []string{"Mask of Song"},
