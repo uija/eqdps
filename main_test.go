@@ -131,6 +131,24 @@ func TestHistoryDuration(t *testing.T) {
 	}
 }
 
+func TestReplayCutoffCanBeCancelledDuringLatestTimestampScan(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "eqlog_Test_server.txt")
+	var log strings.Builder
+	for index := 0; index < 2000; index++ {
+		log.WriteString("[Thu Jul 16 12:00:00 2026] You say, 'test'\n")
+	}
+	if err := os.WriteFile(path, []byte(log.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cancel := make(chan struct{})
+	close(cancel)
+
+	_, err := replayCutoffWithCancel(path, time.Hour, time.Time{}, cancel)
+	if !errors.Is(err, errReplayCancelled) {
+		t.Fatalf("expected replay cancellation, got %v", err)
+	}
+}
+
 func TestFullHistoryUsesBeginningOfLogCutoff(t *testing.T) {
 	full, ok := historyDuration("Full")
 	if !ok {
@@ -495,6 +513,18 @@ func TestFillTableShowsExpandableMobSectionsWithSharedDPS(t *testing.T) {
 				t.Fatalf("combatant row %d column %d has background %v, want %v", row, col, got, combatantRowColor)
 			}
 		}
+	}
+}
+
+func TestFillTableExplainsEmptyHistory(t *testing.T) {
+	table := tview.NewTable()
+	actions := fillTable(table, nil, make(map[string]bool), 100)
+
+	if got := table.GetCell(1, 0).Text; got != "No fights found in the selected history." {
+		t.Fatalf("unexpected empty-history message: %q", got)
+	}
+	if len(actions) != 0 {
+		t.Fatalf("empty history exposed expandable rows: %#v", actions)
 	}
 }
 

@@ -154,7 +154,7 @@ type replayProgress struct {
 var errReplayCancelled = errors.New("replay cancelled")
 
 func replayLogWithProgress(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, maxBytes int64, onProgress func(replayProgress), cancel <-chan struct{}) (*combat.FightTracker, *xp.Session, error) {
-	cutoff, err := replayCutoff(logPath, back, since)
+	cutoff, err := replayCutoffWithCancel(logPath, back, since, cancel)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -225,6 +225,10 @@ func replayCancelled(cancel <-chan struct{}) bool {
 }
 
 func replayCutoff(logPath string, back time.Duration, since time.Time) (time.Time, error) {
+	return replayCutoffWithCancel(logPath, back, since, nil)
+}
+
+func replayCutoffWithCancel(logPath string, back time.Duration, since time.Time, cancel <-chan struct{}) (time.Time, error) {
 	if !since.IsZero() {
 		return since, nil
 	}
@@ -241,7 +245,12 @@ func replayCutoff(logPath string, back time.Duration, since time.Time) (time.Tim
 	var latest time.Time
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	linesRead := 0
 	for scanner.Scan() {
+		if linesRead%1000 == 0 && replayCancelled(cancel) {
+			return time.Time{}, errReplayCancelled
+		}
+		linesRead++
 		if timestamp, ok := eqlog.ParseTime(scanner.Text()); ok && timestamp.After(latest) {
 			latest = timestamp
 		}
@@ -896,6 +905,15 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			return event
 		}
 		if replayOpen {
+			if event.Rune() == 'q' || event.Rune() == 'Q' {
+				if replayCancel != nil {
+					close(replayCancel)
+					replayCancel = nil
+				}
+				stop()
+				app.Stop()
+				return nil
+			}
 			if event.Key() == tcell.KeyEsc {
 				if replayCancel != nil {
 					close(replayCancel)
@@ -1491,6 +1509,10 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 	headers := []string{"Combatant", "%", "Damage", "DPS", "SDPS", "Hits", "Crits", "Min", "Max", "Active"}
 	for col, header := range headers {
 		table.SetCell(0, col, tableCell(header, col, layout).SetTextColor(tcell.ColorYellow).SetSelectable(false))
+	}
+	if len(sections) == 0 {
+		table.SetCell(1, 0, tableCell("No fights found in the selected history.", 0, layout).SetTextColor(tcell.ColorGray).SetSelectable(false))
+		return expandableRows
 	}
 
 	row := 1
