@@ -26,7 +26,7 @@ intentionally not duplicated under `docs/`.
 | --- | --- |
 | `main.go` | CLI, replay, live file tailing, TUI, rendering, input handling |
 | `main_test.go` | UI layout and history-menu helper tests |
-| `internal/eqlog/parser.go` | Log envelope, damage, spell, shield, and death parsing |
+| `internal/eqlog/parser.go` | Unified log records plus damage, cast, XP, aggro, and death parsing |
 | `internal/eqlog/parser_test.go` | Exact production log format regressions |
 | `internal/combat/combat.go` | Stats, pet merging, per-mob lifecycle, history |
 | `internal/combat/combat_test.go` | Meter and per-mob state behavior |
@@ -39,8 +39,8 @@ intentionally not duplicated under `docs/`.
 
 ```text
 log line
-  -> eqlog damage/death/XP/level-up/aggro-clear parsers
-  -> main.processLine
+  -> eqlog.ParseRecord (one envelope/timestamp parse)
+  -> main.processRecord
   -> combat.FightTracker / xp.Session
   -> combat.Meter / XP snapshot
   -> text renderer or tview table
@@ -77,9 +77,15 @@ bar. The status bar shows approximate current-level progress, XP/hour, estimated
 time to the next level, and hotkeys. Columns are Combatant, %, Damage, DPS,
 SDPS, Hits, Crits, Min, Max, and Active. DPS and percentages are rounded to
 whole numbers. The Combatant column adapts to terminal width, never below 20
-characters, and uses `...` when truncated. Active mobs are expanded by default;
-completed mobs start collapsed.
+characters, and lets tview distribute otherwise-unused width before applying an
+ellipsis. Active mobs are expanded by default; completed mobs start collapsed.
 There is no player-row limit and the table scrolls normally.
+
+Collapsed mob rows are compact summaries: the fullest mob/status text that fits,
+`You` DPS when present, start date/time, and total mob duration. Because tview
+tables have no column-span support, the start label, year, month/day, and time
+occupy consecutive otherwise-empty statistic cells. Expanded rows use the normal
+statistical columns described above.
 
 Hotkeys:
 
@@ -207,7 +213,7 @@ or mob total. `Name dies.` is also not a death signal: the sample log shows it
 for Feign Death.
 
 See `docs/PARSER_RECHECK.md` before changing parser expressions. The reference
-audit on 2026-07-13 found 395,576 accepted damage events and no remaining
+audit on 2026-07-16 found 537,314 accepted damage events and no remaining
 source-attributable damage-like rejection in the merged sample corpus.
 
 ## Per-Mob State Machine
@@ -303,7 +309,7 @@ git diff --check
 
 7. For parser work, run the full-corpus audit in `docs/PARSER_RECHECK.md`.
 8. For UI work, exercise the TUI in a real terminal, especially overlay focus,
-   narrow widths, scrolling, and expanded `You` rows.
+   narrow widths, scrolling, collapsed summaries, and expanded combatant rows.
 
 Do not leave a generated `eqdps` binary in the repository root after checks.
 
@@ -316,6 +322,7 @@ Do not leave a generated `eqdps` binary in the repository root after checks.
 - Keep completed-mob history unlimited by default, with an optional cap.
 - Show session XP/hour using a one-minute cap on combat-inactivity gaps.
 - Collapse mob sections and every combatant's nested details with Enter.
+- Summarize collapsed mobs with start time, `You` DPS, and duration.
 - Attribute player pets to an owner only when the owner is observed in the same
   mob record.
 - Favor correct attribution over counting source-less damage.
