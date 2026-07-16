@@ -1099,7 +1099,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 		row++
 	} else {
 		for _, item := range ready {
-			setSkyRow(table, row, "  ✓ "+item.Class+" — "+item.Quest.Name, "READY", "", "", questDetails(item.Quest), tcell.ColorGreen, false)
+			setSkyRow(table, row, "  ✓ "+item.Class+" — "+skyQuestDisplayName(item.Class, item.Quest.Name), "READY", "", "", questDetails(item.Quest), tcell.ColorGreen, false)
 			row++
 		}
 	}
@@ -1129,7 +1129,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 				status = "READY"
 				color = tcell.ColorGreen
 			}
-			setSkyRow(table, row, "  "+item.Quest.Name, status, "", "", "Reward: "+strings.Join(item.Quest.Rewards, " / "), color, true)
+			setSkyRow(table, row, "  "+skyQuestDisplayName(item.Class, item.Quest.Name), status, "", "", "Reward: "+strings.Join(item.Quest.Rewards, " / "), color, true)
 			row++
 			for _, requirement := range item.Quest.Requirements {
 				owned := inventory[requirement.Name]
@@ -1164,6 +1164,10 @@ func setSkyRow(table *tview.Table, row int, name, status, owned, needed, detail 
 
 func questDetails(quest skyquest.Quest) string {
 	return "Reward: " + strings.Join(quest.Rewards, " / ") + " — " + quest.QuestGiver
+}
+
+func skyQuestDisplayName(className, questName string) string {
+	return strings.TrimPrefix(questName, className+" ")
 }
 
 func skyRequirementSource(requirement skyquest.Requirement) string {

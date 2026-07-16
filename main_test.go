@@ -153,9 +153,24 @@ func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 			contents += table.GetCell(row, column).Text + "\n"
 		}
 	}
-	for _, want := range []string{"READY TO TURN IN (0)", "Bard — Clarisa Spiritsong", "Bard Test of Tone", "Reward: Mask of Song", "Wind Rune Meda", "Plane of Sky random drop", "Light Woolen Mask", "Island 3 — Gorgalosk"} {
+	for _, want := range []string{"READY TO TURN IN (0)", "Bard — Clarisa Spiritsong", "Test of Tone", "Reward: Mask of Song", "Wind Rune Meda", "Plane of Sky random drop", "Light Woolen Mask", "Island 3 — Gorgalosk"} {
 		if !strings.Contains(contents, want) {
 			t.Fatalf("Sky table does not contain %q:\n%s", want, contents)
+		}
+	}
+	if strings.Contains(contents, "Bard Test of Tone") {
+		t.Fatalf("Sky table repeats class in quest name:\n%s", contents)
+	}
+}
+
+func TestSkyQuestDisplayNameRemovesOnlyMatchingClassPrefix(t *testing.T) {
+	for _, test := range []struct{ className, questName, want string }{
+		{"Berserker", "Berserker Test of Blood", "Test of Blood"},
+		{"Shadow Knight", "Shadow Knight Test of Night", "Test of Night"},
+		{"Bard", "Songweaver's Test", "Songweaver's Test"},
+	} {
+		if got := skyQuestDisplayName(test.className, test.questName); got != test.want {
+			t.Errorf("skyQuestDisplayName(%q, %q) = %q, want %q", test.className, test.questName, got, test.want)
 		}
 	}
 }
