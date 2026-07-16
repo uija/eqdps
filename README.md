@@ -1,6 +1,9 @@
 # eqdps
 
-`eqdps` is a terminal DPS meter for EverQuest log files.
+`eqdps` is a terminal DPS meter built primarily for **EverQuest Legends** log
+files. Its parser and feature set follow EverQuest Legends combat, experience,
+zone, loot, and quest messages. Other EverQuest variants may work where their
+log formats overlap, but they are not the project's main compatibility target.
 
 It tails an EQ log, tracks every engaged mob independently, and shows per-mob
 damage in a live terminal UI. It can also replay recent log history to compare
@@ -24,6 +27,7 @@ Plane of Sky (EverQuest Legends) tracker
 - Expandable details grouped by melee, cast magic, proc, DoT, and shield
 - Adaptive table widths for narrow terminals
 - In-app history reload menu
+- EverQuest Legends Plane of Sky class-quest inventory and completion tracker
 - Plain text output mode for comparisons
 
 ## Install
@@ -72,6 +76,26 @@ cancels that catch-up and exits with a valid saved checkpoint.
 | `a` | Fully expand or collapse the selected subtree |
 | `r` | Reset the combat and session XP meters and start fresh |
 | `q` / `Esc` | Quit |
+
+## Plane of Sky Quest Tracker (EverQuest Legends)
+
+The Plane of Sky tracker supports the EverQuest Legends class-unlock system.
+It watches Plane of Sky loot, records required class-quest components, shows
+what is owned and still missing, and highlights quests that are ready to hand
+in. Completed turn-ins are detected from their item, rune, quest-giver, and
+reward log messages and are marked done in the checklist.
+
+Press `p` to open the tracker. Press `h` there to hide quests for which no
+required component has been collected. The main DPS screen shows `PoS: N ready`
+and briefly highlights the status bar when newly looted items make another
+quest ready.
+
+The quest database is embedded in the executable, so no separate database file
+is required. Character progress remains separate in
+`CHARACTER_SERVER_PoS.json` beside the logfile. On first use, the app asks
+before scanning existing history. Later launches resume from the saved byte
+offset and catch up missed loot and turn-ins. Loot is counted only while the
+character is in Plane of Sky, including numbered/adaptive instances.
 
 ## History And Replay
 
