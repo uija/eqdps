@@ -5,6 +5,43 @@ import (
 	"time"
 )
 
+func TestParseRecordClassifiesTimestampedLines(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+		kind RecordKind
+	}{
+		{"unknown", "[Thu Jul 02 05:19:00 2026] You say, 'hello'", RecordUnknown},
+		{"cast", "[Thu Jul 02 05:19:01 2026] Zonektik begins to cast Furor.", RecordCast},
+		{"damage", "[Thu Jul 02 05:19:02 2026] You hit a lizardman scout for 4 points of magic damage by Shallow Breath.", RecordDamage},
+		{"experience", "[Thu Jul 02 05:19:03 2026] You gain experience! (1.239%)", RecordExperience},
+		{"level up", "[Thu Jul 02 05:19:04 2026] You have gained a level! Welcome to level 43!", RecordLevelUp},
+		{"aggro clear", "[Thu Jul 02 05:19:05 2026] Your enemies have forgotten you!", RecordAggroClear},
+		{"death", "[Thu Jul 02 05:19:06 2026] You have slain a lizardman scout!", RecordDeath},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			record, ok := ParseRecord(test.line)
+			if !ok {
+				t.Fatal("expected timestamped record")
+			}
+			if record.Kind != test.kind {
+				t.Fatalf("kind = %v, want %v", record.Kind, test.kind)
+			}
+			if record.Time.IsZero() {
+				t.Fatal("expected record timestamp")
+			}
+		})
+	}
+}
+
+func TestParseRecordRejectsInvalidEnvelope(t *testing.T) {
+	if record, ok := ParseRecord("not an EverQuest log line"); ok {
+		t.Fatalf("unexpected record: %+v", record)
+	}
+}
+
 func TestParseTime(t *testing.T) {
 	timestamp, ok := ParseTime("[Thu Jul 02 05:19:07 2026] Lobantik pierces a lizardman scout for 14 points of damage.")
 	if !ok {
@@ -30,7 +67,7 @@ func TestParseLineYouSpellDamage(t *testing.T) {
 	if !ok {
 		t.Fatal("expected damage event")
 	}
-	if event.Source != "You" || event.Amount != 4 || event.Kind != "magic damage" || event.Ability != "Shallow Breath" {
+	if event.Source != "You" || event.Amount != 4 || event.Ability != "Shallow Breath" {
 		t.Fatalf("unexpected event: %#v", event)
 	}
 }

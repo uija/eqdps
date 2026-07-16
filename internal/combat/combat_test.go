@@ -56,8 +56,8 @@ func TestFightTrackerSeparatesCastMagicFromProcs(t *testing.T) {
 	tracker := NewFightTracker()
 	now := time.Date(2026, 7, 15, 18, 53, 34, 0, time.UTC)
 	tracker.AddCast(Cast{Time: now, Source: "Zonektik", Ability: "Furor"})
-	tracker.AddDamage(Event{Time: now.Add(2 * time.Second), Source: "Zonektik", Target: "a dar ghoul knight", Amount: 33, Kind: "magic damage", Ability: "Furor"})
-	tracker.AddDamage(Event{Time: now.Add(3 * time.Second), Source: "You", Target: "a dar ghoul knight", Amount: 165, Kind: "magic damage", Ability: "Smiting Strike"})
+	tracker.AddDamage(Event{Time: now.Add(2 * time.Second), Source: "Zonektik", Target: "a dar ghoul knight", Amount: 33, Ability: "Furor"})
+	tracker.AddDamage(Event{Time: now.Add(3 * time.Second), Source: "You", Target: "a dar ghoul knight", Amount: 165, Ability: "Smiting Strike"})
 
 	fight, _ := tracker.DisplayFight()
 	players := fight.Meter.Players()

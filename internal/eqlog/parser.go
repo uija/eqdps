@@ -1,9 +1,6 @@
 package eqlog
 
 import (
-	"bufio"
-	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,11 +37,61 @@ type LevelUp struct {
 	Level int
 }
 
+type RecordKind uint8
+
+const (
+	RecordUnknown RecordKind = iota
+	RecordCast
+	RecordDamage
+	RecordExperience
+	RecordLevelUp
+	RecordAggroClear
+	RecordDeath
+)
+
+// Record is one timestamped EverQuest log entry. Unknown records retain their
+// timestamp so session timing can observe log activity without reparsing lines.
+type Record struct {
+	Time       time.Time
+	Kind       RecordKind
+	Cast       combat.Cast
+	Damage     combat.Event
+	Experience ExperienceGain
+	LevelUp    LevelUp
+	Death      combat.Death
+}
+
+func ParseRecord(line string) (Record, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return Record{}, false
+	}
+	record := Record{Time: timestamp}
+	if cast, ok := parseCast(timestamp, message); ok {
+		record.Kind, record.Cast = RecordCast, cast
+	} else if damage, ok := parseDamage(timestamp, message); ok {
+		record.Kind, record.Damage = RecordDamage, damage
+	} else if gain, ok := parseExperience(timestamp, message); ok {
+		record.Kind, record.Experience = RecordExperience, gain
+	} else if levelUp, ok := parseLevelUp(timestamp, message); ok {
+		record.Kind, record.LevelUp = RecordLevelUp, levelUp
+	} else if aggroClearRE.MatchString(message) {
+		record.Kind = RecordAggroClear
+	} else if death, ok := parseDeath(timestamp, message); ok {
+		record.Kind, record.Death = RecordDeath, death
+	}
+	return record, true
+}
+
 func ParseLine(line string) (combat.Event, bool) {
 	timestamp, message, ok := parseEnvelope(line)
 	if !ok {
 		return combat.Event{}, false
 	}
+	return parseDamage(timestamp, message)
+}
+
+func parseDamage(timestamp time.Time, message string) (combat.Event, bool) {
 	damage := damageRE.FindStringSubmatch(message)
 	if damage != nil {
 		source := strings.TrimSpace(damage[1])
@@ -60,7 +107,6 @@ func ParseLine(line string) (combat.Event, bool) {
 			Source:     normalizeSource(source),
 			Target:     normalizeTarget(target),
 			Amount:     amount,
-			Kind:       strings.TrimSpace(damage[5]),
 			Attack:     strings.TrimSpace(damage[2]),
 			Ability:    strings.TrimSpace(damage[6]),
 			Critical:   isCritical(damage[7]),
@@ -80,7 +126,6 @@ func ParseLine(line string) (combat.Event, bool) {
 			Source:     "You",
 			Target:     normalizeTarget(strings.TrimSpace(yourShield[1])),
 			Amount:     amount,
-			Kind:       strings.TrimSpace(yourShield[4]),
 			Ability:    strings.TrimSpace(yourShield[2]),
 			Critical:   isCritical(yourShield[5]),
 			Passive:    true,
@@ -100,7 +145,6 @@ func ParseLine(line string) (combat.Event, bool) {
 			Source:     normalizeSource(strings.TrimSpace(shield[2])),
 			Target:     normalizeTarget(strings.TrimSpace(shield[1])),
 			Amount:     amount,
-			Kind:       strings.TrimSpace(shield[5]),
 			Ability:    strings.TrimSpace(shield[3]),
 			Critical:   isCritical(shield[6]),
 			Passive:    true,
@@ -120,7 +164,6 @@ func ParseLine(line string) (combat.Event, bool) {
 			Source:         "You",
 			Target:         normalizeTarget(strings.TrimSpace(yourDot[1])),
 			Amount:         amount,
-			Kind:           "damage",
 			Ability:        strings.TrimSpace(yourDot[3]),
 			Critical:       isCritical(yourDot[4]),
 			Passive:        true,
@@ -143,7 +186,6 @@ func ParseLine(line string) (combat.Event, bool) {
 		Source:         normalizeSource(source),
 		Target:         normalizeTarget(target),
 		Amount:         amount,
-		Kind:           "damage",
 		Ability:        strings.TrimSpace(dot[3]),
 		Critical:       isCritical(dot[5]),
 		Passive:        true,
@@ -168,6 +210,10 @@ func ParseCastLine(line string) (combat.Cast, bool) {
 	if !ok {
 		return combat.Cast{}, false
 	}
+	return parseCast(timestamp, message)
+}
+
+func parseCast(timestamp time.Time, message string) (combat.Cast, bool) {
 	cast := castRE.FindStringSubmatch(message)
 	if cast == nil {
 		return combat.Cast{}, false
@@ -184,7 +230,10 @@ func ParseDeathLine(line string) (combat.Death, bool) {
 	if !ok {
 		return combat.Death{}, false
 	}
+	return parseDeath(timestamp, message)
+}
 
+func parseDeath(timestamp time.Time, message string) (combat.Death, bool) {
 	if slain := youSlainRE.FindStringSubmatch(message); slain != nil {
 		return combat.Death{
 			Time:   timestamp,
@@ -209,6 +258,10 @@ func ParseExperienceLine(line string) (ExperienceGain, bool) {
 	if !ok {
 		return ExperienceGain{}, false
 	}
+	return parseExperience(timestamp, message)
+}
+
+func parseExperience(timestamp time.Time, message string) (ExperienceGain, bool) {
 	matches := experienceRE.FindStringSubmatch(message)
 	if matches == nil {
 		return ExperienceGain{}, false
@@ -225,6 +278,10 @@ func ParseLevelUpLine(line string) (LevelUp, bool) {
 	if !ok {
 		return LevelUp{}, false
 	}
+	return parseLevelUp(timestamp, message)
+}
+
+func parseLevelUp(timestamp time.Time, message string) (LevelUp, bool) {
 	matches := levelUpRE.FindStringSubmatch(message)
 	if matches == nil {
 		return LevelUp{}, false
@@ -262,22 +319,6 @@ func parseEnvelope(line string) (time.Time, string, bool) {
 	}
 
 	return timestamp, matches[2], true
-}
-
-func Parse(r io.Reader, meter *combat.Meter) error {
-	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-
-	for scanner.Scan() {
-		if event, ok := ParseLine(scanner.Text()); ok {
-			meter.Add(event)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read log: %w", err)
-	}
-
-	return nil
 }
 
 func normalizeSource(source string) string {

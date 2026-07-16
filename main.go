@@ -123,17 +123,19 @@ func replayLogWithProgress(logPath string, idleTimeout, back time.Duration, sinc
 		line := scanner.Text()
 		bytesRead += int64(len(scanner.Bytes()) + 1)
 		linesRead++
-		timestamp, hasTimestamp := eqlog.ParseTime(line)
-		if hasTimestamp && timestamp.After(latest) {
-			latest = timestamp
+		record, hasTimestamp := eqlog.ParseRecord(line)
+		if hasTimestamp && record.Time.After(latest) {
+			latest = record.Time
 		}
 		if onProgress != nil && linesRead%5000 == 0 {
 			onProgress(replayProgress{Bytes: min(bytesRead, maxBytes), Total: maxBytes, Lines: linesRead})
 		}
-		if !cutoff.IsZero() && (!hasTimestamp || timestamp.Before(cutoff)) {
+		if !cutoff.IsZero() && (!hasTimestamp || record.Time.Before(cutoff)) {
 			continue
 		}
-		processLine(line, tracker, xpSession, idleTimeout)
+		if hasTimestamp {
+			processRecord(record, tracker, xpSession, idleTimeout)
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, nil, fmt.Errorf("read log: %w", err)
@@ -212,7 +214,7 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 		if index > 0 {
 			fmt.Println()
 		}
-		fmt.Println(sectionTitle(section))
+		fmt.Println(fightTitle(section.Fight, section.Current))
 		fmt.Printf("%-24s %4s %8s %6s %6s %5s %5s %6s %6s %6s\n", "Combatant", "%", "Damage", "DPS", "SDPS", "Hits", "Crits", "Min", "Max", "Active")
 		duration := section.Fight.ActiveDuration()
 		for _, player := range section.Fight.Meter.Players() {
@@ -604,32 +606,28 @@ func restoreTablePosition(table *tview.Table, expandableRows map[int]string, sel
 }
 
 func processLine(line string, tracker *combat.FightTracker, xpSession *xp.Session, idleTimeout time.Duration) {
-	if timestamp, ok := eqlog.ParseTime(line); ok {
-		xpSession.Observe(timestamp, time.Now())
+	record, ok := eqlog.ParseRecord(line)
+	if ok {
+		processRecord(record, tracker, xpSession, idleTimeout)
 	}
-	if cast, ok := eqlog.ParseCastLine(line); ok {
-		tracker.AddCast(cast)
-		return
-	}
-	if event, ok := eqlog.ParseLine(line); ok {
-		xpSession.AddCombat(event.Time)
-		tracker.AddDamageWithIdle(event, idleTimeout)
-		return
-	}
-	if gain, ok := eqlog.ParseExperienceLine(line); ok {
-		xpSession.AddGain(gain.Time, gain.Percent)
-		return
-	}
-	if levelUp, ok := eqlog.ParseLevelUpLine(line); ok {
-		xpSession.AddLevelUp(levelUp.Time)
-		return
-	}
-	if timestamp, ok := eqlog.ParseAggroClearLine(line); ok {
-		tracker.ForgetEnemies(timestamp)
-		return
-	}
-	if death, ok := eqlog.ParseDeathLine(line); ok {
-		tracker.AddDeath(death)
+}
+
+func processRecord(record eqlog.Record, tracker *combat.FightTracker, xpSession *xp.Session, idleTimeout time.Duration) {
+	xpSession.Observe(record.Time, time.Now())
+	switch record.Kind {
+	case eqlog.RecordCast:
+		tracker.AddCast(record.Cast)
+	case eqlog.RecordDamage:
+		xpSession.AddCombat(record.Damage.Time)
+		tracker.AddDamageWithIdle(record.Damage, idleTimeout)
+	case eqlog.RecordExperience:
+		xpSession.AddGain(record.Experience.Time, record.Experience.Percent)
+	case eqlog.RecordLevelUp:
+		xpSession.AddLevelUp(record.LevelUp.Time)
+	case eqlog.RecordAggroClear:
+		tracker.ForgetEnemies(record.Time)
+	case eqlog.RecordDeath:
+		tracker.AddDeath(record.Death)
 	}
 }
 
@@ -734,14 +732,6 @@ func filterSections(sections []combat.DisplaySection, query string) []combat.Dis
 	return filtered
 }
 
-func expandRowTree(selectedKey string, sections []combat.DisplaySection, expandedRows map[string]bool) bool {
-	keys := rowTreeKeys(selectedKey, sections)
-	for _, key := range keys {
-		expandedRows[key] = true
-	}
-	return len(keys) > 0
-}
-
 func toggleRowTree(selectedKey string, sections []combat.DisplaySection, expandedRows map[string]bool) bool {
 	keys := rowTreeKeys(selectedKey, sections)
 	if len(keys) == 0 {
@@ -808,10 +798,6 @@ func progressText(progress replayProgress) string {
 	return fmt.Sprintf("\n[green]%s[::-]  %3.0f%%\n\n%d lines processed", bar, percentComplete*100, progress.Lines)
 }
 
-func sectionTitle(section combat.DisplaySection) string {
-	return fightTitle(section.Fight, section.Current)
-}
-
 func fightTitle(fight *combat.Fight, current bool) string {
 	if current {
 		return fmt.Sprintf("Active mob: %s, %d damage events", fight.Mob, fight.Meter.Events())
@@ -859,9 +845,10 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 			arrow = "▼"
 		}
 		duration := section.Fight.ActiveDuration()
+		started := fightStartColumns(section.Fight)
 		values := []string{
 			arrow + " " + section.Fight.Mob + " (" + mobStatus(section) + ")",
-			"", fmt.Sprintf("%d events", section.Fight.Meter.Events()), "", "", "", "", "", "", formatDuration(duration),
+			"", "", localPlayerDPS(section.Fight, duration), started[0], started[1], started[2], started[3], "", formatDuration(duration),
 		}
 		color := tcell.ColorGray
 		if section.Current {
@@ -907,6 +894,27 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 		}
 	}
 	return expandableRows
+}
+
+func fightStartColumns(fight *combat.Fight) [4]string {
+	if fight == nil || fight.Meter == nil || fight.Meter.Started().IsZero() {
+		return [4]string{}
+	}
+	started := fight.Meter.Started()
+	return [4]string{"Start", started.Format("2006"), started.Format("01-02"), started.Format("15:04")}
+}
+
+func localPlayerDPS(fight *combat.Fight, duration time.Duration) string {
+	if fight == nil || fight.Meter == nil {
+		return ""
+	}
+	for _, player := range fight.Meter.Players() {
+		if player.Name == "You" {
+			dps, _ := playerDPSColumns(player, fight.Meter.Ended(), duration)
+			return dps
+		}
+	}
+	return ""
 }
 
 func addDamageBreakdownRows(table *tview.Table, row int, player combat.PlayerStats, duration time.Duration, layout tableLayout, playerKey string, expandedRows map[string]bool, expandableRows map[int]string) int {
@@ -960,7 +968,11 @@ func tableLayoutForWidth(width int) tableLayout {
 
 func tableCell(value string, col int, layout tableLayout) *tview.TableCell {
 	width := columnWidth(col, layout)
-	cell := tview.NewTableCell(fitText(value, width)).SetMaxWidth(width)
+	text := value
+	if col != 0 {
+		text = fitText(value, width)
+	}
+	cell := tview.NewTableCell(text).SetMaxWidth(width)
 	switch col {
 	case 1, 2, 3, 4, 5, 6, 7, 8:
 		cell.SetAlign(tview.AlignRight)
@@ -1002,16 +1014,6 @@ func fitText(value string, width int) string {
 		return string(runes[:width])
 	}
 	return string(runes[:width-3]) + "..."
-}
-
-func clamp(value, minValue, maxValue int) int {
-	if value < minValue {
-		return minValue
-	}
-	if value > maxValue {
-		return maxValue
-	}
-	return value
 }
 
 func sectionRowKey(section combat.DisplaySection) string {

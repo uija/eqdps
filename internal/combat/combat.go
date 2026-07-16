@@ -16,7 +16,6 @@ type Event struct {
 	Source         string
 	Target         string
 	Amount         int
-	Kind           string
 	Attack         string
 	Ability        string
 	Critical       bool
@@ -39,17 +38,16 @@ type Death struct {
 }
 
 type PlayerStats struct {
-	Name       string
-	Damage     int
-	Hits       int
-	Crits      int
-	MinHit     int
-	MaxHit     int
-	FirstSeen  time.Time
-	LastSeen   time.Time
-	LastTarget string
-	Breakdown  map[string]*BreakdownStats
-	EngagedAt  time.Time
+	Name      string
+	Damage    int
+	Hits      int
+	Crits     int
+	MinHit    int
+	MaxHit    int
+	FirstSeen time.Time
+	LastSeen  time.Time
+	Breakdown map[string]*BreakdownStats
+	EngagedAt time.Time
 }
 
 type BreakdownStats struct {
@@ -65,10 +63,7 @@ type BreakdownStats struct {
 }
 
 func (s BreakdownStats) ActiveDuration() time.Duration {
-	if s.FirstSeen.IsZero() || s.LastSeen.IsZero() || s.LastSeen.Before(s.FirstSeen) {
-		return 0
-	}
-	return s.LastSeen.Sub(s.FirstSeen) + time.Second
+	return activeDuration(s.FirstSeen, s.LastSeen)
 }
 
 func (s BreakdownStats) DPS() float64 {
@@ -84,13 +79,7 @@ func (s BreakdownStats) SortedChildren() []BreakdownStats {
 }
 
 func (s PlayerStats) ActiveDuration() time.Duration {
-	if s.FirstSeen.IsZero() || s.LastSeen.IsZero() {
-		return 0
-	}
-	if s.LastSeen.Before(s.FirstSeen) {
-		return 0
-	}
-	return s.LastSeen.Sub(s.FirstSeen) + time.Second
+	return activeDuration(s.FirstSeen, s.LastSeen)
 }
 
 func (s PlayerStats) DPS() float64 {
@@ -160,7 +149,6 @@ func (m *Meter) Add(event Event) {
 	if stats.LastSeen.IsZero() || event.Time.After(stats.LastSeen) {
 		stats.LastSeen = event.Time
 	}
-	stats.LastTarget = event.Target
 	if event.Source == "You" && !event.Incidental && (!event.Passive || event.DamageOverTime) && stats.EngagedAt.IsZero() {
 		stats.EngagedAt = event.Time
 	}
@@ -249,7 +237,6 @@ func mergePetStats(owner, pet *PlayerStats, petName string) {
 	}
 	if owner.LastSeen.IsZero() || pet.LastSeen.After(owner.LastSeen) {
 		owner.LastSeen = pet.LastSeen
-		owner.LastTarget = pet.LastTarget
 	}
 	if owner.Breakdown == nil {
 		owner.Breakdown = make(map[string]*BreakdownStats)
@@ -261,11 +248,9 @@ func mergePetStats(owner, pet *PlayerStats, petName string) {
 		Crits:     pet.Crits,
 		FirstSeen: pet.FirstSeen,
 		LastSeen:  pet.LastSeen,
+		MinHit:    pet.MinHit,
+		MaxHit:    pet.MaxHit,
 		Children:  copyBreakdown(pet.Breakdown),
-	}
-	for _, child := range petStats.Children {
-		mergeMinMax(petStats, child.MinHit)
-		mergeMinMax(petStats, child.MaxHit)
 	}
 	owner.Breakdown[petStats.Name] = petStats
 }
@@ -419,10 +404,14 @@ func (f *Fight) ActiveDuration() time.Duration {
 	if f == nil || f.Meter == nil || f.Meter.Started().IsZero() || f.Meter.Ended().IsZero() {
 		return 0
 	}
-	if f.Meter.Ended().Before(f.Meter.Started()) {
+	return activeDuration(f.Meter.Started(), f.Meter.Ended())
+}
+
+func activeDuration(first, last time.Time) time.Duration {
+	if first.IsZero() || last.IsZero() || last.Before(first) {
 		return 0
 	}
-	return f.Meter.Ended().Sub(f.Meter.Started()) + time.Second
+	return last.Sub(first) + time.Second
 }
 
 type DisplaySection struct {

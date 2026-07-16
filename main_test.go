@@ -33,6 +33,18 @@ func TestTableLayoutGivesRemainingWidthToCombatantColumn(t *testing.T) {
 	}
 }
 
+func TestCombatantCellKeepsTextForTviewExpansion(t *testing.T) {
+	layout := tableLayoutForWidth(100)
+	name := "a very long combatant name that can use spare terminal width"
+	cell := tableCell(name, 0, layout)
+	if cell.Text != name {
+		t.Fatalf("combatant text was truncated before layout: %q", cell.Text)
+	}
+	if cell.MaxWidth != layout.combatantWidth || cell.Expansion != 1 {
+		t.Fatalf("combatant cell does not participate in responsive layout: max=%d expansion=%d", cell.MaxWidth, cell.Expansion)
+	}
+}
+
 func TestRestoreTablePositionFollowsLogicalRowAndKeepsViewport(t *testing.T) {
 	table := tview.NewTable().SetSelectable(true, false)
 	table.Select(7, 0)
@@ -273,6 +285,56 @@ func TestFillTableShowsExpandableMobSectionsWithSharedDPS(t *testing.T) {
 	}
 }
 
+func TestFillTableCollapsedMobShowsFightSummary(t *testing.T) {
+	started := time.Date(2026, 7, 16, 21, 34, 0, 0, time.UTC)
+	meter := combat.NewMeter()
+	meter.Add(combat.Event{Time: started, Source: "You", Target: "a fire giant warrior", Amount: 100})
+	meter.Add(combat.Event{Time: started.Add(9 * time.Second), Source: "You", Target: "a fire giant warrior", Amount: 100})
+	section := combat.DisplaySection{Fight: &combat.Fight{
+		Mob:   "a fire giant warrior",
+		Meter: meter,
+		Death: combat.Death{Victim: "a fire giant warrior", Killer: "You"},
+	}}
+	table := tview.NewTable()
+	expanded := map[string]bool{"mob:" + sectionRowKey(section): false}
+
+	fillTable(table, []combat.DisplaySection{section}, expanded, 106)
+
+	if got := table.GetCell(1, 0).Text; got != "▶ a fire giant warrior (slain by You)" {
+		t.Fatalf("unexpected mob summary name: %q", got)
+	}
+	if got := table.GetCell(1, 2).Text; got != "" {
+		t.Fatalf("expected no date before DPS, got %q", got)
+	}
+	if got := table.GetCell(1, 3).Text; got != "20" {
+		t.Fatalf("expected local-player DPS, got %q", got)
+	}
+	wantStarted := []string{"Start", "2026", "07-16", "21:34"}
+	for offset, want := range wantStarted {
+		if got := table.GetCell(1, 4+offset).Text; got != want {
+			t.Fatalf("start column %d = %q, want %q", 4+offset, got, want)
+		}
+	}
+	if got := table.GetCell(1, 9).Text; got != "00:10" {
+		t.Fatalf("expected fight duration, got %q", got)
+	}
+}
+
+func TestFillTableCollapsedMobWithoutLocalPlayerLeavesDPSBlank(t *testing.T) {
+	started := time.Date(2026, 7, 16, 21, 34, 0, 0, time.UTC)
+	meter := combat.NewMeter()
+	meter.Add(combat.Event{Time: started, Source: "Alice", Target: "a fire giant warrior", Amount: 100})
+	section := combat.DisplaySection{Fight: &combat.Fight{Mob: "a fire giant warrior", Meter: meter}}
+	table := tview.NewTable()
+	expanded := map[string]bool{"mob:" + sectionRowKey(section): false}
+
+	fillTable(table, []combat.DisplaySection{section}, expanded, 106)
+
+	if got := table.GetCell(1, 3).Text; got != "" {
+		t.Fatalf("expected blank local-player DPS, got %q", got)
+	}
+}
+
 func TestFillTableExpandsDetailsForEveryCombatantAndCategory(t *testing.T) {
 	started := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	meter := combat.NewMeter()
@@ -308,7 +370,7 @@ func TestFillTableExpandsDetailsForEveryCombatantAndCategory(t *testing.T) {
 	}
 }
 
-func TestExpandRowTreeOpensEveryDescendant(t *testing.T) {
+func TestToggleRowTreeOpensEveryDescendant(t *testing.T) {
 	started := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	meter := combat.NewMeter()
 	meter.Add(combat.Event{Time: started, Source: "You", Target: "King Tranix", Amount: 100, Attack: "slash"})
@@ -318,7 +380,7 @@ func TestExpandRowTreeOpensEveryDescendant(t *testing.T) {
 	sectionKey := sectionRowKey(section)
 	expanded := make(map[string]bool)
 
-	if !expandRowTree("mob:"+sectionKey, []combat.DisplaySection{section}, expanded) {
+	if !toggleRowTree("mob:"+sectionKey, []combat.DisplaySection{section}, expanded) {
 		t.Fatal("expected mob row to be found")
 	}
 	for _, key := range []string{
@@ -335,7 +397,7 @@ func TestExpandRowTreeOpensEveryDescendant(t *testing.T) {
 	}
 }
 
-func TestExpandRowTreeCanOpenOneCombatant(t *testing.T) {
+func TestToggleRowTreeCanOpenOneCombatant(t *testing.T) {
 	started := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
 	meter := combat.NewMeter()
 	meter.Add(combat.Event{Time: started, Source: "You", Target: "mob", Amount: 10, Attack: "slash"})
@@ -344,7 +406,7 @@ func TestExpandRowTreeCanOpenOneCombatant(t *testing.T) {
 	expanded := make(map[string]bool)
 	combatantKey := "combatant:" + sectionKey + ":You"
 
-	if !expandRowTree(combatantKey, []combat.DisplaySection{section}, expanded) || !expanded[combatantKey+":category:Melee"] {
+	if !toggleRowTree(combatantKey, []combat.DisplaySection{section}, expanded) || !expanded[combatantKey+":category:Melee"] {
 		t.Fatalf("expected combatant categories to expand: %#v", expanded)
 	}
 	if expanded["mob:"+sectionKey] {
