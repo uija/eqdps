@@ -10,7 +10,7 @@
       "quests": [
         {
           "name": "Bard Test of Tone",
-          "quest_giver": "Clarisa Spiritsong",
+          "quest_giver": "Cilin Spellsinger",
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -33,7 +33,7 @@
         },
         {
           "name": "Bard Test of Voice",
-          "quest_giver": "Clarisa Spiritsong",
+          "quest_giver": "Cilin Spellsinger",
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -56,7 +56,7 @@
         },
         {
           "name": "Bard Test of Pitch",
-          "quest_giver": "Clarisa Spiritsong",
+          "quest_giver": "Cilin Spellsinger",
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -79,7 +79,7 @@
         },
         {
           "name": "Bard Test of Wind",
-          "quest_giver": "Denise Songweaver",
+          "quest_giver": "Cilin Spellsinger",
           "requirements": [
             {
               "name": "Wind Rune Caza",
@@ -102,7 +102,7 @@
         },
         {
           "name": "Bard Test of Brass",
-          "quest_giver": "Denise Songweaver",
+          "quest_giver": "Cilin Spellsinger",
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -132,7 +132,7 @@
         },
         {
           "name": "Bard Test of Harmony",
-          "quest_giver": "Denise Songweaver",
+          "quest_giver": "Cilin Spellsinger",
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -1564,14 +1564,14 @@
     },
     {
       "name": "Ranger",
-      "quest_npc": "the Ranger Spirit",
+      "quest_npc": "Ranger Spirit",
       "source": "https://eqlwiki.com/Ranger_Plane_of_Sky_Tests",
       "source_page_id": 15118,
       "source_revision": 30285,
       "quests": [
         {
           "name": "Ranger Test of Body",
-          "quest_giver": "the Ranger Spirit",
+          "quest_giver": "Ranger Spirit",
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -1594,7 +1594,7 @@
         },
         {
           "name": "Ranger Test of Defense",
-          "quest_giver": "the Ranger Spirit",
+          "quest_giver": "Ranger Spirit",
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -1617,7 +1617,7 @@
         },
         {
           "name": "Ranger Test of The Earth",
-          "quest_giver": "the Ranger Spirit",
+          "quest_giver": "Ranger Spirit",
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -1640,7 +1640,7 @@
         },
         {
           "name": "Ranger Test of Thunder",
-          "quest_giver": "the Ranger Spirit",
+          "quest_giver": "Ranger Spirit",
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -1663,7 +1663,7 @@
         },
         {
           "name": "Ranger Test of Blade",
-          "quest_giver": "the Ranger Spirit",
+          "quest_giver": "Ranger Spirit",
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -1693,7 +1693,7 @@
         },
         {
           "name": "Ranger Test of Ranged Attack",
-          "quest_giver": "the Ranger Spirit",
+          "quest_giver": "Ranger Spirit",
           "requirements": [
             {
               "name": "Wind Rune Heda",

@@ -76,15 +76,15 @@ func TestTrackerCompletesQuestFromExactOfferedItemsAndGiver(t *testing.T) {
 		"[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.",
 		"[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--",
 		"[Thu Jul 16 10:40:02 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--",
-		"[Thu Jul 16 10:40:03 2026] You offered 1 Light Woolen Mask to Clarisa Spiritsong.",
-		"[Thu Jul 16 10:40:04 2026] You offered 1 Wind Rune Caza to Clarisa Spiritsong.",
+		"[Thu Jul 16 10:40:03 2026] You offered 1 Light Woolen Mask to Cilin Spellsinger.",
+		"[Thu Jul 16 10:40:04 2026] You offered 1 Wind Rune Caza to Cilin Spellsinger.",
 	} {
 		processTestLine(t, tracker, line)
 	}
 	if !tracker.QuestProgress()[0].Ready {
 		t.Fatal("offers must not complete or consume the quest before trade confirmation")
 	}
-	processTestLine(t, tracker, "[Thu Jul 16 10:40:05 2026] You complete the trade with Clarisa Spiritsong.")
+	processTestLine(t, tracker, "[Thu Jul 16 10:40:05 2026] You complete the trade with Cilin Spellsinger.")
 	progress := tracker.QuestProgress()[0]
 	if !progress.Completed || progress.Ready || tracker.Owned("Wind Rune Caza") != 0 || tracker.Owned("Light Woolen Mask") != 0 {
 		t.Fatalf("unexpected completed quest state: %#v, inventory %#v", progress, tracker.Inventory())
@@ -167,10 +167,10 @@ func TestTrackerClearsPendingItemsWhenTradeIsCancelled(t *testing.T) {
 	tracker := NewTracker(testDatabase())
 	for _, line := range []string{
 		"[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky 1 (Awakened).",
-		"[Thu Jul 16 10:40:01 2026] You offered 1 Wind Rune Caza to Clarisa Spiritsong.",
+		"[Thu Jul 16 10:40:01 2026] You offered 1 Wind Rune Caza to Cilin Spellsinger.",
 		"[Thu Jul 16 10:40:02 2026] You have cancelled the trade.",
-		"[Thu Jul 16 10:40:03 2026] You offered 1 Light Woolen Mask to Clarisa Spiritsong.",
-		"[Thu Jul 16 10:40:04 2026] You complete the trade with Clarisa Spiritsong.",
+		"[Thu Jul 16 10:40:03 2026] You offered 1 Light Woolen Mask to Cilin Spellsinger.",
+		"[Thu Jul 16 10:40:04 2026] You complete the trade with Cilin Spellsinger.",
 	} {
 		processTestLine(t, tracker, line)
 	}
@@ -193,7 +193,7 @@ func testDatabase() Database {
 		Name: "Bard",
 		Quests: []Quest{{
 			Name:       "Bard Test of Tone",
-			QuestGiver: "Clarisa Spiritsong",
+			QuestGiver: "Cilin Spellsinger",
 			Requirements: []Requirement{
 				{Name: "Wind Rune Caza", Kind: "rune", Quantity: 1},
 				{Name: "Light Woolen Mask", Kind: "item", Quantity: 1},

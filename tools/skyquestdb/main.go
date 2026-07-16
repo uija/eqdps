@@ -292,8 +292,13 @@ func extract(response apiResponse) (database, error) {
 }
 
 func canonicalQuestGiver(name string) string {
-	if name == "Magi Frinon" {
+	switch name {
+	case "Magi Frinon":
 		return "Magus Frinon"
+	case "Clarisa Spiritsong", "Denise Songweaver":
+		return "Cilin Spellsinger"
+	case "the Ranger Spirit":
+		return "Ranger Spirit"
 	}
 	return name
 }

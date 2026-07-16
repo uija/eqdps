@@ -23,6 +23,12 @@ func TestEmbeddedDatabaseHasCompleteClassQuestTables(t *testing.T) {
 		}
 		quests += len(class.Quests)
 		for _, quest := range class.Quests {
+			if class.Name == "Bard" && quest.QuestGiver != "Cilin Spellsinger" {
+				t.Errorf("Bard quest %q giver = %q, want Cilin Spellsinger", quest.Name, quest.QuestGiver)
+			}
+			if class.Name == "Ranger" && quest.QuestGiver != "Ranger Spirit" {
+				t.Errorf("Ranger quest %q giver = %q, want Ranger Spirit", quest.Name, quest.QuestGiver)
+			}
 			if class.Name == "Necromancer" && quest.QuestGiver != "Drakis Bloodcaster" {
 				t.Errorf("Necromancer quest %q giver = %q, want Drakis Bloodcaster", quest.Name, quest.QuestGiver)
 			}

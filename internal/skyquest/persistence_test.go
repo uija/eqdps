@@ -217,9 +217,9 @@ func TestPersistentTrackerSavesCompletedQuest(t *testing.T) {
 	content := "[Thu Jul 16 13:08:00 2026] You have entered The Plane of Sky.\n" +
 		"[Thu Jul 16 13:08:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n" +
 		"[Thu Jul 16 13:08:02 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--\n" +
-		"[Thu Jul 16 13:08:59 2026] You offered 1 Light Woolen Mask to Clarisa Spiritsong.\n" +
-		"[Thu Jul 16 13:09:16 2026] You offered 1 Wind Rune Caza to Clarisa Spiritsong.\n" +
-		"[Thu Jul 16 13:09:20 2026] You complete the trade with Clarisa Spiritsong.\n"
+		"[Thu Jul 16 13:08:59 2026] You offered 1 Light Woolen Mask to Cilin Spellsinger.\n" +
+		"[Thu Jul 16 13:09:16 2026] You offered 1 Wind Rune Caza to Cilin Spellsinger.\n" +
+		"[Thu Jul 16 13:09:20 2026] You complete the trade with Cilin Spellsinger.\n"
 	if err := os.WriteFile(logPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
