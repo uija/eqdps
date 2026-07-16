@@ -143,7 +143,7 @@ func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 		Class: "Bard", Quest: quest, Missing: []skyquest.Requirement{quest.Requirements[1]},
 	}}
 	table := tview.NewTable()
-	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1})
+	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1}, false)
 	if table.GetRowCount() != 8 {
 		t.Fatalf("row count = %d, want 8", table.GetRowCount())
 	}
@@ -172,7 +172,7 @@ func TestFillSkyQuestTableReadySectionIncludesHandInDetailsAndSpacer(t *testing.
 		},
 	}
 	table := tview.NewTable()
-	fillSkyQuestTable(table, []skyquest.QuestProgress{{Class: "Necromancer", Quest: quest, Ready: true}}, map[string]int{"Wind Rune Neza": 1, "Black Silk Cape": 1})
+	fillSkyQuestTable(table, []skyquest.QuestProgress{{Class: "Necromancer", Quest: quest, Ready: true}}, map[string]int{"Wind Rune Neza": 1, "Black Silk Cape": 1}, false)
 	contents := ""
 	for row := 0; row < table.GetRowCount(); row++ {
 		for column := 0; column < table.GetColumnCount(); column++ {
@@ -193,6 +193,28 @@ func TestFillSkyQuestTableReadySectionIncludesHandInDetailsAndSpacer(t *testing.
 	}
 	if allClassesRow < 1 || table.GetCell(allClassesRow-1, 0).Text != "" {
 		t.Fatalf("expected empty spacer before ALL CLASSES, row = %d", allClassesRow)
+	}
+}
+
+func TestFillSkyQuestTableCanHideUnstartedQuests(t *testing.T) {
+	progress := []skyquest.QuestProgress{
+		{Class: "Bard", Quest: skyquest.Quest{Name: "Bard Test of Tone", Requirements: []skyquest.Requirement{{Name: "Wind Rune Meda", Quantity: 1}}}},
+		{Class: "Bard", Quest: skyquest.Quest{Name: "Bard Test of Voice", Requirements: []skyquest.Requirement{{Name: "Wind Rune Kala", Quantity: 1}}}},
+		{Class: "Cleric", Quest: skyquest.Quest{Name: "Cleric Test of Courage", Requirements: []skyquest.Requirement{{Name: "Wind Rune Caza", Quantity: 1}}}, Completed: true},
+	}
+	table := tview.NewTable()
+	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1}, true)
+	contents := ""
+	for row := 0; row < table.GetRowCount(); row++ {
+		contents += table.GetCell(row, 0).Text + "\n"
+	}
+	for _, want := range []string{"Test of Tone", "Test of Courage"} {
+		if !strings.Contains(contents, want) {
+			t.Fatalf("filtered table does not contain %q:\n%s", want, contents)
+		}
+	}
+	if strings.Contains(contents, "Test of Voice") {
+		t.Fatalf("filtered table contains unstarted quest:\n%s", contents)
 	}
 }
 
