@@ -718,7 +718,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				renderSkyView()
 				return nil
 			}
-			return nil
+			return event
 		}
 		if replayOpen {
 			if event.Key() == tcell.KeyEsc {
