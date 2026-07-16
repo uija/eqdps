@@ -206,6 +206,9 @@ terminals cannot hide it and no class-section lookup is needed. The
 READY heading and quest rows are selectable, allowing Page Up to return fully
 to the summary after scrolling away. Arrow and page keys browse the table; `p`
 or `Esc` returns to the combat view.
+When no quest is ready, the heading count is the complete empty-state message;
+no long first-column sentence is rendered because tview tables have no column
+spans and that text would distort the quest column width.
 
 The state is an evidence-based estimate rather than an authoritative EverQuest
 inventory snapshot. Logged destruction is handled, but trades, quest turn-ins,

@@ -144,8 +144,8 @@ func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 	}}
 	table := tview.NewTable()
 	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1})
-	if table.GetRowCount() != 9 {
-		t.Fatalf("row count = %d, want 9", table.GetRowCount())
+	if table.GetRowCount() != 8 {
+		t.Fatalf("row count = %d, want 8", table.GetRowCount())
 	}
 	contents := ""
 	for row := 0; row < table.GetRowCount(); row++ {

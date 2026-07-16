@@ -1099,10 +1099,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 	}
 	table.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("READY TO TURN IN (%d)", len(ready))).SetTextColor(skyCompleteColor).SetSelectable(true))
 	row++
-	if len(ready) == 0 {
-		table.SetCell(row, 0, tview.NewTableCell("  No quests currently have every required item").SetTextColor(tcell.ColorGray).SetSelectable(true))
-		row++
-	} else {
+	if len(ready) > 0 {
 		for _, item := range ready {
 			setSkyRow(table, row, "  ✓ "+item.Class+" — "+skyQuestDisplayName(item.Class, item.Quest.Name), "READY", "", "", questDetails(item.Quest), skyCompleteColor, true)
 			row++
