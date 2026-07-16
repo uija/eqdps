@@ -18,6 +18,9 @@ func TestParseRecordClassifiesTimestampedLines(t *testing.T) {
 		{"level up", "[Thu Jul 02 05:19:04 2026] You have gained a level! Welcome to level 43!", RecordLevelUp},
 		{"aggro clear", "[Thu Jul 02 05:19:05 2026] Your enemies have forgotten you!", RecordAggroClear},
 		{"death", "[Thu Jul 02 05:19:06 2026] You have slain a lizardman scout!", RecordDeath},
+		{"zone change", "[Thu Jul 09 08:55:08 2026] You have entered The Plane of Sky.", RecordZoneChange},
+		{"loot", "[Thu Jul 16 10:47:28 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--", RecordLoot},
+		{"item removal", "[Wed Jul 08 16:04:02 2026] You successfully destroyed 1 Mithril Earring.", RecordItemRemoval},
 	}
 
 	for _, test := range tests {
@@ -33,6 +36,70 @@ func TestParseRecordClassifiesTimestampedLines(t *testing.T) {
 				t.Fatal("expected record timestamp")
 			}
 		})
+	}
+}
+
+func TestParseZoneChangeLine(t *testing.T) {
+	zone, ok := ParseZoneChangeLine("[Thu Jul 09 08:55:08 2026] You have entered The Plane of Sky.")
+	if !ok || zone.Name != "The Plane of Sky" {
+		t.Fatalf("unexpected zone change: %#v, ok=%v", zone, ok)
+	}
+}
+
+func TestParseLootLineOutcomes(t *testing.T) {
+	tests := []struct {
+		name     string
+		line     string
+		item     string
+		corpse   string
+		quantity int
+		outcome  LootOutcome
+		created  string
+	}{
+		{
+			"retained rune",
+			"[Thu Jul 16 10:47:28 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--",
+			"Wind Rune Caza", "Protector of Sky", 1, LootRetained, "",
+		},
+		{
+			"retained stack",
+			"[Thu Jul 02 05:34:53 2026] --You have looted 2 Bone Chips from a skeleton's corpse.--",
+			"Bone Chips", "a skeleton", 2, LootRetained, "",
+		},
+		{
+			"sold for free",
+			"[Thu Jul 16 10:47:17 2026] You looted a Belt of Concordance from Protector of Sky's corpse and sold it for free.",
+			"Belt of Concordance", "Protector of Sky", 1, LootSold, "",
+		},
+		{
+			"stored",
+			"[Thu Jul 02 05:22:50 2026] You looted a Low Quality Wolf Skin from a shadow wolf's corpse and stored it in your tradeskill depot",
+			"Low Quality Wolf Skin", "a shadow wolf", 1, LootStored, "",
+		},
+		{
+			"converted",
+			"[Sat Jul 04 10:18:17 2026] You looted a Black Tome with Silver Runes +2 from Najena's corpse to create a Black Tome with Silver Runes +3",
+			"Black Tome with Silver Runes +2", "Najena", 1, LootConverted, "a Black Tome with Silver Runes +3",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			loot, ok := ParseLootLine(test.line)
+			if !ok {
+				t.Fatal("expected loot event")
+			}
+			if loot.Item != test.item || loot.Corpse != test.corpse || loot.Quantity != test.quantity || loot.Outcome != test.outcome || loot.Created != test.created {
+				t.Fatalf("loot = %#v", loot)
+			}
+		})
+	}
+}
+
+func TestParseItemRemovalLine(t *testing.T) {
+	removal, ok := ParseItemRemovalLine("[Wed Jul 08 16:04:02 2026] You successfully destroyed 1 Mithril Earring.")
+	if !ok || removal.Item != "Mithril Earring" || removal.Quantity != 1 {
+		t.Fatalf("unexpected removal: %#v, ok=%v", removal, ok)
 	}
 }
 

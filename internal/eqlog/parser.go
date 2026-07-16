@@ -25,6 +25,10 @@ var (
 	levelUpRE    = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
 	aggroClearRE = regexp.MustCompile(`^Your enemies have forgotten you!$`)
 	castRE       = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
+	zoneRE       = regexp.MustCompile(`^You have entered (.+)\.$`)
+	lootRE       = regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)
+	lootResultRE = regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)
+	destroyRE    = regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)
 )
 
 type ExperienceGain struct {
@@ -37,6 +41,35 @@ type LevelUp struct {
 	Level int
 }
 
+type ZoneChange struct {
+	Time time.Time
+	Name string
+}
+
+type LootOutcome uint8
+
+const (
+	LootRetained LootOutcome = iota + 1
+	LootStored
+	LootSold
+	LootConverted
+)
+
+type Loot struct {
+	Time     time.Time
+	Item     string
+	Corpse   string
+	Quantity int
+	Outcome  LootOutcome
+	Created  string
+}
+
+type ItemRemoval struct {
+	Time     time.Time
+	Item     string
+	Quantity int
+}
+
 type RecordKind uint8
 
 const (
@@ -47,6 +80,9 @@ const (
 	RecordLevelUp
 	RecordAggroClear
 	RecordDeath
+	RecordZoneChange
+	RecordLoot
+	RecordItemRemoval
 )
 
 // Record is one timestamped EverQuest log entry. Unknown records retain their
@@ -59,6 +95,9 @@ type Record struct {
 	Experience ExperienceGain
 	LevelUp    LevelUp
 	Death      combat.Death
+	ZoneChange ZoneChange
+	Loot       Loot
+	Removal    ItemRemoval
 }
 
 func ParseRecord(line string) (Record, bool) {
@@ -79,8 +118,104 @@ func ParseRecord(line string) (Record, bool) {
 		record.Kind = RecordAggroClear
 	} else if death, ok := parseDeath(timestamp, message); ok {
 		record.Kind, record.Death = RecordDeath, death
+	} else if zone, ok := parseZoneChange(timestamp, message); ok {
+		record.Kind, record.ZoneChange = RecordZoneChange, zone
+	} else if loot, ok := parseLoot(timestamp, message); ok {
+		record.Kind, record.Loot = RecordLoot, loot
+	} else if removal, ok := parseItemRemoval(timestamp, message); ok {
+		record.Kind, record.Removal = RecordItemRemoval, removal
 	}
 	return record, true
+}
+
+func ParseZoneChangeLine(line string) (ZoneChange, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return ZoneChange{}, false
+	}
+	return parseZoneChange(timestamp, message)
+}
+
+func parseZoneChange(timestamp time.Time, message string) (ZoneChange, bool) {
+	matches := zoneRE.FindStringSubmatch(message)
+	if matches == nil {
+		return ZoneChange{}, false
+	}
+	return ZoneChange{Time: timestamp, Name: strings.TrimSpace(matches[1])}, true
+}
+
+func ParseLootLine(line string) (Loot, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return Loot{}, false
+	}
+	return parseLoot(timestamp, message)
+}
+
+func parseLoot(timestamp time.Time, message string) (Loot, bool) {
+	if matches := lootRE.FindStringSubmatch(message); matches != nil {
+		quantity, item, ok := parseLootItem(matches[1])
+		if !ok {
+			return Loot{}, false
+		}
+		return Loot{Time: timestamp, Item: item, Corpse: strings.TrimSpace(matches[2]), Quantity: quantity, Outcome: LootRetained}, true
+	}
+
+	matches := lootResultRE.FindStringSubmatch(message)
+	if matches == nil {
+		return Loot{}, false
+	}
+	quantity, item, ok := parseLootItem(matches[1])
+	if !ok {
+		return Loot{}, false
+	}
+	outcome := LootStored
+	result := matches[3]
+	if strings.HasPrefix(result, "and sold it for ") {
+		outcome = LootSold
+	} else if strings.HasPrefix(result, "to create ") {
+		outcome = LootConverted
+	}
+	return Loot{
+		Time: timestamp, Item: item, Corpse: strings.TrimSpace(matches[2]), Quantity: quantity,
+		Outcome: outcome, Created: strings.TrimSpace(matches[4]),
+	}, true
+}
+
+func parseLootItem(value string) (int, string, bool) {
+	prefix, item, ok := strings.Cut(strings.TrimSpace(value), " ")
+	if !ok || item == "" {
+		return 0, "", false
+	}
+	quantity := 1
+	if prefix != "a" && prefix != "an" {
+		var err error
+		quantity, err = strconv.Atoi(prefix)
+		if err != nil || quantity < 1 {
+			return 0, "", false
+		}
+	}
+	return quantity, strings.TrimSpace(item), true
+}
+
+func ParseItemRemovalLine(line string) (ItemRemoval, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return ItemRemoval{}, false
+	}
+	return parseItemRemoval(timestamp, message)
+}
+
+func parseItemRemoval(timestamp time.Time, message string) (ItemRemoval, bool) {
+	matches := destroyRE.FindStringSubmatch(message)
+	if matches == nil {
+		return ItemRemoval{}, false
+	}
+	quantity, err := strconv.Atoi(matches[1])
+	if err != nil || quantity < 1 {
+		return ItemRemoval{}, false
+	}
+	return ItemRemoval{Time: timestamp, Item: strings.TrimSpace(matches[2]), Quantity: quantity}, true
 }
 
 func ParseLine(line string) (combat.Event, bool) {
