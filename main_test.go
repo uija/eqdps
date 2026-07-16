@@ -1,6 +1,9 @@
 package main
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -30,6 +33,7 @@ func TestHistoryDuration(t *testing.T) {
 		"Last 4 Hours": 4 * time.Hour,
 		"Last 8 Hours": 8 * time.Hour,
 		"Last Day":     24 * time.Hour,
+		"Full":         -time.Nanosecond,
 	}
 	for label, expected := range tests {
 		got, ok := historyDuration(label)
@@ -42,6 +46,49 @@ func TestHistoryDuration(t *testing.T) {
 	}
 }
 
+func TestFullHistoryUsesBeginningOfLogCutoff(t *testing.T) {
+	full, ok := historyDuration("Full")
+	if !ok {
+		t.Fatal("expected Full history selection")
+	}
+	cutoff, err := replayCutoff("unused", full, time.Time{})
+	if err != nil || !cutoff.IsZero() {
+		t.Fatalf("full history must replay from the beginning, cutoff=%v err=%v", cutoff, err)
+	}
+}
+
+func TestReplayReportsProgressAndSupportsCancellation(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "eqlog.txt")
+	log := "[Wed Jul 15 18:53:34 2026] Zonektik begins casting Furor.\n" +
+		"[Wed Jul 15 18:53:36 2026] Zonektik hit a dar ghoul knight for 33 points of magic damage by Furor.\n"
+	if err := os.WriteFile(logPath, []byte(log), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var latest replayProgress
+	tracker, _, err := replayLogWithProgress(logPath, combat.DefaultIdleTimeout, -time.Nanosecond, time.Time{}, 0, int64(len(log)), func(progress replayProgress) {
+		latest = progress
+	}, nil)
+	if err != nil || tracker == nil || latest.Bytes != latest.Total || latest.Lines != 2 {
+		t.Fatalf("unexpected completed replay: progress=%#v tracker=%#v err=%v", latest, tracker, err)
+	}
+
+	cancel := make(chan struct{})
+	close(cancel)
+	if _, _, err := replayLogWithProgress(logPath, combat.DefaultIdleTimeout, -time.Nanosecond, time.Time{}, 0, int64(len(log)), nil, cancel); !errors.Is(err, errReplayCancelled) {
+		t.Fatalf("expected replay cancellation, got %v", err)
+	}
+}
+
+func TestProgressTextShowsPercentageAndLineCount(t *testing.T) {
+	got := progressText(replayProgress{Bytes: 50, Total: 100, Lines: 12345})
+	for _, want := range []string{"50%", "12345 lines processed", "████"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected progress text %q to contain %q", got, want)
+		}
+	}
+}
+
 func TestStatusTextShowsSessionXP(t *testing.T) {
 	got := statusText(xp.Snapshot{
 		Percent:        97.085,
@@ -49,7 +96,7 @@ func TestStatusTextShowsSessionXP(t *testing.T) {
 		PercentPerHour: 81.06,
 		ActiveDuration: 71*time.Minute + 15*time.Second,
 		Gains:          81,
-	})
+	}, "")
 	for _, want := range []string{"XP ~97.1%", "81.1%/h", "~00:03 to level", "reset"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected status %q to contain %q", got, want)
@@ -63,12 +110,37 @@ func TestStatusTextShowsKnownProgressWithoutApproximationMarker(t *testing.T) {
 		ProgressKnown:  true,
 		PercentPerHour: 60,
 		Gains:          20,
-	})
+	}, "")
 	if !strings.Contains(got, "XP 27.0%") {
 		t.Fatalf("expected known level progress, got %q", got)
 	}
 	if strings.Contains(got, "XP ~27.0%") {
 		t.Fatalf("did not expect approximation marker, got %q", got)
+	}
+}
+
+func TestStatusTextShowsActiveFightFilter(t *testing.T) {
+	got := statusText(xp.Snapshot{}, "King Tranix")
+	for _, want := range []string{"filter: King Tranix", "/", "filter"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected status %q to contain %q", got, want)
+		}
+	}
+}
+
+func TestFilterSectionsMatchesMobNamesCaseInsensitively(t *testing.T) {
+	sections := []combat.DisplaySection{
+		{Fight: &combat.Fight{Mob: "King Tranix"}},
+		{Fight: &combat.Fight{Mob: "a fire giant warrior"}},
+		{Fight: &combat.Fight{Mob: "King Ak'Anon"}},
+	}
+
+	filtered := filterSections(sections, "  KING ")
+	if len(filtered) != 2 || filtered[0].Fight.Mob != "King Tranix" || filtered[1].Fight.Mob != "King Ak'Anon" {
+		t.Fatalf("unexpected filtered sections: %#v", filtered)
+	}
+	if got := filterSections(sections, ""); len(got) != len(sections) {
+		t.Fatalf("empty filter should retain every section: %#v", got)
 	}
 }
 

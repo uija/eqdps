@@ -85,14 +85,18 @@ Hotkeys:
 
 | Key | Action |
 | --- | --- |
-| `o` | History overlay: Now, 1h, 4h, 8h, 1d |
+| `o` | History overlay: Now, 1h, 4h, 8h, 1d, Full |
+| `/` | Filter displayed fights by case-insensitive mob-name substring |
 | `Enter` | Expand/collapse a mob, combatant, or detail category |
 | `r` | Clear the combat tracker and session XP meter |
 | `q` or `Esc` | Quit |
 
 When the history overlay is open, it owns input. `Enter` selects its button and
-`Esc` closes only the overlay. After reload/reset, `resetTableView` scrolls to
-the beginning and selects row 1.
+`Esc` closes only the overlay. The filter input also owns input; `Enter` applies
+the trimmed query, `Esc` cancels, and an empty query clears the filter. Filtering
+affects display only and continues to apply to newly parsed fights. After
+reload/reset/filtering, `resetTableView` scrolls to the beginning and selects
+row 1.
 
 Mob headers and every combatant row are expandable. Combatant details are nested
 under Melee, DoTs, Magic, Procs, Damage Shield, and merged `Pet: <pet name>`
@@ -255,6 +259,10 @@ The `o` overlay replaces the combat and XP trackers with replayed trackers.
 Choosing `Now` creates empty trackers and continues from newly appended lines.
 The live tail goroutine is not reopened at a historical offset; replay reads
 history once, while the existing tail continues to follow EOF.
+History-menu replays run in a background goroutine against a file-size snapshot.
+A modal reports byte-based percentage and scanned-line progress every 5,000
+lines. `Esc` cancels without replacing the current tracker; successful replay
+replaces it atomically, and replay errors remain visible in the modal.
 
 ## Known Limitations
 
@@ -271,10 +279,8 @@ history once, while the existing tail continues to follow EOF.
   separate the successor only once a death supplies a boundary.
 - The local character's actual name is not configured; first-person log forms
   are represented as `You` and `YOU`.
-- History replay runs synchronously from the overlay callback and may block the
-  UI briefly on a very large file.
-- A history-overlay replay error is currently ignored and leaves a new empty
-  tracker; startup and text-mode replay errors are returned to the user.
+- Large replays remain CPU-intensive even though their progress UI stays
+  responsive and cancellation is available.
 - Timestamps carry no timezone information. Both CLI cutoffs and log timestamps
   use Go's location-less parsing, which keeps their comparisons consistent.
 

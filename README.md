@@ -58,12 +58,17 @@ new lines written after startup.
 
 | Key | Action |
 | --- | --- |
-| `o` | Open history menu |
-| `Enter` | Expand/collapse a mob or the damage breakdown on its `You` row |
+| `o` | Open history menu, including a full-log replay |
+| `/` | Filter the displayed fights by mob name |
+| `Enter` | Expand/collapse a mob, combatant, or detail category |
 | `r` | Reset the combat and session XP meters and start fresh |
 | `q` / `Esc` | Quit |
 
 ## History And Replay
+
+The in-app history menu offers Now, 1h, 4h, 8h, 1d, and Full. After loading
+history, press `/` and enter a case-insensitive mob-name substring to compare
+matching fights. Submit an empty filter to show every fight again.
 
 Seed the TUI with recent history before continuing live:
 

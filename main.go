@@ -79,6 +79,18 @@ func parseSince(value string) (time.Time, error) {
 }
 
 func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) (*combat.FightTracker, *xp.Session, error) {
+	return replayLogWithProgress(logPath, idleTimeout, back, since, historyLimit, 0, nil, nil)
+}
+
+type replayProgress struct {
+	Bytes int64
+	Total int64
+	Lines int
+}
+
+var errReplayCancelled = errors.New("replay cancelled")
+
+func replayLogWithProgress(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, maxBytes int64, onProgress func(replayProgress), cancel <-chan struct{}) (*combat.FightTracker, *xp.Session, error) {
 	cutoff, err := replayCutoff(logPath, back, since)
 	if err != nil {
 		return nil, nil, err
@@ -89,17 +101,34 @@ func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time,
 		return nil, nil, fmt.Errorf("open log: %w", err)
 	}
 	defer file.Close()
+	if maxBytes <= 0 {
+		info, statErr := file.Stat()
+		if statErr != nil {
+			return nil, nil, fmt.Errorf("stat log: %w", statErr)
+		}
+		maxBytes = info.Size()
+	}
 
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
 	xpSession := xp.NewSession()
 	var latest time.Time
-	scanner := bufio.NewScanner(file)
+	var bytesRead int64
+	linesRead := 0
+	scanner := bufio.NewScanner(io.LimitReader(file, maxBytes))
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	for scanner.Scan() {
+		if linesRead%1000 == 0 && replayCancelled(cancel) {
+			return nil, nil, errReplayCancelled
+		}
 		line := scanner.Text()
+		bytesRead += int64(len(scanner.Bytes()) + 1)
+		linesRead++
 		timestamp, hasTimestamp := eqlog.ParseTime(line)
 		if hasTimestamp && timestamp.After(latest) {
 			latest = timestamp
+		}
+		if onProgress != nil && linesRead%5000 == 0 {
+			onProgress(replayProgress{Bytes: min(bytesRead, maxBytes), Total: maxBytes, Lines: linesRead})
 		}
 		if !cutoff.IsZero() && (!hasTimestamp || timestamp.Before(cutoff)) {
 			continue
@@ -112,7 +141,25 @@ func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time,
 	if !latest.IsZero() {
 		tracker.EndIdleAtLogTime(latest, idleTimeout)
 	}
+	if replayCancelled(cancel) {
+		return nil, nil, errReplayCancelled
+	}
+	if onProgress != nil {
+		onProgress(replayProgress{Bytes: maxBytes, Total: maxBytes, Lines: linesRead})
+	}
 	return tracker, xpSession, nil
+}
+
+func replayCancelled(cancel <-chan struct{}) bool {
+	if cancel == nil {
+		return false
+	}
+	select {
+	case <-cancel:
+		return true
+	default:
+		return false
+	}
 }
 
 func replayCutoff(logPath string, back time.Duration, since time.Time) (time.Time, error) {
@@ -194,6 +241,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	expandedRows := make(map[string]bool)
 	expandableRows := make(map[int]string)
 	terminalWidth := 100
+	fightFilter := ""
 
 	if back > 0 || !since.IsZero() {
 		backfill, backfillXP, err := replayLog(logPath, idleTimeout, back, since, historyLimit)
@@ -218,9 +266,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		mu.Lock()
 		defer mu.Unlock()
 
-		sections := tracker.DisplaySections()
+		sections := filterSections(tracker.DisplaySections(), fightFilter)
 		header.SetText(titleText(logPath, terminalWidth))
-		status.SetText(statusText(xpSession.SnapshotLive(time.Now())))
+		status.SetText(statusText(xpSession.SnapshotLive(time.Now()), fightFilter))
 		expandableRows = fillTable(table, sections, expandedRows, terminalWidth)
 	}
 	render()
@@ -277,11 +325,94 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	pages := tview.NewPages().
 		AddPage("main", layout, true, true)
 	historyOpen := false
+	filterOpen := false
+	replayOpen := false
+	var replayCancel chan struct{}
+	var replayView *tview.TextView
 
 	closeHistoryModal := func() {
 		pages.RemovePage("history")
 		historyOpen = false
 		app.SetFocus(table)
+	}
+
+	closeReplayModal := func() {
+		pages.RemovePage("replay")
+		replayOpen = false
+		replayCancel = nil
+		replayView = nil
+		app.SetFocus(table)
+	}
+
+	showReplayModal := func() {
+		replayView = tview.NewTextView().
+			SetDynamicColors(true).
+			SetTextAlign(tview.AlignCenter)
+		replayView.SetBorder(true).SetTitle(" Loading history — Esc cancel ")
+		centered := tview.NewFlex().
+			SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(tview.NewFlex().
+				AddItem(nil, 0, 1, false).
+				AddItem(replayView, 58, 0, true).
+				AddItem(nil, 0, 1, false), 7, 0, true).
+			AddItem(nil, 0, 1, false)
+		pages.AddPage("replay", centered, true, true)
+		app.SetFocus(replayView)
+	}
+
+	startReplay := func(duration time.Duration) {
+		info, err := os.Stat(logPath)
+		if err != nil {
+			replayOpen = true
+			showReplayModal()
+			replayView.SetTitle(" Replay failed — Esc close ")
+			replayView.SetText("[red]" + tview.Escape(err.Error()) + "[::-]")
+			return
+		}
+		replayOpen = true
+		replayCancel = make(chan struct{})
+		cancel := replayCancel
+		showReplayModal()
+		replayView.SetText(progressText(replayProgress{Total: info.Size()}))
+
+		go func(snapshotSize int64) {
+			nextTracker, nextXP, replayErr := replayLogWithProgress(
+				logPath, idleTimeout, duration, time.Time{}, historyLimit, snapshotSize,
+				func(progress replayProgress) {
+					app.QueueUpdateDraw(func() {
+						if replayOpen && replayView != nil {
+							replayView.SetText(progressText(progress))
+						}
+					})
+				},
+				cancel,
+			)
+			app.QueueUpdateDraw(func() {
+				if errors.Is(replayErr, errReplayCancelled) {
+					closeReplayModal()
+					return
+				}
+				if replayErr != nil {
+					replayCancel = nil
+					if replayView != nil {
+						replayView.SetTitle(" Replay failed — Esc close ")
+						replayView.SetText("[red]" + tview.Escape(replayErr.Error()) + "[::-]")
+					}
+					return
+				}
+
+				mu.Lock()
+				tracker = nextTracker
+				xpSession = nextXP
+				expandedRows = make(map[string]bool)
+				expandableRows = make(map[int]string)
+				mu.Unlock()
+				closeReplayModal()
+				render()
+				resetTableView(table)
+			})
+		}(info.Size())
 	}
 
 	openHistoryModal := func() {
@@ -291,7 +422,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		historyOpen = true
 		modal := tview.NewModal().
 			SetText("Open history").
-			AddButtons([]string{"Now", "Last Hour", "Last 4 Hours", "Last 8 Hours", "Last Day", "Cancel"}).
+			AddButtons([]string{"Now", "Last Hour", "Last 4 Hours", "Last 8 Hours", "Last Day", "Full", "Cancel"}).
 			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 				closeHistoryModal()
 				if buttonLabel == "Cancel" {
@@ -303,19 +434,14 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 					return
 				}
 
-				nextTracker := combat.NewFightTrackerWithHistory(historyLimit)
-				nextXP := xp.NewSession()
-				if duration > 0 {
-					replayed, replayedXP, err := replayLog(logPath, idleTimeout, duration, time.Time{}, historyLimit)
-					if err == nil {
-						nextTracker = replayed
-						nextXP = replayedXP
-					}
+				if duration != 0 {
+					startReplay(duration)
+					return
 				}
 
 				mu.Lock()
-				tracker = nextTracker
-				xpSession = nextXP
+				tracker = combat.NewFightTrackerWithHistory(historyLimit)
+				xpSession = xp.NewSession()
 				expandedRows = make(map[string]bool)
 				expandableRows = make(map[int]string)
 				mu.Unlock()
@@ -326,10 +452,73 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		app.SetFocus(modal)
 	}
 
+	closeFilter := func() {
+		pages.RemovePage("filter")
+		filterOpen = false
+		app.SetFocus(table)
+	}
+
+	openFilter := func() {
+		if filterOpen {
+			return
+		}
+		filterOpen = true
+		input := tview.NewInputField().
+			SetLabel(" Mob name: ").
+			SetText(fightFilter).
+			SetFieldWidth(36)
+		input.SetBorder(true).SetTitle(" Filter fights — Enter apply, Esc cancel ")
+		input.SetDoneFunc(func(key tcell.Key) {
+			if key == tcell.KeyEsc {
+				closeFilter()
+				return
+			}
+			if key != tcell.KeyEnter {
+				return
+			}
+			fightFilter = strings.TrimSpace(input.GetText())
+			closeFilter()
+			render()
+			resetTableView(table)
+		})
+		centered := tview.NewFlex().
+			SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(tview.NewFlex().
+				AddItem(nil, 0, 1, false).
+				AddItem(input, 56, 0, true).
+				AddItem(nil, 0, 1, false), 3, 0, true).
+			AddItem(nil, 0, 1, false)
+		pages.AddPage("filter", centered, true, true)
+		app.SetFocus(input)
+	}
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if replayOpen {
+			if event.Key() == tcell.KeyEsc {
+				if replayCancel != nil {
+					close(replayCancel)
+					replayCancel = nil
+					if replayView != nil {
+						replayView.SetTitle(" Cancelling replay… ")
+					}
+				} else {
+					closeReplayModal()
+				}
+				return nil
+			}
+			return nil
+		}
 		if historyOpen {
 			if event.Key() == tcell.KeyEsc {
 				closeHistoryModal()
+				return nil
+			}
+			return event
+		}
+		if filterOpen {
+			if event.Key() == tcell.KeyEsc {
+				closeFilter()
 				return nil
 			}
 			return event
@@ -365,6 +554,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			return nil
 		case 'o', 'O':
 			openHistoryModal()
+			return nil
+		case '/':
+			openFilter()
 			return nil
 		}
 		return event
@@ -458,8 +650,11 @@ func titleText(logPath string, terminalWidth int) string {
 	return fmt.Sprintf("[::b]%s[::-]  %s", title, fitText(logPath, maxPathWidth))
 }
 
-func statusText(snapshot xp.Snapshot) string {
-	controls := "[gray]o[::-] history   [gray]Enter[::-] expand/details   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+func statusText(snapshot xp.Snapshot, fightFilter string) string {
+	controls := "[gray]o[::-] history   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+	if fightFilter != "" {
+		controls = fmt.Sprintf("[yellow]filter: %s[::-]   %s", tview.Escape(fightFilter), controls)
+	}
 	if snapshot.Gains == 0 {
 		return controls
 	}
@@ -492,9 +687,37 @@ func historyDuration(label string) (time.Duration, bool) {
 		return 8 * time.Hour, true
 	case "Last Day":
 		return 24 * time.Hour, true
+	case "Full":
+		return -time.Nanosecond, true
 	default:
 		return 0, false
 	}
+}
+
+func filterSections(sections []combat.DisplaySection, query string) []combat.DisplaySection {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" {
+		return sections
+	}
+	filtered := make([]combat.DisplaySection, 0, len(sections))
+	for _, section := range sections {
+		if section.Fight != nil && strings.Contains(strings.ToLower(section.Fight.Mob), query) {
+			filtered = append(filtered, section)
+		}
+	}
+	return filtered
+}
+
+func progressText(progress replayProgress) string {
+	const barWidth = 32
+	percentComplete := 0.0
+	if progress.Total > 0 {
+		percentComplete = float64(progress.Bytes) / float64(progress.Total)
+	}
+	percentComplete = min(max(percentComplete, 0), 1)
+	filled := int(percentComplete * barWidth)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
+	return fmt.Sprintf("\n[green]%s[::-]  %3.0f%%\n\n%d lines processed", bar, percentComplete*100, progress.Lines)
 }
 
 func sectionTitle(section combat.DisplaySection) string {
