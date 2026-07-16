@@ -95,6 +95,22 @@ func TestTableViewAtEnd(t *testing.T) {
 	}
 }
 
+func TestScrollBarMetrics(t *testing.T) {
+	if _, _, visible := scrollBarMetrics(10, 10, 0); visible {
+		t.Fatal("scrollbar should be hidden when all rows fit")
+	}
+
+	start, height, visible := scrollBarMetrics(100, 20, 40)
+	if !visible || height != 4 || start != 8 {
+		t.Fatalf("unexpected middle scrollbar: start=%d height=%d visible=%t", start, height, visible)
+	}
+
+	start, height, visible = scrollBarMetrics(100, 20, 80)
+	if !visible || height != 4 || start != 16 {
+		t.Fatalf("unexpected end scrollbar: start=%d height=%d visible=%t", start, height, visible)
+	}
+}
+
 func TestHistoryDuration(t *testing.T) {
 	tests := map[string]time.Duration{
 		"Now":          0,

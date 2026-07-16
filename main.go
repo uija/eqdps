@@ -28,6 +28,8 @@ var (
 	combatantRowColor = tcell.NewHexColor(0x202428)
 	infoBarColor      = tcell.NewHexColor(0x303030)
 	infoNoticeColor   = tcell.NewHexColor(0x285b38)
+	scrollTrackColor  = tcell.NewHexColor(0x303438)
+	scrollThumbColor  = tcell.NewHexColor(0x788088)
 )
 
 const skyCatchupOverlayThreshold int64 = 5 * 1024 * 1024
@@ -331,6 +333,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		SetBorders(false).
 		SetSelectable(true, false).
 		SetFixed(1, 0)
+	scrollBar := newTableScrollBar(table)
 
 	header := tview.NewTextView().
 		SetDynamicColors(true)
@@ -382,7 +385,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			infoSky.SetText(fmt.Sprintf(" PoS: %d ready ", readyCount))
 		}
 		shortcuts.SetText(shortcutsText())
-		expandableRows = fillTable(table, sections, expandedRows, terminalWidth)
+		expandableRows = fillTable(table, sections, expandedRows, max(terminalWidth-1, 1))
 		if skyViewOpen {
 			renderSkyView()
 		}
@@ -480,10 +483,13 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		AddItem(infoLeft, 0, 3, false).
 		AddItem(infoNotice, 0, 2, false).
 		AddItem(infoSky, 16, 0, false)
+	tableArea := tview.NewFlex().
+		AddItem(table, 0, 1, true).
+		AddItem(scrollBar, 1, 0, false)
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(header, 1, 0, false).
-		AddItem(table, 0, 1, true).
+		AddItem(tableArea, 0, 1, true).
 		AddItem(infoBar, 1, 0, false).
 		AddItem(shortcuts, 1, 0, false)
 	pages := tview.NewPages().
@@ -1628,6 +1634,49 @@ func tableLayoutForWidth(width int) tableLayout {
 	}
 
 	return tableLayout{combatantWidth: max(width-61, 20)}
+}
+
+type tableScrollBar struct {
+	*tview.Box
+	table *tview.Table
+}
+
+func newTableScrollBar(table *tview.Table) *tableScrollBar {
+	return &tableScrollBar{Box: tview.NewBox(), table: table}
+}
+
+func (bar *tableScrollBar) Draw(screen tcell.Screen) {
+	bar.Box.DrawForSubclass(screen, bar)
+	x, y, _, height := bar.GetInnerRect()
+	thumbStart, thumbHeight, visible := scrollBarMetrics(bar.table.GetRowCount(), height, tableRowOffset(bar.table))
+	for line := 0; line < height; line++ {
+		character := ' '
+		color := scrollTrackColor
+		if visible {
+			character = '│'
+			if line >= thumbStart && line < thumbStart+thumbHeight {
+				character = '█'
+				color = scrollThumbColor
+			}
+		}
+		screen.SetContent(x, y+line, character, nil, tcell.StyleDefault.Foreground(color))
+	}
+}
+
+func tableRowOffset(table *tview.Table) int {
+	row, _ := table.GetOffset()
+	return row
+}
+
+func scrollBarMetrics(rowCount, height, rowOffset int) (thumbStart, thumbHeight int, visible bool) {
+	if height <= 0 || rowCount <= height {
+		return 0, 0, false
+	}
+	thumbHeight = max(1, height*height/rowCount)
+	maxOffset := rowCount - height
+	rowOffset = min(max(rowOffset, 0), maxOffset)
+	thumbStart = (height - thumbHeight) * rowOffset / maxOffset
+	return thumbStart, thumbHeight, true
 }
 
 func tableCell(value string, col int, layout tableLayout) *tview.TableCell {
