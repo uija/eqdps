@@ -74,10 +74,11 @@ location and compared to timestamps parsed from the log in the same way.
 
 The layout is a one-line title/path header, the mob table, and a one-line status
 bar. The status bar shows approximate current-level progress, XP/hour, estimated
-time to the next level, and hotkeys. Columns are Combatant, Damage, DPS, Hits,
-Crits, Active, and Last Target.
-Combatant and target widths adapt to terminal width and use `...` when
-truncated. Active mobs are expanded by default; completed mobs start collapsed.
+time to the next level, and hotkeys. Columns are Combatant, %, Damage, DPS,
+SDPS, Hits, Crits, Min, Max, and Active. DPS and percentages are rounded to
+whole numbers. The Combatant column adapts to terminal width, never below 20
+characters, and uses `...` when truncated. Active mobs are expanded by default;
+completed mobs start collapsed.
 There is no player-row limit and the table scrolls normally.
 
 Hotkeys:
@@ -85,7 +86,7 @@ Hotkeys:
 | Key | Action |
 | --- | --- |
 | `o` | History overlay: Now, 1h, 4h, 8h, 1d |
-| `Enter` | Expand/collapse a mob section or details on its `You` row |
+| `Enter` | Expand/collapse a mob, combatant, or detail category |
 | `r` | Clear the combat tracker and session XP meter |
 | `q` or `Esc` | Quit |
 
@@ -93,12 +94,14 @@ When the history overlay is open, it owns input. `Enter` selects its button and
 `Esc` closes only the overlay. After reload/reset, `resetTableView` scrolls to
 the beginning and selects row 1.
 
-Mob header rows and each mob's `You` row are expandable. Player rows under a mob
-show only events assigned to that mob. Local details show damage grouped by
-ability; each detail row places ability damage under Damage, ability DPS under
-DPS, and its share of total damage under Last Target. All periodic damage is
-combined as `DoTs`; events without an ability are grouped as `Melee`; merged
-player-pet damage is grouped as `Pet: <pet name>`.
+Mob headers and every combatant row are expandable. Combatant details are nested
+under Melee, DoTs, Magic, Procs, Damage Shield, and merged `Pet: <pet name>`
+categories. Melee is split by attack verb. Direct ability damage correlated to
+an exact-source and exact-ability `begins casting` message within 30 seconds is
+Magic; unmatched direct ability damage is a Proc. DoTs and shields retain their
+individual ability names. Category and ability rows show percentage of
+combatant damage, damage, active DPS, shared SDPS, hits, crits, min/max hit, and
+active duration.
 
 Important tview concurrency rule: background goroutines use
 `app.QueueUpdateDraw(render)`. UI event handlers call `render()` directly;
@@ -140,8 +143,10 @@ damage and hit count. Critical events also increment crit count. Mob duration is
 last event timestamp - first event timestamp + 1 second
 ```
 
-DPS is each source's damage divided by the shared mob duration. This keeps every
-player in a mob section directly comparable even when players switch targets.
+DPS is damage divided by the combatant or detail row's active duration. For
+`You`, the combatant DPS uses the deliberate engagement duration when known.
+SDPS is damage divided by the shared mob duration and is hidden when it differs
+from DPS by less than ten percent.
 Combatants remain ordered by first-seen timestamp, then name. There is no cap on
 the number of players in a mob record.
 
@@ -300,10 +305,10 @@ Do not leave a generated `eqdps` binary in the repository root after checks.
 - Track and display every active mob independently.
 - Show all damage sources beneath each mob, without a player limit.
 - Keep row ordering stable by first appearance.
-- Use one shared mob duration for every source's per-mob DPS.
+- Show active DPS and shared-duration SDPS, suppressing near-identical SDPS.
 - Keep completed-mob history unlimited by default, with an optional cap.
 - Show session XP/hour using a one-minute cap on combat-inactivity gaps.
-- Collapse mob sections and local damage details with Enter.
+- Collapse mob sections and every combatant's nested details with Enter.
 - Attribute player pets to an owner only when the owner is observed in the same
   mob record.
 - Favor correct attribution over counting source-less damage.

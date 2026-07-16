@@ -18,12 +18,12 @@ func TestMeterPlayersStayInFirstSeenOrder(t *testing.T) {
 	}
 }
 
-func TestMeterTracksDamageBreakdownAndCombinesDots(t *testing.T) {
+func TestMeterTracksNestedDamageBreakdownStatistics(t *testing.T) {
 	meter := NewMeter()
 	now := time.Date(2026, 7, 6, 12, 0, 0, 0, time.UTC)
-	meter.Add(Event{Time: now, Source: "You", Target: "mob", Amount: 10})
+	meter.Add(Event{Time: now, Source: "You", Target: "mob", Amount: 10, Attack: "pierce"})
 	meter.Add(Event{Time: now.Add(time.Second), Source: "You", Target: "mob", Amount: 40, Ability: "Spell1"})
-	meter.Add(Event{Time: now.Add(2 * time.Second), Source: "You", Target: "mob", Amount: 90})
+	meter.Add(Event{Time: now.Add(2 * time.Second), Source: "You", Target: "mob", Amount: 90, Attack: "pierce", Critical: true})
 	meter.Add(Event{Time: now.Add(3 * time.Second), Source: "You", Target: "mob", Amount: 50, Ability: "Tuyen's Chant of Disease", DamageOverTime: true})
 	meter.Add(Event{Time: now.Add(4 * time.Second), Source: "You", Target: "mob", Amount: 60, Ability: "Tuyen's Chant of Flame", DamageOverTime: true})
 
@@ -31,7 +31,7 @@ func TestMeterTracksDamageBreakdownAndCombinesDots(t *testing.T) {
 	if len(players) != 1 {
 		t.Fatalf("expected one combatant, got %#v", players)
 	}
-	expected := map[string]int{"Melee": 100, "Spell1": 40, "DoTs": 110}
+	expected := map[string]int{"Melee": 100, "Procs": 40, "DoTs": 110}
 	for _, entry := range players[0].DamageBreakdown() {
 		if expected[entry.Name] != entry.Damage {
 			t.Fatalf("unexpected breakdown entry: %#v", entry)
@@ -40,6 +40,55 @@ func TestMeterTracksDamageBreakdownAndCombinesDots(t *testing.T) {
 	}
 	if len(expected) != 0 {
 		t.Fatalf("missing breakdown entries: %#v", expected)
+	}
+	melee := players[0].Breakdown["Melee"]
+	pierces := melee.Children["Pierces"]
+	if melee.Hits != 2 || melee.Crits != 1 || melee.MinHit != 10 || melee.MaxHit != 90 || pierces.Damage != 100 {
+		t.Fatalf("unexpected melee statistics: melee=%#v pierces=%#v", melee, pierces)
+	}
+	dots := players[0].Breakdown["DoTs"]
+	if len(dots.Children) != 2 || dots.Children["Tuyen's Chant of Disease"].Damage != 50 {
+		t.Fatalf("expected individual DoTs below their category: %#v", dots)
+	}
+}
+
+func TestFightTrackerSeparatesCastMagicFromProcs(t *testing.T) {
+	tracker := NewFightTracker()
+	now := time.Date(2026, 7, 15, 18, 53, 34, 0, time.UTC)
+	tracker.AddCast(Cast{Time: now, Source: "Zonektik", Ability: "Furor"})
+	tracker.AddDamage(Event{Time: now.Add(2 * time.Second), Source: "Zonektik", Target: "a dar ghoul knight", Amount: 33, Kind: "magic damage", Ability: "Furor"})
+	tracker.AddDamage(Event{Time: now.Add(3 * time.Second), Source: "You", Target: "a dar ghoul knight", Amount: 165, Kind: "magic damage", Ability: "Smiting Strike"})
+
+	fight, _ := tracker.DisplayFight()
+	players := fight.Meter.Players()
+	if players[0].Name != "Zonektik" || players[0].Breakdown["Magic"].Children["Furor"].Damage != 33 {
+		t.Fatalf("expected correlated Furor under Magic: %#v", players[0])
+	}
+	if players[1].Name != "You" || players[1].Breakdown["Procs"].Children["Smiting Strike"].Damage != 165 {
+		t.Fatalf("expected unmatched Smiting Strike under Procs: %#v", players[1])
+	}
+}
+
+func TestFightTrackerKeepsSameTimestampCastHitsAndExpiresOldCasts(t *testing.T) {
+	tracker := NewFightTracker()
+	now := time.Date(2026, 7, 15, 18, 53, 34, 0, time.UTC)
+	tracker.AddCast(Cast{Time: now, Source: "Wizard", Ability: "Area Spell"})
+	tracker.AddDamage(Event{Time: now.Add(2 * time.Second), Source: "Wizard", Target: "first mob", Amount: 20, Ability: "Area Spell"})
+	tracker.AddDamage(Event{Time: now.Add(2 * time.Second), Source: "Wizard", Target: "second mob", Amount: 30, Ability: "Area Spell"})
+	tracker.AddCast(Cast{Time: now, Source: "Wizard", Ability: "Expired Spell"})
+	tracker.AddDamage(Event{Time: now.Add(castMatchWindow + time.Second), Source: "Wizard", Target: "third mob", Amount: 40, Ability: "Expired Spell"})
+
+	for _, section := range tracker.DisplaySections() {
+		player := section.Fight.Meter.Players()[0]
+		if section.Fight.Mob == "third mob" {
+			if player.Breakdown["Procs"] == nil {
+				t.Fatalf("expired cast should fall back to Procs: %#v", player)
+			}
+			continue
+		}
+		if player.Breakdown["Magic"] == nil {
+			t.Fatalf("same-timestamp cast damage should remain Magic: %#v", player)
+		}
 	}
 }
 
@@ -50,7 +99,7 @@ func TestMeterMergesPossessivePetWhenOwnerIsPresent(t *testing.T) {
 	meter.Add(Event{Time: now.Add(time.Second), Source: "Sobatin", Target: "an orc raider", Amount: 11})
 
 	players := meter.Players()
-	if len(players) != 1 || players[0].Name != "Sobatin" || players[0].Damage != 15 || players[0].DamageTypes["Pet: warder"] != 4 {
+	if len(players) != 1 || players[0].Name != "Sobatin" || players[0].Damage != 15 || players[0].Breakdown["Pet: warder"].Damage != 4 {
 		t.Fatalf("unexpected merged stats: %#v", players)
 	}
 }

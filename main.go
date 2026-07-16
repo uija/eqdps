@@ -166,17 +166,21 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 			fmt.Println()
 		}
 		fmt.Println(sectionTitle(section))
-		fmt.Printf("%-24s %10s %17s %6s %6s %8s %s\n", "Combatant", "Damage", "DPS/Engaged", "Hits", "Crits", "Active", "Last Target")
+		fmt.Printf("%-24s %4s %8s %6s %6s %5s %5s %6s %6s %6s\n", "Combatant", "%", "Damage", "DPS", "SDPS", "Hits", "Crits", "Min", "Max", "Active")
 		duration := section.Fight.ActiveDuration()
 		for _, player := range section.Fight.Meter.Players() {
-			fmt.Printf("%-24s %10d %17s %6d %6d %8s %s\n",
+			dps, sdps := playerDPSColumns(player, section.Fight.Meter.Ended(), duration)
+			fmt.Printf("%-24s %4d %8d %6s %6s %5d %5d %6d %6d %6s\n",
 				player.Name,
+				100,
 				player.Damage,
-				formatPlayerDPS(player, section.Fight.Meter.Ended(), duration),
+				dps,
+				sdps,
 				player.Hits,
 				player.Crits,
-				formatDuration(duration),
-				player.LastTarget,
+				player.MinHit,
+				player.MaxHit,
+				formatDuration(player.ActiveDuration()),
 			)
 		}
 	}
@@ -385,6 +389,10 @@ func processLine(line string, tracker *combat.FightTracker, xpSession *xp.Sessio
 	if timestamp, ok := eqlog.ParseTime(line); ok {
 		xpSession.Observe(timestamp, time.Now())
 	}
+	if cast, ok := eqlog.ParseCastLine(line); ok {
+		tracker.AddCast(cast)
+		return
+	}
 	if event, ok := eqlog.ParseLine(line); ok {
 		xpSession.AddCombat(event.Time)
 		tracker.AddDamageWithIdle(event, idleTimeout)
@@ -513,15 +521,9 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 	table.Clear()
 	expandableRows := make(map[int]string)
 	layout := tableLayoutForWidth(terminalWidth)
-	headers := []string{"Combatant", "Damage", "DPS/Eng", "Hits", "Crits", "Active", "Last Target"}
+	headers := []string{"Combatant", "%", "Damage", "DPS", "SDPS", "Hits", "Crits", "Min", "Max", "Active"}
 	for col, header := range headers {
-		table.SetCell(0, col, tableCell(header, col, layout).
-			SetTextColor(tcell.ColorYellow).
-			SetSelectable(false))
-	}
-
-	if len(sections) == 0 {
-		return expandableRows
+		table.SetCell(0, col, tableCell(header, col, layout).SetTextColor(tcell.ColorYellow).SetSelectable(false))
 	}
 
 	row := 1
@@ -529,13 +531,9 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 		sectionKey := sectionRowKey(section)
 		if index > 0 {
 			for col := 1; col < len(headers); col++ {
-				table.SetCell(row, col, tableCell("", col, layout).
-					SetTextColor(tcell.ColorGray).
-					SetSelectable(false))
+				table.SetCell(row, col, tableCell("", col, layout).SetTextColor(tcell.ColorGray).SetSelectable(false))
 			}
-			table.SetCell(row, 0, tableCell("----------------------------------------", 0, layout).
-				SetTextColor(tcell.ColorGray).
-				SetSelectable(false))
+			table.SetCell(row, 0, tableCell("----------------------------------------", 0, layout).SetTextColor(tcell.ColorGray).SetSelectable(false))
 			row++
 		}
 
@@ -551,13 +549,8 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 		}
 		duration := section.Fight.ActiveDuration()
 		values := []string{
-			arrow + " " + section.Fight.Mob,
-			fmt.Sprintf("%d events", section.Fight.Meter.Events()),
-			"",
-			"",
-			"",
-			formatDuration(duration),
-			mobStatus(section),
+			arrow + " " + section.Fight.Mob + " (" + mobStatus(section) + ")",
+			"", fmt.Sprintf("%d events", section.Fight.Meter.Events()), "", "", "", "", "", "", formatDuration(duration),
 		}
 		color := tcell.ColorGray
 		if section.Current {
@@ -573,56 +566,77 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 		}
 
 		for _, player := range section.Fight.Meter.Players() {
-			rowKey := "you:" + sectionKey + ":" + player.Name
+			rowKey := "combatant:" + sectionKey + ":" + player.Name
+			dps, sdps := playerDPSColumns(player, section.Fight.Meter.Ended(), duration)
+			name := "    " + player.Name
+			if len(player.Breakdown) > 0 {
+				arrow := "▶"
+				if expandedRows[rowKey] {
+					arrow = "▼"
+				}
+				name = "  " + arrow + " " + player.Name
+			}
 			values := []string{
-				"  " + player.Name,
-				fmt.Sprintf("%d", player.Damage),
-				formatPlayerDPS(player, section.Fight.Meter.Ended(), duration),
-				fmt.Sprintf("%d", player.Hits),
-				fmt.Sprintf("%d", player.Crits),
-				formatDuration(duration),
-				player.LastTarget,
+				name, "100", fmt.Sprintf("%d", player.Damage), dps, sdps,
+				fmt.Sprintf("%d", player.Hits), fmt.Sprintf("%d", player.Crits),
+				fmt.Sprintf("%d", player.MinHit), fmt.Sprintf("%d", player.MaxHit), formatDuration(player.ActiveDuration()),
 			}
 			for col, value := range values {
 				table.SetCell(row, col, tableCell(value, col, layout))
 			}
-			if player.Name == "You" && len(player.DamageTypes) > 0 {
-				expandableRows[row] = rowKey
-				if expandedRows[rowKey] {
-					row++
-					row = addDamageBreakdownRows(table, row, player, duration, layout)
-				}
+			if len(player.Breakdown) == 0 {
+				row++
+				continue
 			}
+			expandableRows[row] = rowKey
 			row++
+			if expandedRows[rowKey] {
+				row = addDamageBreakdownRows(table, row, player, duration, layout, rowKey, expandedRows, expandableRows)
+			}
 		}
 	}
 	return expandableRows
 }
 
-func addDamageBreakdownRows(table *tview.Table, row int, player combat.PlayerStats, duration time.Duration, layout tableLayout) int {
+func addDamageBreakdownRows(table *tview.Table, row int, player combat.PlayerStats, duration time.Duration, layout tableLayout, playerKey string, expandedRows map[string]bool, expandableRows map[int]string) int {
 	for _, entry := range player.DamageBreakdown() {
-		values := []string{
-			"  " + entry.Name,
-			fmt.Sprintf("%d", entry.Damage),
-			fmt.Sprintf("%.2f", damageDPS(entry.Damage, duration)),
-			"",
-			"",
-			"",
-			fmt.Sprintf("%.1f%%", percent(entry.Damage, player.Damage)),
+		categoryKey := playerKey + ":category:" + entry.Name
+		name := "      " + entry.Name
+		if len(entry.Children) > 0 {
+			arrow := "▶"
+			if expandedRows[categoryKey] {
+				arrow = "▼"
+			}
+			name = "    " + arrow + " " + entry.Name
+			expandableRows[row] = categoryKey
 		}
-		for col, value := range values {
-			table.SetCell(row, col, tableCell(value, col, layout).
-				SetTextColor(tcell.ColorLightCyan).
-				SetSelectable(false))
-		}
+		setBreakdownRow(table, row, name, entry, player.Damage, duration, layout)
 		row++
+		if !expandedRows[categoryKey] {
+			continue
+		}
+		for _, detail := range entry.SortedChildren() {
+			setBreakdownRow(table, row, "        "+detail.Name, detail, player.Damage, duration, layout)
+			row++
+		}
 	}
 	return row
 }
 
+func setBreakdownRow(table *tview.Table, row int, name string, entry combat.BreakdownStats, totalDamage int, duration time.Duration, layout tableLayout) {
+	dps, sdps := breakdownDPSColumns(entry, duration)
+	values := []string{
+		name, fmt.Sprintf("%.0f", percent(entry.Damage, totalDamage)), fmt.Sprintf("%d", entry.Damage), dps, sdps,
+		fmt.Sprintf("%d", entry.Hits), fmt.Sprintf("%d", entry.Crits), fmt.Sprintf("%d", entry.MinHit),
+		fmt.Sprintf("%d", entry.MaxHit), formatDuration(entry.ActiveDuration()),
+	}
+	for col, value := range values {
+		table.SetCell(row, col, tableCell(value, col, layout).SetTextColor(tcell.ColorLightCyan))
+	}
+}
+
 type tableLayout struct {
 	combatantWidth int
-	targetWidth    int
 }
 
 func tableLayoutForWidth(width int) tableLayout {
@@ -630,29 +644,17 @@ func tableLayoutForWidth(width int) tableLayout {
 		width = 100
 	}
 
-	// Numeric columns plus a small allowance for table spacing.
-	textBudget := width - 57
-	combatantWidth := clamp(textBudget/2, 10, 28)
-	targetWidth := clamp(textBudget-combatantWidth, 8, 44)
-	if textBudget < 22 {
-		combatantWidth = 10
-		targetWidth = 8
-	}
-
-	return tableLayout{
-		combatantWidth: combatantWidth,
-		targetWidth:    targetWidth,
-	}
+	return tableLayout{combatantWidth: clamp(width-61, 20, 32)}
 }
 
 func tableCell(value string, col int, layout tableLayout) *tview.TableCell {
 	width := columnWidth(col, layout)
 	cell := tview.NewTableCell(fitText(value, width)).SetMaxWidth(width)
 	switch col {
-	case 1, 2, 3, 4:
+	case 1, 2, 3, 4, 5, 6, 7, 8:
 		cell.SetAlign(tview.AlignRight)
 	}
-	if col == 0 || col == 6 {
+	if col == 0 {
 		cell.SetExpansion(1)
 	}
 	return cell
@@ -663,15 +665,15 @@ func columnWidth(col int, layout tableLayout) int {
 	case 0:
 		return layout.combatantWidth
 	case 1:
-		return 10
+		return 4
 	case 2:
-		return 17
-	case 3, 4:
-		return 6
-	case 5:
 		return 8
-	case 6:
-		return layout.targetWidth
+	case 3, 4, 7, 8:
+		return 6
+	case 5, 6:
+		return 5
+	case 9:
+		return 6
 	default:
 		return 0
 	}
@@ -724,20 +726,27 @@ func damageDPS(damage int, activeDuration time.Duration) float64 {
 	return float64(damage) / seconds
 }
 
-func formatPlayerDPS(player combat.PlayerStats, ended time.Time, duration time.Duration) string {
-	sharedDPS := player.DPSForDuration(duration)
-	shared := fmt.Sprintf("%.2f", sharedDPS)
-	if player.Name != "You" {
-		return shared
+func playerDPSColumns(player combat.PlayerStats, ended time.Time, duration time.Duration) (string, string) {
+	sustained := player.DPSForDuration(duration)
+	active := player.DPS()
+	if player.Name == "You" {
+		if engaged, ok := player.EngagedDPS(ended); ok {
+			active = engaged
+		}
 	}
-	engaged, ok := player.EngagedDPS(ended)
-	if !ok {
-		return shared + "/-"
+	return dpsColumns(active, sustained)
+}
+
+func breakdownDPSColumns(entry combat.BreakdownStats, duration time.Duration) (string, string) {
+	return dpsColumns(entry.DPS(), damageDPS(entry.Damage, duration))
+}
+
+func dpsColumns(active, sustained float64) (string, string) {
+	dps := fmt.Sprintf("%.0f", active)
+	if sustained == 0 || math.Abs(active-sustained)/sustained < 0.10 {
+		return dps, ""
 	}
-	if sharedDPS == 0 || math.Abs(engaged-sharedDPS)/sharedDPS < 0.10 {
-		return shared
-	}
-	return fmt.Sprintf("%s/%.2f", shared, engaged)
+	return dps, fmt.Sprintf("%.0f", sustained)
 }
 
 func mobStatus(section combat.DisplaySection) string {

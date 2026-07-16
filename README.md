@@ -16,9 +16,9 @@ parses or debug combat detection.
 - Concurrent active-mob and completed-mob history display
 - Independent mob endings from death, player death, and idle timeout
 - Player, pet, mob, spell, proc, DoT, and damage shield parsing
-- Per-mob combatant rows with damage, DPS, hits, crits, duration, and target
+- Per-mob combatant rows with DPS/SDPS, hits, crits, min/max, and active time
 - Session XP percentage and XP/hour with long pauses excluded
-- Expandable `You` row with damage breakdown by melee/spell/proc type
+- Expandable details grouped by melee, cast magic, proc, DoT, and shield
 - Adaptive table widths for narrow terminals
 - In-app history reload menu
 - Plain text output mode for comparisons
@@ -141,8 +141,9 @@ to eight seconds: a later non-DoT confirms a new spawn and receives the buffered
 DoTs; otherwise they return to the completed mob when the grace period expires.
 
 Every player who damages a mob appears in that mob's section; there is no player
-limit. Player DPS uses the shared mob duration so all players in a section are
-directly comparable.
+limit. DPS uses the combatant or ability's active interval (and the deliberate
+engagement interval for `You`). SDPS uses the shared mob duration and is hidden
+when it is within ten percent of DPS.
 
 ## Development
 

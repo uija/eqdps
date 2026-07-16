@@ -7,6 +7,7 @@ import (
 )
 
 const deathGracePeriod = 8 * time.Second
+const castMatchWindow = 30 * time.Second
 const DefaultIdleTimeout = 15 * time.Second
 const DefaultFightHistory = 0
 
@@ -16,11 +17,19 @@ type Event struct {
 	Target         string
 	Amount         int
 	Kind           string
+	Attack         string
 	Ability        string
 	Critical       bool
 	Passive        bool
 	DamageOverTime bool
 	Incidental     bool
+	DirectCast     bool
+}
+
+type Cast struct {
+	Time    time.Time
+	Source  string
+	Ability string
 }
 
 type Death struct {
@@ -30,15 +39,48 @@ type Death struct {
 }
 
 type PlayerStats struct {
-	Name        string
-	Damage      int
-	Hits        int
-	Crits       int
-	FirstSeen   time.Time
-	LastSeen    time.Time
-	LastTarget  string
-	DamageTypes map[string]int
-	EngagedAt   time.Time
+	Name       string
+	Damage     int
+	Hits       int
+	Crits      int
+	MinHit     int
+	MaxHit     int
+	FirstSeen  time.Time
+	LastSeen   time.Time
+	LastTarget string
+	Breakdown  map[string]*BreakdownStats
+	EngagedAt  time.Time
+}
+
+type BreakdownStats struct {
+	Name      string
+	Damage    int
+	Hits      int
+	Crits     int
+	MinHit    int
+	MaxHit    int
+	FirstSeen time.Time
+	LastSeen  time.Time
+	Children  map[string]*BreakdownStats
+}
+
+func (s BreakdownStats) ActiveDuration() time.Duration {
+	if s.FirstSeen.IsZero() || s.LastSeen.IsZero() || s.LastSeen.Before(s.FirstSeen) {
+		return 0
+	}
+	return s.LastSeen.Sub(s.FirstSeen) + time.Second
+}
+
+func (s BreakdownStats) DPS() float64 {
+	seconds := s.ActiveDuration().Seconds()
+	if seconds <= 0 {
+		return 0
+	}
+	return float64(s.Damage) / seconds
+}
+
+func (s BreakdownStats) SortedChildren() []BreakdownStats {
+	return sortedBreakdown(s.Children)
 }
 
 func (s PlayerStats) ActiveDuration() time.Duration {
@@ -89,16 +131,26 @@ func (m *Meter) Add(event Event) {
 	stats := m.players[event.Source]
 	if stats == nil {
 		stats = &PlayerStats{
-			Name:        event.Source,
-			FirstSeen:   event.Time,
-			DamageTypes: make(map[string]int),
+			Name:      event.Source,
+			FirstSeen: event.Time,
+			Breakdown: make(map[string]*BreakdownStats),
 		}
 		m.players[event.Source] = stats
 	}
 
 	stats.Damage += event.Amount
-	stats.DamageTypes[damageType(event)] += event.Amount
+	category, detail := damageBreakdownNames(event)
+	addBreakdownEvent(stats.Breakdown, category, event)
+	if detail != "" {
+		addBreakdownEvent(stats.Breakdown[category].Children, detail, event)
+	}
 	stats.Hits++
+	if stats.MinHit == 0 || event.Amount < stats.MinHit {
+		stats.MinHit = event.Amount
+	}
+	if event.Amount > stats.MaxHit {
+		stats.MaxHit = event.Amount
+	}
 	if event.Critical {
 		stats.Crits++
 	}
@@ -178,10 +230,7 @@ func copyStats(stats *PlayerStats) *PlayerStats {
 		return nil
 	}
 	copied := *stats
-	copied.DamageTypes = make(map[string]int, len(stats.DamageTypes))
-	for name, amount := range stats.DamageTypes {
-		copied.DamageTypes[name] = amount
-	}
+	copied.Breakdown = copyBreakdown(stats.Breakdown)
 	return &copied
 }
 
@@ -189,6 +238,12 @@ func mergePetStats(owner, pet *PlayerStats, petName string) {
 	owner.Damage += pet.Damage
 	owner.Hits += pet.Hits
 	owner.Crits += pet.Crits
+	if owner.MinHit == 0 || (pet.MinHit > 0 && pet.MinHit < owner.MinHit) {
+		owner.MinHit = pet.MinHit
+	}
+	if pet.MaxHit > owner.MaxHit {
+		owner.MaxHit = pet.MaxHit
+	}
 	if owner.FirstSeen.IsZero() || (!pet.FirstSeen.IsZero() && pet.FirstSeen.Before(owner.FirstSeen)) {
 		owner.FirstSeen = pet.FirstSeen
 	}
@@ -196,10 +251,23 @@ func mergePetStats(owner, pet *PlayerStats, petName string) {
 		owner.LastSeen = pet.LastSeen
 		owner.LastTarget = pet.LastTarget
 	}
-	if owner.DamageTypes == nil {
-		owner.DamageTypes = make(map[string]int)
+	if owner.Breakdown == nil {
+		owner.Breakdown = make(map[string]*BreakdownStats)
 	}
-	owner.DamageTypes["Pet: "+petName] += pet.Damage
+	petStats := &BreakdownStats{
+		Name:      "Pet: " + petName,
+		Damage:    pet.Damage,
+		Hits:      pet.Hits,
+		Crits:     pet.Crits,
+		FirstSeen: pet.FirstSeen,
+		LastSeen:  pet.LastSeen,
+		Children:  copyBreakdown(pet.Breakdown),
+	}
+	for _, child := range petStats.Children {
+		mergeMinMax(petStats, child.MinHit)
+		mergeMinMax(petStats, child.MaxHit)
+	}
+	owner.Breakdown[petStats.Name] = petStats
 }
 
 func possessiveOwner(name string) (string, string, bool) {
@@ -212,10 +280,14 @@ func possessiveOwner(name string) (string, string, bool) {
 	return "", "", false
 }
 
-func (s PlayerStats) DamageBreakdown() []DamageBreakdown {
-	breakdown := make([]DamageBreakdown, 0, len(s.DamageTypes))
-	for name, amount := range s.DamageTypes {
-		breakdown = append(breakdown, DamageBreakdown{Name: name, Damage: amount})
+func (s PlayerStats) DamageBreakdown() []BreakdownStats {
+	return sortedBreakdown(s.Breakdown)
+}
+
+func sortedBreakdown(entries map[string]*BreakdownStats) []BreakdownStats {
+	breakdown := make([]BreakdownStats, 0, len(entries))
+	for _, entry := range entries {
+		breakdown = append(breakdown, *entry)
 	}
 	sort.Slice(breakdown, func(i, j int) bool {
 		if breakdown[i].Damage == breakdown[j].Damage {
@@ -226,19 +298,114 @@ func (s PlayerStats) DamageBreakdown() []DamageBreakdown {
 	return breakdown
 }
 
-type DamageBreakdown struct {
-	Name   string
-	Damage int
-}
-
-func damageType(event Event) string {
+func damageBreakdownNames(event Event) (string, string) {
 	if event.DamageOverTime {
-		return "DoTs"
+		return "DoTs", fallbackName(event.Ability, "Unknown DoT")
+	}
+	if event.Passive {
+		return "Damage Shield", fallbackName(event.Ability, "Unknown Shield")
 	}
 	if event.Ability != "" {
-		return event.Ability
+		if event.DirectCast {
+			return "Magic", event.Ability
+		}
+		return "Procs", event.Ability
 	}
-	return "Melee"
+	return "Melee", meleeName(event.Attack)
+}
+
+func addBreakdownEvent(entries map[string]*BreakdownStats, name string, event Event) {
+	entry := entries[name]
+	if entry == nil {
+		entry = &BreakdownStats{Name: name, Children: make(map[string]*BreakdownStats)}
+		entries[name] = entry
+	}
+	entry.Damage += event.Amount
+	entry.Hits++
+	if event.Critical {
+		entry.Crits++
+	}
+	mergeMinMax(entry, event.Amount)
+	if entry.FirstSeen.IsZero() || event.Time.Before(entry.FirstSeen) {
+		entry.FirstSeen = event.Time
+	}
+	if entry.LastSeen.IsZero() || event.Time.After(entry.LastSeen) {
+		entry.LastSeen = event.Time
+	}
+}
+
+func mergeMinMax(stats *BreakdownStats, amount int) {
+	if amount <= 0 {
+		return
+	}
+	if stats.MinHit == 0 || amount < stats.MinHit {
+		stats.MinHit = amount
+	}
+	if amount > stats.MaxHit {
+		stats.MaxHit = amount
+	}
+}
+
+func copyBreakdown(entries map[string]*BreakdownStats) map[string]*BreakdownStats {
+	copied := make(map[string]*BreakdownStats, len(entries))
+	for name, entry := range entries {
+		entryCopy := *entry
+		entryCopy.Children = copyBreakdown(entry.Children)
+		copied[name] = &entryCopy
+	}
+	return copied
+}
+
+func fallbackName(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func meleeName(attack string) string {
+	switch strings.ToLower(strings.TrimSpace(attack)) {
+	case "backstab", "backstabs":
+		return "Backstabs"
+	case "bash", "bashes":
+		return "Bashes"
+	case "bite", "bites":
+		return "Bites"
+	case "cleave", "cleaves":
+		return "Cleaves"
+	case "claw", "claws":
+		return "Claws"
+	case "crush", "crushes":
+		return "Crushes"
+	case "frenzy on", "frenzies on":
+		return "Frenzies"
+	case "hit", "hits":
+		return "Hits"
+	case "kick", "kicks":
+		return "Kicks"
+	case "maul", "mauls":
+		return "Mauls"
+	case "pierce", "pierces":
+		return "Pierces"
+	case "punch", "punches":
+		return "Punches"
+	case "reave", "reaves":
+		return "Reaves"
+	case "shoot", "shoots":
+		return "Shots"
+	case "slash", "slashes":
+		return "Slashes"
+	case "slice", "slices":
+		return "Slices"
+	case "smash", "smashes":
+		return "Smashes"
+	case "smite", "smites":
+		return "Smites"
+	case "strike", "strikes":
+		return "Strikes"
+	default:
+		return "Hits"
+	}
 }
 
 type Fight struct {
@@ -283,6 +450,12 @@ type FightTracker struct {
 	historyLimit int
 	players      map[string]bool
 	forgotten    map[string]*forgottenMob
+	pendingCasts map[string]pendingCast
+}
+
+type pendingCast struct {
+	started   time.Time
+	matchedAt time.Time
 }
 
 func NewFightTracker() *FightTracker {
@@ -295,7 +468,16 @@ func NewFightTrackerWithHistory(historyLimit int) *FightTracker {
 		historyLimit: historyLimit,
 		players:      map[string]bool{combatantKey("You"): true},
 		forgotten:    make(map[string]*forgottenMob),
+		pendingCasts: make(map[string]pendingCast),
 	}
+}
+
+func (t *FightTracker) AddCast(cast Cast) {
+	if cast.Time.IsZero() || cast.Source == "" || cast.Ability == "" {
+		return
+	}
+	t.expireCasts(cast.Time)
+	t.pendingCasts[castKey(cast.Source, cast.Ability)] = pendingCast{started: cast.Time}
 }
 
 func (t *FightTracker) AddDamage(event Event) {
@@ -306,6 +488,8 @@ func (t *FightTracker) AddDamageWithIdle(event Event, idleTimeout time.Duration)
 	if event.Amount <= 0 || event.Source == "" || event.Target == "" {
 		return
 	}
+	t.expireCasts(event.Time)
+	t.classifyDirectCast(&event)
 	t.endAtLogTime(event.Time, idleTimeout)
 
 	key, mob, mobEndpoint := t.mobForEvent(event)
@@ -346,6 +530,38 @@ func (t *FightTracker) AddDamageWithIdle(event Event, idleTimeout time.Duration)
 		t.active[key] = record
 	}
 	t.addEvent(record, event, mobEndpoint)
+}
+
+func (t *FightTracker) classifyDirectCast(event *Event) {
+	if event == nil || event.Ability == "" || event.DamageOverTime || event.Passive {
+		return
+	}
+	key := castKey(event.Source, event.Ability)
+	pending, ok := t.pendingCasts[key]
+	if !ok {
+		return
+	}
+	if event.Time.Before(pending.started) || event.Time.Sub(pending.started) > castMatchWindow || (!pending.matchedAt.IsZero() && !event.Time.Equal(pending.matchedAt)) {
+		delete(t.pendingCasts, key)
+		return
+	}
+	event.DirectCast = true
+	if pending.matchedAt.IsZero() {
+		pending.matchedAt = event.Time
+		t.pendingCasts[key] = pending
+	}
+}
+
+func castKey(source, ability string) string {
+	return combatantKey(source) + "\x00" + strings.ToLower(strings.TrimSpace(ability))
+}
+
+func (t *FightTracker) expireCasts(timestamp time.Time) {
+	for key, pending := range t.pendingCasts {
+		if timestamp.After(pending.started) && timestamp.Sub(pending.started) > castMatchWindow {
+			delete(t.pendingCasts, key)
+		}
+	}
 }
 
 func (t *FightTracker) ForgetEnemies(timestamp time.Time) {

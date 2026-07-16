@@ -27,6 +27,7 @@ var (
 	experienceRE = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
 	levelUpRE    = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
 	aggroClearRE = regexp.MustCompile(`^Your enemies have forgotten you!$`)
+	castRE       = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
 )
 
 type ExperienceGain struct {
@@ -60,6 +61,7 @@ func ParseLine(line string) (combat.Event, bool) {
 			Target:     normalizeTarget(target),
 			Amount:     amount,
 			Kind:       strings.TrimSpace(damage[5]),
+			Attack:     strings.TrimSpace(damage[2]),
 			Ability:    strings.TrimSpace(damage[6]),
 			Critical:   isCritical(damage[7]),
 			Incidental: isIncidentalDamage(damage[2], damage[7]),
@@ -159,6 +161,22 @@ func isIncidentalDamage(verb, marker string) bool {
 		return true
 	}
 	return strings.Contains(marker, "Riposte")
+}
+
+func ParseCastLine(line string) (combat.Cast, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return combat.Cast{}, false
+	}
+	cast := castRE.FindStringSubmatch(message)
+	if cast == nil {
+		return combat.Cast{}, false
+	}
+	return combat.Cast{
+		Time:    timestamp,
+		Source:  normalizeSource(strings.TrimSpace(cast[1])),
+		Ability: strings.TrimSpace(cast[2]),
+	}, true
 }
 
 func ParseDeathLine(line string) (combat.Death, bool) {

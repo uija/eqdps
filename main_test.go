@@ -18,11 +18,8 @@ func TestFitTextTruncatesWithEllipsis(t *testing.T) {
 
 func TestTableLayoutForNarrowWidthKeepsTextColumnsUsable(t *testing.T) {
 	layout := tableLayoutForWidth(70)
-	if layout.combatantWidth < 10 {
+	if layout.combatantWidth < 20 {
 		t.Fatalf("combatant width too small: %d", layout.combatantWidth)
-	}
-	if layout.targetWidth < 8 {
-		t.Fatalf("target width too small: %d", layout.targetWidth)
 	}
 }
 
@@ -90,6 +87,19 @@ func TestProcessLineUpdatesCombatAndXPTrackers(t *testing.T) {
 	}
 }
 
+func TestProcessLineCorrelatesCastDamage(t *testing.T) {
+	combatTracker := combat.NewFightTracker()
+	xpSession := xp.NewSession()
+	processLine("[Wed Jul 15 18:53:34 2026] Zonektik begins casting Furor.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	processLine("[Wed Jul 15 18:53:36 2026] Zonektik hit a dar ghoul knight for 33 points of magic damage by Furor.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+
+	fight, _ := combatTracker.DisplayFight()
+	player := fight.Meter.Players()[0]
+	if player.Breakdown["Magic"].Children["Furor"].Damage != 33 {
+		t.Fatalf("expected Furor to be correlated as cast magic: %#v", player)
+	}
+}
+
 func TestProcessLineClosesCombatWhenEnemiesForgetYou(t *testing.T) {
 	combatTracker := combat.NewFightTracker()
 	xpSession := xp.NewSession()
@@ -105,23 +115,33 @@ func TestProcessLineClosesCombatWhenEnemiesForgetYou(t *testing.T) {
 func TestDamageBreakdownShowsDPSAndPercentInExpectedColumns(t *testing.T) {
 	started := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
 	player := combat.PlayerStats{
-		Name:        "You",
-		Damage:      100,
-		FirstSeen:   started,
-		LastSeen:    started.Add(9 * time.Second),
-		DamageTypes: map[string]int{"Tuyen's Chant of Flame": 40},
+		Name:   "You",
+		Damage: 100,
+		Breakdown: map[string]*combat.BreakdownStats{
+			"DoTs": {
+				Name: "DoTs", Damage: 40, Hits: 2, MinHit: 20, MaxHit: 20,
+				FirstSeen: started, LastSeen: started.Add(4 * time.Second),
+				Children: map[string]*combat.BreakdownStats{},
+			},
+		},
 	}
 	table := tview.NewTable()
 
-	nextRow := addDamageBreakdownRows(table, 0, player, 10*time.Second, tableLayoutForWidth(100))
+	nextRow := addDamageBreakdownRows(table, 0, player, 10*time.Second, tableLayoutForWidth(100), "player", map[string]bool{}, map[int]string{})
 	if nextRow != 1 {
 		t.Fatalf("expected one detail row, got next row %d", nextRow)
 	}
-	if got := table.GetCell(0, 2).Text; got != "4.00" {
+	if got := table.GetCell(0, 1).Text; got != "40" {
+		t.Fatalf("expected rounded percentage, got %q", got)
+	}
+	if got := table.GetCell(0, 3).Text; got != "8" {
 		t.Fatalf("expected ability DPS in DPS column, got %q", got)
 	}
-	if got := table.GetCell(0, 6).Text; got != "40.0%" {
-		t.Fatalf("expected percentage in Last Target column, got %q", got)
+	if got := table.GetCell(0, 4).Text; got != "4" {
+		t.Fatalf("expected sustained DPS in SDPS column, got %q", got)
+	}
+	if got := table.GetCell(0, 5).Text; got != "2" {
+		t.Fatalf("expected hit count, got %q", got)
 	}
 }
 
@@ -138,29 +158,73 @@ func TestFillTableShowsExpandableMobSectionsWithSharedDPS(t *testing.T) {
 	expanded := make(map[string]bool)
 
 	actions := fillTable(table, sections, expanded, 100)
-	if got := table.GetCell(1, 0).Text; got != "▼ Hoptor Thaggelum" {
+	if got := table.GetCell(1, 0).Text; got != "▼ Hoptor Thaggelum (active)" {
 		t.Fatalf("unexpected mob header: %q", got)
 	}
 	if _, ok := actions[1]; !ok {
 		t.Fatal("expected mob header to be expandable")
 	}
-	if got := table.GetCell(2, 2).Text; got != "10.00" {
-		t.Fatalf("expected You DPS over shared ten-second mob duration, got %q", got)
+	if got := table.GetCell(2, 3).Text; got != "10" {
+		t.Fatalf("expected You active DPS, got %q", got)
 	}
-	if got := table.GetCell(3, 2).Text; got != "5.00" {
+	if got := table.GetCell(2, 4).Text; got != "" {
+		t.Fatalf("expected equal sustained DPS to be hidden, got %q", got)
+	}
+	if got := table.GetCell(3, 3).Text; got != "50" {
+		t.Fatalf("expected Alice active DPS, got %q", got)
+	}
+	if got := table.GetCell(3, 4).Text; got != "5" {
 		t.Fatalf("expected Alice DPS over shared ten-second mob duration, got %q", got)
+	}
+	if _, ok := actions[3]; !ok {
+		t.Fatal("expected non-local combatant to be expandable")
+	}
+}
+
+func TestFillTableExpandsDetailsForEveryCombatantAndCategory(t *testing.T) {
+	started := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
+	meter := combat.NewMeter()
+	meter.Add(combat.Event{Time: started, Source: "Alice", Target: "a fire giant", Amount: 40, Ability: "Flame Proc"})
+	meter.Add(combat.Event{Time: started.Add(time.Second), Source: "a fire giant", Target: "Alice", Amount: 25, Attack: "crushes"})
+	sections := []combat.DisplaySection{{Fight: &combat.Fight{Mob: "a fire giant", Meter: meter}, Current: true}}
+	table := tview.NewTable()
+	expanded := make(map[string]bool)
+
+	actions := fillTable(table, sections, expanded, 106)
+	aliceKey, ok := actions[2]
+	if !ok {
+		t.Fatal("expected another player to have expandable details")
+	}
+	expanded[aliceKey] = true
+	actions = fillTable(table, sections, expanded, 106)
+	if got := table.GetCell(3, 0).Text; got != "    ▶ Procs" {
+		t.Fatalf("expected proc category under Alice, got %q", got)
+	}
+	procKey, ok := actions[3]
+	if !ok {
+		t.Fatal("expected proc category to be expandable")
+	}
+	expanded[procKey] = true
+	fillTable(table, sections, expanded, 106)
+	if got := table.GetCell(4, 0).Text; got != "        Flame Proc" {
+		t.Fatalf("expected individual proc detail, got %q", got)
+	}
+
+	// The mob is a combatant too and exposes its melee details.
+	if got := table.GetCell(5, 0).Text; got != "  ▶ a fire giant" {
+		t.Fatalf("expected mob combatant to remain expandable, got %q", got)
 	}
 }
 
 func TestFormatPlayerDPSShowsEngagedOnlyWhenMateriallyDifferent(t *testing.T) {
 	started := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
-	player := combat.PlayerStats{Name: "You", Damage: 100, EngagedAt: started.Add(10 * time.Second)}
+	player := combat.PlayerStats{Name: "You", Damage: 100, FirstSeen: started, LastSeen: started.Add(19 * time.Second), EngagedAt: started.Add(10 * time.Second)}
 
-	if got := formatPlayerDPS(player, started.Add(19*time.Second), 20*time.Second); got != "5.00/10.00" {
-		t.Fatalf("expected materially different engaged DPS, got %q", got)
+	if dps, sdps := playerDPSColumns(player, started.Add(19*time.Second), 20*time.Second); dps != "10" || sdps != "5" {
+		t.Fatalf("expected materially different engaged and sustained DPS, got %q/%q", dps, sdps)
 	}
 	player.EngagedAt = started.Add(time.Second)
-	if got := formatPlayerDPS(player, started.Add(19*time.Second), 20*time.Second); got != "5.00" {
-		t.Fatalf("expected DPS values within ten percent to collapse, got %q", got)
+	if dps, sdps := playerDPSColumns(player, started.Add(19*time.Second), 20*time.Second); dps != "5" || sdps != "" {
+		t.Fatalf("expected DPS values within ten percent to collapse, got %q/%q", dps, sdps)
 	}
 }

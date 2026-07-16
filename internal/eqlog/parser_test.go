@@ -20,7 +20,7 @@ func TestParseLinePlayerMelee(t *testing.T) {
 	if !ok {
 		t.Fatal("expected damage event")
 	}
-	if event.Source != "Lobantik" || event.Target != "a lizardman scout" || event.Amount != 14 {
+	if event.Source != "Lobantik" || event.Target != "a lizardman scout" || event.Amount != 14 || event.Attack != "pierces" {
 		t.Fatalf("unexpected event: %#v", event)
 	}
 }
@@ -32,6 +32,24 @@ func TestParseLineYouSpellDamage(t *testing.T) {
 	}
 	if event.Source != "You" || event.Amount != 4 || event.Kind != "magic damage" || event.Ability != "Shallow Breath" {
 		t.Fatalf("unexpected event: %#v", event)
+	}
+}
+
+func TestParseCastLine(t *testing.T) {
+	tests := []struct {
+		line    string
+		source  string
+		ability string
+	}{
+		{"[Wed Jul 15 18:53:34 2026] Zonektik begins casting Furor.", "Zonektik", "Furor"},
+		{"[Thu Jul 02 05:18:58 2026] You begin casting Shallow Breath.", "You", "Shallow Breath"},
+		{"[Thu Jul 02 05:18:58 2026] A wizard begins to cast Ice Comet.", "a wizard", "Ice Comet"},
+	}
+	for _, test := range tests {
+		cast, ok := ParseCastLine(test.line)
+		if !ok || cast.Source != test.source || cast.Ability != test.ability {
+			t.Fatalf("unexpected cast for %q: %#v, ok=%v", test.line, cast, ok)
+		}
 	}
 }
 
