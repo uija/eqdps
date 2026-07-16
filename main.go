@@ -24,6 +24,7 @@ import (
 var (
 	skyCompleteColor = tcell.NewHexColor(0xbfe8bf)
 	skyMissingColor  = tcell.NewHexColor(0xefb8b8)
+	skyDoneColor     = tcell.NewHexColor(0x8f8f8f)
 	infoBarColor     = tcell.NewHexColor(0x303030)
 	infoNoticeColor  = tcell.NewHexColor(0x285b38)
 )
@@ -1228,7 +1229,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 			color := tcell.ColorWhite
 			if item.Completed {
 				status = "DONE"
-				color = skyCompleteColor
+				color = skyDoneColor
 			} else if item.Ready {
 				status = "READY"
 				color = skyCompleteColor
@@ -1243,7 +1244,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 				ownedText, neededText := fmt.Sprint(owned), fmt.Sprint(requirement.Quantity)
 				if item.Completed {
 					mark = "✓"
-					requirementColor = skyCompleteColor
+					requirementColor = skyDoneColor
 					ownedText, neededText = "—", "—"
 				} else if owned >= requirement.Quantity {
 					mark = "✓"

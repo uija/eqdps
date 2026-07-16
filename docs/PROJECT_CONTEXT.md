@@ -190,7 +190,8 @@ NPC.` lines followed by `You complete the trade with NPC.` while in Plane of
 Sky. Offers remain pending and do not alter holdings until that confirmation.
 The matching quest is then stored in `completed_quests`, its requirements are
 consumed from holdings, it is removed from READY, and the table shows it as
-DONE with per-class completion counts.
+DONE with per-class completion counts. Completed quest and consumed-requirement
+rows use muted gray so active collection work remains visually prominent.
 
 On first enable, the scanner processes the logfile from byte zero in a
 background goroutine, reports byte and line progress, and keeps the result in
