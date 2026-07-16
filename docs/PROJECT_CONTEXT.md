@@ -223,9 +223,11 @@ no long first-column sentence is rendered because tview tables have no column
 spans and that text would distort the quest column width.
 
 The state is an evidence-based estimate rather than an authoritative EverQuest
-inventory snapshot. Logged destruction is handled, but trades, quest turn-ins,
-actions while logging is disabled, and other unobserved removals still require
-future reconciliation. Reward/turn-in detection is not implemented yet.
+inventory snapshot. Logged destruction and confirmed quest turn-ins are
+handled, but ordinary player trades, actions while logging is disabled, and
+other unobserved removals still require future reconciliation. Turn-ins are
+identified from offered-item sets and completion messages because the log does
+not name the received reward.
 
 ## Damage and DPS Model
 
