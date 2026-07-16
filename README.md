@@ -8,7 +8,10 @@ parses or debug combat detection.
 
 `Because I am lazy and wanted to play EverQuest Legends Open Beta, Codex did most of the work.`
 
-![eqdps terminal interface](img/Screenshot-2026-07-16_08-53-27.png)
+DPS Screen
+![eqdps terminal interface](img/Screenshot-2026-07-16_17-11-16.png)
+Plane of Sky (EverQuest Legends) tracker
+![eqdps terminal interface](img/Screenshot-2026-07-16_17-11-41.png)
 
 ## Features
 
