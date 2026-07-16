@@ -32,6 +32,11 @@ intentionally not duplicated under `docs/`.
 | `internal/combat/combat_test.go` | Meter and per-mob state behavior |
 | `internal/xp/session.go` | Session XP totals, active time, and XP/hour |
 | `internal/xp/session_test.go` | Pause-capping and XP-rate behavior |
+| `internal/skyquest/database.go` | Embedded Plane of Sky class-quest database loader |
+| `internal/skyquest/plane_of_sky_quests.json` | Generated EQL Wiki quest requirements and rewards |
+| `internal/skyquest/tracker.go` | Zone-aware quest holdings and ready-quest calculation |
+| `internal/skyquest/persistence.go` | Character state, initial scan, and byte-offset checkpoints |
+| `tools/skyquestdb/main.go` | Regenerates the embedded database from EQL Wiki |
 | `README.md` | User-facing installation and usage |
 | `docs/PARSER_RECHECK.md` | Full-corpus parser quality audit procedure |
 
@@ -48,6 +53,12 @@ log line
 
 Live mode opens the file and seeks to EOF, so invocation without replay flags
 starts at "now." `followLog` polls EOF every 250 ms and processes appended lines.
+
+Plane of Sky quest tracking is independent of combat replay. Once enabled, it
+maintains `CHARACTER_SERVER_PoS.json` beside the selected logfile and resumes
+from an exact byte offset. A missing state file opens an opt-in TUI prompt for a
+one-time full-log scan. Choosing `Not Now` or cancelling creates no state and
+asks again next launch. Text mode does not initiate the first scan.
 
 Replay mode scans the file from a cutoff, uses log timestamps for idle endings,
 then live tailing still opens at the current EOF. `--since` takes precedence over
@@ -72,9 +83,13 @@ location and compared to timestamps parsed from the log in the same way.
 
 ## TUI Behavior and Constraints
 
-The layout is a one-line title/path header, the mob table, and a one-line status
-bar. The status bar shows approximate current-level progress, XP/hour, estimated
-time to the next level, and hotkeys. Columns are Combatant, %, Damage, DPS,
+The layout is a one-line title/path header, the mob table, a one-line information
+bar, and a separate one-line shortcut bar. The dark-gray information bar shows
+approximate current-level progress, XP/hour, estimated time to the next level,
+and `PoS: N ready` on the far right. When live loot makes one or more quests
+ready, its background becomes dark green and its center shows the first newly
+ready quest for eight seconds. Startup/catch-up processing never produces this
+notification. Columns are Combatant, %, Damage, DPS,
 SDPS, Hits, Crits, Min, Max, and Active. DPS and percentages are rounded to
 whole numbers. The Combatant column adapts to terminal width, never below 20
 characters, and lets tview distribute otherwise-unused width before applying an
@@ -92,6 +107,7 @@ Hotkeys:
 | Key | Action |
 | --- | --- |
 | `o` | History overlay: Now, 1h, 4h, 8h, 1d, Full |
+| `p` | Plane of Sky quest tracker |
 | `/` | Filter displayed fights by case-insensitive mob-name substring |
 | `Enter` | Expand/collapse a mob, combatant, or detail category |
 | `a` | Fully expand or collapse the selected subtree |
@@ -144,6 +160,80 @@ wall-clock time.
 The XP session starts with the first observed combat or XP gain. Startup replay,
 history reloads, choosing `Now`, and `r` each create the corresponding fresh or
 replayed XP session alongside the combat tracker.
+
+## Plane of Sky Quest Holdings
+
+The Plane of Sky class-quest database is generated from the EQL Wiki MediaWiki
+overview plus the maintained class-specific `CLASS_Plane_of_Sky_Tests` pages
+when available, and embedded into the executable with Go `embed`. Class pages
+provide current quest NPC and quest names; the overview supplies compact item
+drop annotations. Dialogue keywords are implicit in the `Test of ...` quest
+names and are neither stored nor repeated in the UI. Runtime use remains
+offline and single-executable. The generated data currently contains 16
+classes, 95 quests, 222 requirements, and 128 unique required items. Source page
+and revision metadata are retained in the JSON.
+
+Requirements without an overview drop annotation are enriched from their EQL
+Wiki item pages during generation. The item-page `dropsfrom` NPC list is stored
+without the redundant Plane of Sky zone link, replacing the former generic
+`Plane of Sky` display for Efreeti weapons and other components.
+
+The tracker adds only known requirements while the last parsed zone is the base
+`The Plane of Sky` or an instance such as `The Plane of Sky 2 (Adaptive)`.
+EverQuest Legends upgrade suffixes such as `+1` and `+3` are stripped before
+matching, so upgraded quest components count under their database base name.
+Normally retained loot and loot stored directly in the
+currency tab count as owned. Items immediately sold, including `sold it for
+free`, or converted into an upgraded item do not count. Exact `You successfully
+destroyed N Item.` messages decrement known holdings in every zone because an
+item may be destroyed after leaving Sky.
+
+Quest completion is identified from the exact multiset of `You offered ... to
+NPC.` lines followed by `You complete the trade with NPC.` while in Plane of
+Sky. Offers remain pending and do not alter holdings until that confirmation.
+`You have cancelled the trade.` clears all pending offers, while
+`NPC has cancelled the trade.` clears that NPC's pending offer set.
+The matching quest is then stored in `completed_quests`, its requirements are
+consumed from holdings, it is removed from READY, and the table shows it as
+DONE with per-class completion counts. Completed quest and consumed-requirement
+rows use muted gray so active collection work remains visually prominent.
+
+On first enable, the scanner processes the logfile from byte zero in a
+background goroutine, reports byte and line progress, and keeps the result in
+memory until successful completion. Cancellation creates no JSON or partial
+checkpoint. Later starts load the holdings and process only complete lines after
+the saved byte offset. CRLF offsets are measured from original bytes. A saved
+first-line fingerprint and file-size check reject unsafe automatic recovery
+after log replacement or truncation. Combat `--back`, `--since`, and history
+reloads never mutate Sky holdings.
+
+Existing-state catch-up remains silent for backlogs up to 5 MiB. Larger
+backlogs open the TUI at once and reuse the shared byte/line progress overlay.
+Live PoS processing waits at the catch-up snapshot boundary so it cannot skip
+or overtake missed lines. `Esc` cancels and exits; the partially processed
+in-memory tracker is discarded, so the last saved checkpoint remains valid.
+
+Press `p` to open the read-only quest tracker. Its flat, wiki-style table lists
+every quest and required item under its class, puts quests with every required
+item in a ready-to-turn-in section, and shows owned and required quantities plus
+known source hints and rewards. READY entries repeat their complete item/source
+checklist and show the quest giver on a dedicated line at the top so narrow
+terminals cannot hide it and no class-section lookup is needed. The
+READY heading and quest rows are selectable, allowing Page Up to return fully
+to the summary after scrolling away. Arrow and page keys browse the table; `p`
+or `Esc` returns to the combat view. `h` toggles incomplete quests for which no
+required item is owned; READY and DONE quests remain visible and class totals
+continue to cover the full achievement.
+When no quest is ready, the heading count is the complete empty-state message;
+no long first-column sentence is rendered because tview tables have no column
+spans and that text would distort the quest column width.
+
+The state is an evidence-based estimate rather than an authoritative EverQuest
+inventory snapshot. Logged destruction and confirmed quest turn-ins are
+handled, but ordinary player trades, actions while logging is disabled, and
+other unobserved removals still require future reconciliation. Turn-ins are
+identified from offered-item sets and completion messages because the log does
+not name the received reward.
 
 ## Damage and DPS Model
 

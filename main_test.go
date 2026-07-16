@@ -10,6 +10,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
+	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
 
@@ -50,11 +51,63 @@ func TestRestoreTablePositionFollowsLogicalRowAndKeepsViewport(t *testing.T) {
 	table.Select(7, 0)
 	table.SetOffset(4, 2)
 
-	restoreTablePosition(table, map[int]string{25: "selected", 7: "child"}, "selected", 4, 2)
+	restoreTablePosition(table, map[int]string{25: "selected", 7: "child"}, "selected", 4, 2, false)
 	row, _ := table.GetSelection()
 	rowOffset, columnOffset := table.GetOffset()
 	if row != 25 || rowOffset != 4 || columnOffset != 2 {
 		t.Fatalf("unexpected restored position: row=%d offset=%d,%d", row, rowOffset, columnOffset)
+	}
+}
+
+func TestRestoreTablePositionTracksNewRowsWhenViewWasAtEnd(t *testing.T) {
+	table := tview.NewTable().SetSelectable(true, false)
+	table.SetRect(0, 0, 80, 10)
+	for row := 0; row < 30; row++ {
+		table.SetCellSimple(row, 0, "row")
+	}
+	table.Select(20, 0)
+	table.SetOffset(20, 0)
+
+	for row := 30; row < 40; row++ {
+		table.SetCellSimple(row, 0, "expanded row")
+	}
+	restoreTablePosition(table, map[int]string{20: "selected"}, "selected", 20, 0, true)
+
+	row, _ := table.GetSelection()
+	rowOffset, _ := table.GetOffset()
+	if row != 20 || rowOffset != table.GetRowCount() {
+		t.Fatalf("expected selection to remain at row 20 and viewport to track end, got row=%d offset=%d", row, rowOffset)
+	}
+}
+
+func TestTableViewAtEnd(t *testing.T) {
+	table := tview.NewTable()
+	table.SetRect(0, 0, 80, 10)
+	for row := 0; row < 30; row++ {
+		table.SetCellSimple(row, 0, "row")
+	}
+
+	if !tableViewAtEnd(table, 20) {
+		t.Fatal("expected viewport ending at the last row to be detected")
+	}
+	if tableViewAtEnd(table, 19) {
+		t.Fatal("viewport before the last row was detected as being at the end")
+	}
+}
+
+func TestScrollBarMetrics(t *testing.T) {
+	if _, _, visible := scrollBarMetrics(10, 10, 0); visible {
+		t.Fatal("scrollbar should be hidden when all rows fit")
+	}
+
+	start, height, visible := scrollBarMetrics(100, 20, 40)
+	if !visible || height != 4 || start != 8 {
+		t.Fatalf("unexpected middle scrollbar: start=%d height=%d visible=%t", start, height, visible)
+	}
+
+	start, height, visible = scrollBarMetrics(100, 20, 80)
+	if !visible || height != 4 || start != 16 {
+		t.Fatalf("unexpected end scrollbar: start=%d height=%d visible=%t", start, height, visible)
 	}
 }
 
@@ -113,31 +166,161 @@ func TestReplayReportsProgressAndSupportsCancellation(t *testing.T) {
 }
 
 func TestProgressTextShowsPercentageAndLineCount(t *testing.T) {
-	got := progressText(replayProgress{Bytes: 50, Total: 100, Lines: 12345})
-	for _, want := range []string{"50%", "12345 lines processed", "████"} {
+	got := operationProgressText("Loading combat history…", 512*1024, 1024*1024, 12345)
+	for _, want := range []string{"Loading combat history…", "50%", "512.0 KiB / 1.0 MiB", "12345 lines processed", "████"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected progress text %q to contain %q", got, want)
 		}
 	}
 }
 
-func TestStatusTextShowsSessionXP(t *testing.T) {
-	got := statusText(xp.Snapshot{
+func TestOperationsShareDetailedProgressText(t *testing.T) {
+	got := operationProgressText("Scanning existing loot history…", 512*1024, 1024*1024, 4321)
+	for _, want := range []string{"Scanning existing loot history…", "50%", "512.0 KiB / 1.0 MiB", "4321 lines processed", "████"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("progress text %q does not contain %q", got, want)
+		}
+	}
+}
+
+func TestLargeSkyCatchupUsesOverlayOnlyInTUI(t *testing.T) {
+	if needsSkyCatchupOverlay(skyCatchupOverlayThreshold, false) {
+		t.Fatal("threshold-sized catch-up should remain silent")
+	}
+	if !needsSkyCatchupOverlay(skyCatchupOverlayThreshold+1, false) {
+		t.Fatal("catch-up above threshold should use overlay")
+	}
+	if needsSkyCatchupOverlay(skyCatchupOverlayThreshold+1, true) {
+		t.Fatal("text mode cannot use TUI overlay")
+	}
+}
+
+func TestCatchupBoundarySuppressesHistoricalCombatButKeepsCompletedPartialLine(t *testing.T) {
+	const target = int64(1000)
+	if isLiveLineAfterCatchup(target, target) {
+		t.Fatal("line ending at catch-up boundary is historical")
+	}
+	if !isLiveLineAfterCatchup(target+1, target) {
+		t.Fatal("line completed after catch-up boundary must remain live")
+	}
+}
+
+func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
+	quest := skyquest.Quest{
+		Name: "Bard Test of Tone", QuestGiver: "Clarisa Spiritsong", Rewards: []string{"Mask of Song"},
+		Requirements: []skyquest.Requirement{
+			{Name: "Wind Rune Meda", Kind: "rune", Quantity: 1},
+			{Name: "Light Woolen Mask", Kind: "item", Quantity: 1, Island: 3, DropsFrom: "Gorgalosk"},
+		},
+	}
+	progress := []skyquest.QuestProgress{{
+		Class: "Bard", Quest: quest, Missing: []skyquest.Requirement{quest.Requirements[1]},
+	}}
+	table := tview.NewTable()
+	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1}, false)
+	if table.GetRowCount() != 8 {
+		t.Fatalf("row count = %d, want 8", table.GetRowCount())
+	}
+	contents := ""
+	for row := 0; row < table.GetRowCount(); row++ {
+		for column := 0; column < table.GetColumnCount(); column++ {
+			contents += table.GetCell(row, column).Text + "\n"
+		}
+	}
+	for _, want := range []string{"READY TO TURN IN (0)", "Bard", "Test of Tone", "Clarisa Spiritsong — Reward: Mask of Song", "Wind Rune Meda", "Plane of Sky random drop", "Light Woolen Mask", "Island 3 — Gorgalosk"} {
+		if !strings.Contains(contents, want) {
+			t.Fatalf("Sky table does not contain %q:\n%s", want, contents)
+		}
+	}
+	if strings.Contains(contents, "Bard Test of Tone") {
+		t.Fatalf("Sky table repeats class in quest name:\n%s", contents)
+	}
+}
+
+func TestFillSkyQuestTableReadySectionIncludesHandInDetailsAndSpacer(t *testing.T) {
+	quest := skyquest.Quest{
+		Name: "Necromancer Test of Power", QuestGiver: "Drakis Bloodcaster", Rewards: []string{"Cloak of Spiroc Feathers"},
+		Requirements: []skyquest.Requirement{
+			{Name: "Wind Rune Neza", Kind: "rune", Quantity: 1},
+			{Name: "Black Silk Cape", Kind: "item", Quantity: 1, Island: 4, DropsFrom: "Keeper of Souls"},
+		},
+	}
+	table := tview.NewTable()
+	fillSkyQuestTable(table, []skyquest.QuestProgress{{Class: "Necromancer", Quest: quest, Ready: true}}, map[string]int{"Wind Rune Neza": 1, "Black Silk Cape": 1}, false)
+	contents := ""
+	for row := 0; row < table.GetRowCount(); row++ {
+		for column := 0; column < table.GetColumnCount(); column++ {
+			contents += table.GetCell(row, column).Text + "\n"
+		}
+	}
+	for _, want := range []string{"READY TO TURN IN (1)", "Necromancer — Test of Power", "Quest giver: Drakis Bloodcaster", "Cloak of Spiroc Feathers", "Wind Rune Neza", "Plane of Sky random drop", "Black Silk Cape", "Island 4 — Keeper of Souls"} {
+		if !strings.Contains(contents, want) {
+			t.Fatalf("ready section does not contain %q:\n%s", want, contents)
+		}
+	}
+	allClassesRow := -1
+	for row := 0; row < table.GetRowCount(); row++ {
+		if table.GetCell(row, 0).Text == "ALL CLASSES" {
+			allClassesRow = row
+			break
+		}
+	}
+	if allClassesRow < 1 || table.GetCell(allClassesRow-1, 0).Text != "" {
+		t.Fatalf("expected empty spacer before ALL CLASSES, row = %d", allClassesRow)
+	}
+}
+
+func TestFillSkyQuestTableCanHideUnstartedQuests(t *testing.T) {
+	progress := []skyquest.QuestProgress{
+		{Class: "Bard", Quest: skyquest.Quest{Name: "Bard Test of Tone", Requirements: []skyquest.Requirement{{Name: "Wind Rune Meda", Quantity: 1}}}},
+		{Class: "Bard", Quest: skyquest.Quest{Name: "Bard Test of Voice", Requirements: []skyquest.Requirement{{Name: "Wind Rune Kala", Quantity: 1}}}},
+		{Class: "Cleric", Quest: skyquest.Quest{Name: "Cleric Test of Courage", Requirements: []skyquest.Requirement{{Name: "Wind Rune Caza", Quantity: 1}}}, Completed: true},
+	}
+	table := tview.NewTable()
+	fillSkyQuestTable(table, progress, map[string]int{"Wind Rune Meda": 1}, true)
+	contents := ""
+	for row := 0; row < table.GetRowCount(); row++ {
+		contents += table.GetCell(row, 0).Text + "\n"
+	}
+	for _, want := range []string{"Test of Tone", "Test of Courage"} {
+		if !strings.Contains(contents, want) {
+			t.Fatalf("filtered table does not contain %q:\n%s", want, contents)
+		}
+	}
+	if strings.Contains(contents, "Test of Voice") {
+		t.Fatalf("filtered table contains unstarted quest:\n%s", contents)
+	}
+}
+
+func TestSkyQuestDisplayNameRemovesOnlyMatchingClassPrefix(t *testing.T) {
+	for _, test := range []struct{ className, questName, want string }{
+		{"Berserker", "Berserker Test of Blood", "Test of Blood"},
+		{"Shadow Knight", "Shadow Knight Test of Night", "Test of Night"},
+		{"Bard", "Songweaver's Test", "Songweaver's Test"},
+	} {
+		if got := skyQuestDisplayName(test.className, test.questName); got != test.want {
+			t.Errorf("skyQuestDisplayName(%q, %q) = %q, want %q", test.className, test.questName, got, test.want)
+		}
+	}
+}
+
+func TestXPInfoTextShowsSessionXP(t *testing.T) {
+	got := xpInfoText(xp.Snapshot{
 		Percent:        97.085,
 		LevelPercent:   97.085,
 		PercentPerHour: 81.06,
 		ActiveDuration: 71*time.Minute + 15*time.Second,
 		Gains:          81,
 	}, "")
-	for _, want := range []string{"XP ~97.1%", "81.1%/h", "~00:03 to level", "reset"} {
+	for _, want := range []string{"XP ~97.1%", "81.1%/h", "~00:03 to level"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected status %q to contain %q", got, want)
 		}
 	}
 }
 
-func TestStatusTextShowsKnownProgressWithoutApproximationMarker(t *testing.T) {
-	got := statusText(xp.Snapshot{
+func TestXPInfoTextShowsKnownProgressWithoutApproximationMarker(t *testing.T) {
+	got := xpInfoText(xp.Snapshot{
 		LevelPercent:   27,
 		ProgressKnown:  true,
 		PercentPerHour: 60,
@@ -151,12 +334,33 @@ func TestStatusTextShowsKnownProgressWithoutApproximationMarker(t *testing.T) {
 	}
 }
 
-func TestStatusTextShowsActiveFightFilter(t *testing.T) {
-	got := statusText(xp.Snapshot{}, "King Tranix")
-	for _, want := range []string{"filter: King Tranix", "/", "filter"} {
+func TestXPInfoTextShowsActiveFightFilter(t *testing.T) {
+	got := xpInfoText(xp.Snapshot{}, "King Tranix")
+	for _, want := range []string{"filter: King Tranix", "XP: waiting for data"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected status %q to contain %q", got, want)
 		}
+	}
+}
+
+func TestReadyNoticeTextCombinesNewlyReadyQuests(t *testing.T) {
+	quests := []skyquest.QuestProgress{
+		{Class: "Necromancer", Quest: skyquest.Quest{Name: "Necromancer Test of Power"}},
+		{Class: "Bard", Quest: skyquest.Quest{Name: "Bard Test of Tone"}},
+	}
+	if got, want := readyNoticeText(quests), "✓ READY: Necromancer — Test of Power (+1 more)"; got != want {
+		t.Fatalf("readyNoticeText() = %q, want %q", got, want)
+	}
+}
+
+func TestNewReadyQuestsExcludesAlreadyReadyQuest(t *testing.T) {
+	after := []skyquest.QuestProgress{
+		{Class: "Bard", Quest: skyquest.Quest{Name: "Bard Test of Tone"}},
+		{Class: "Necromancer", Quest: skyquest.Quest{Name: "Necromancer Test of Power"}},
+	}
+	got := newReadyQuests(map[string]bool{"Bard Test of Tone": true}, after)
+	if len(got) != 1 || got[0].Quest.Name != "Necromancer Test of Power" {
+		t.Fatalf("unexpected newly ready quests: %#v", got)
 	}
 }
 
@@ -282,6 +486,15 @@ func TestFillTableShowsExpandableMobSectionsWithSharedDPS(t *testing.T) {
 	}
 	if _, ok := actions[3]; !ok {
 		t.Fatal("expected non-local combatant to be expandable")
+	}
+	for row := 2; row <= 3; row++ {
+		for col := 0; col < 10; col++ {
+			cell := table.GetCell(row, col)
+			_, got, _ := cell.Style.Decompose()
+			if cell.Transparent || got != combatantRowColor {
+				t.Fatalf("combatant row %d column %d has background %v, want %v", row, col, got, combatantRowColor)
+			}
+		}
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -16,8 +17,22 @@ import (
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
 	"github.com/uija/eqdps/internal/eqlog"
+	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
+
+var (
+	skyCompleteColor  = tcell.NewHexColor(0xbfe8bf)
+	skyMissingColor   = tcell.NewHexColor(0xefb8b8)
+	skyDoneColor      = tcell.NewHexColor(0x8f8f8f)
+	combatantRowColor = tcell.NewHexColor(0x202428)
+	infoBarColor      = tcell.NewHexColor(0x303030)
+	infoNoticeColor   = tcell.NewHexColor(0x285b38)
+	scrollTrackColor  = tcell.NewHexColor(0x303438)
+	scrollThumbColor  = tcell.NewHexColor(0x788088)
+)
+
+const skyCatchupOverlayThreshold int64 = 5 * 1024 * 1024
 
 func main() {
 	textMode := flag.Bool("text", false, "print the DPS table to stdout instead of opening the terminal UI")
@@ -42,7 +57,47 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(2)
 	}
+	skyDatabase, err := skyquest.LoadDatabase()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	skyStateExists, err := skyquest.StateExists(logPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	var skyTracker *skyquest.PersistentTracker
+	var skyCatchupTarget int64
+	if skyStateExists {
+		skyTracker, err = skyquest.LoadPersistentTracker(logPath, skyDatabase)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+		info, statErr := os.Stat(logPath)
+		if statErr != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", statErr)
+			os.Exit(1)
+		}
+		backlog := info.Size() - skyTracker.Offset()
+		if backlog < 0 {
+			fmt.Fprintf(os.Stderr, "Plane of Sky checkpoint exceeds logfile size\n")
+			os.Exit(1)
+		}
+		if !needsSkyCatchupOverlay(backlog, *textMode) {
+			if err := skyTracker.SyncLog(logPath); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+		} else {
+			skyCatchupTarget = info.Size()
+		}
+	}
 	if *textMode {
+		if !skyStateExists {
+			fmt.Fprintln(os.Stderr, "Plane of Sky quest tracking is not initialized; launch the TUI once to enable it")
+		}
 		tracker, xpSession, err := replayLog(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -52,7 +107,7 @@ func main() {
 		return
 	}
 
-	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit); err != nil {
+	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit, skyDatabase, skyTracker, !skyStateExists, skyCatchupTarget); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -63,6 +118,14 @@ func backDuration(minutes int) time.Duration {
 		return 0
 	}
 	return time.Duration(minutes) * time.Minute
+}
+
+func needsSkyCatchupOverlay(backlog int64, textMode bool) bool {
+	return !textMode && backlog > skyCatchupOverlayThreshold
+}
+
+func isLiveLineAfterCatchup(endOffset, catchupTarget int64) bool {
+	return catchupTarget == 0 || endOffset > catchupTarget
 }
 
 func parseSince(value string) (time.Time, error) {
@@ -123,15 +186,12 @@ func replayLogWithProgress(logPath string, idleTimeout, back time.Duration, sinc
 		line := scanner.Text()
 		bytesRead += int64(len(scanner.Bytes()) + 1)
 		linesRead++
-		record, hasTimestamp := eqlog.ParseRecord(line)
+		record, hasTimestamp := eqlog.ParseRecordAfter(line, cutoff)
 		if hasTimestamp && record.Time.After(latest) {
 			latest = record.Time
 		}
 		if onProgress != nil && linesRead%5000 == 0 {
 			onProgress(replayProgress{Bytes: min(bytesRead, maxBytes), Total: maxBytes, Lines: linesRead})
-		}
-		if !cutoff.IsZero() && (!hasTimestamp || record.Time.Before(cutoff)) {
-			continue
 		}
 		if hasTimestamp {
 			processRecord(record, tracker, xpSession, idleTimeout)
@@ -235,15 +295,30 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 	}
 }
 
-func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) error {
+func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, skyDatabase skyquest.Database, skyTracker *skyquest.PersistentTracker, skyNeedsSetup bool, skyCatchupTarget int64) error {
 	app := tview.NewApplication()
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
 	xpSession := xp.NewSession()
 	var mu sync.Mutex
+	var skyMu sync.Mutex
 	expandedRows := make(map[string]bool)
 	expandableRows := make(map[int]string)
 	terminalWidth := 100
 	fightFilter := ""
+	skyViewOpen := false
+	var renderSkyView = func() {}
+	skyStartOffset := int64(0)
+	if skyCatchupTarget > 0 {
+		skyStartOffset = skyCatchupTarget
+	} else if skyTracker != nil {
+		skyStartOffset = skyTracker.Offset()
+	} else {
+		info, err := os.Stat(logPath)
+		if err != nil {
+			return fmt.Errorf("stat log for live tail: %w", err)
+		}
+		skyStartOffset = info.Size()
+	}
 
 	if back > 0 || !since.IsZero() {
 		backfill, backfillXP, err := replayLog(logPath, idleTimeout, back, since, historyLimit)
@@ -258,11 +333,23 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		SetBorders(false).
 		SetSelectable(true, false).
 		SetFixed(1, 0)
+	scrollBar := newTableScrollBar(table)
 
 	header := tview.NewTextView().
 		SetDynamicColors(true)
-	status := tview.NewTextView().
+	infoLeft := tview.NewTextView().
 		SetDynamicColors(true)
+	infoNotice := tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignCenter)
+	infoSky := tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignRight)
+	shortcuts := tview.NewTextView().
+		SetDynamicColors(true)
+	var skyNotice string
+	var skyNoticeUntil time.Time
+	skyCatchupOpen := skyCatchupTarget > 0
 
 	render := func() {
 		mu.Lock()
@@ -270,8 +357,38 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 
 		sections := filterSections(tracker.DisplaySections(), fightFilter)
 		header.SetText(titleText(logPath, terminalWidth))
-		status.SetText(statusText(xpSession.SnapshotLive(time.Now()), fightFilter))
-		expandableRows = fillTable(table, sections, expandedRows, terminalWidth)
+		now := time.Now()
+		infoLeft.SetText(xpInfoText(xpSession.SnapshotLive(now), fightFilter))
+		skyMu.Lock()
+		activeSkyTracker := skyTracker
+		readyCount := 0
+		if activeSkyTracker != nil && !skyCatchupOpen {
+			readyCount = len(activeSkyTracker.ReadyQuests())
+		}
+		notice := skyNotice
+		noticeActive := notice != "" && now.Before(skyNoticeUntil)
+		if !noticeActive && skyNotice != "" {
+			skyNotice = ""
+		}
+		skyMu.Unlock()
+		barColor := infoBarColor
+		if noticeActive {
+			barColor = infoNoticeColor
+		}
+		for _, view := range []*tview.TextView{infoLeft, infoNotice, infoSky} {
+			view.SetBackgroundColor(barColor)
+		}
+		infoNotice.SetText(notice)
+		if activeSkyTracker == nil {
+			infoSky.SetText(" PoS: off ")
+		} else {
+			infoSky.SetText(fmt.Sprintf(" PoS: %d ready ", readyCount))
+		}
+		shortcuts.SetText(shortcutsText())
+		expandableRows = fillTable(table, sections, expandedRows, max(terminalWidth-1, 1))
+		if skyViewOpen {
+			renderSkyView()
+		}
 	}
 	render()
 
@@ -285,6 +402,10 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	})
 
 	done := make(chan struct{})
+	skyCatchupDone := make(chan struct{})
+	if skyCatchupTarget == 0 {
+		close(skyCatchupDone)
+	}
 	errCh := make(chan error, 1)
 	var stopOnce sync.Once
 	stop := func() {
@@ -293,10 +414,49 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		})
 	}
 	go func() {
-		if err := followLog(logPath, done, func(line string) {
-			mu.Lock()
-			processLine(line, tracker, xpSession, idleTimeout)
-			mu.Unlock()
+		select {
+		case <-skyCatchupDone:
+		case <-done:
+			return
+		}
+		followOffset := skyStartOffset
+		if skyCatchupTarget > 0 {
+			skyMu.Lock()
+			if skyTracker != nil {
+				followOffset = skyTracker.Offset()
+			}
+			skyMu.Unlock()
+		}
+		if err := followLog(logPath, followOffset, done, func(line string, endOffset int64) {
+			if isLiveLineAfterCatchup(endOffset, skyCatchupTarget) {
+				mu.Lock()
+				processLine(line, tracker, xpSession, idleTimeout)
+				mu.Unlock()
+			}
+			skyMu.Lock()
+			activeSkyTracker := skyTracker
+			if activeSkyTracker != nil {
+				record, parsed := eqlog.ParseRecord(line)
+				isLoot := parsed && record.Kind == eqlog.RecordLoot
+				var beforeReady map[string]bool
+				if isLoot {
+					beforeReady = readyQuestSet(activeSkyTracker.ReadyQuests())
+				}
+				if err := activeSkyTracker.ProcessLine(line, endOffset); err != nil {
+					skyMu.Unlock()
+					errCh <- err
+					app.Stop()
+					return
+				}
+				if isLoot {
+					newlyReady := newReadyQuests(beforeReady, activeSkyTracker.ReadyQuests())
+					if len(newlyReady) > 0 {
+						skyNotice = readyNoticeText(newlyReady)
+						skyNoticeUntil = time.Now().Add(8 * time.Second)
+					}
+				}
+			}
+			skyMu.Unlock()
 			app.QueueUpdateDraw(render)
 		}); err != nil {
 			errCh <- err
@@ -319,18 +479,224 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		}
 	}()
 
+	infoBar := tview.NewFlex().
+		AddItem(infoLeft, 0, 3, false).
+		AddItem(infoNotice, 0, 2, false).
+		AddItem(infoSky, 16, 0, false)
+	tableArea := tview.NewFlex().
+		AddItem(table, 0, 1, true).
+		AddItem(scrollBar, 1, 0, false)
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(header, 1, 0, false).
-		AddItem(table, 0, 1, true).
-		AddItem(status, 1, 0, false)
+		AddItem(tableArea, 0, 1, true).
+		AddItem(infoBar, 1, 0, false).
+		AddItem(shortcuts, 1, 0, false)
 	pages := tview.NewPages().
 		AddPage("main", layout, true, true)
+	skyTable := tview.NewTable().SetBorders(false).SetSelectable(true, false).SetFixed(1, 0)
+	skyHeader := tview.NewTextView().SetDynamicColors(true)
+	skyFooter := tview.NewTextView().SetDynamicColors(true).
+		SetText("[gray]↑/↓ PgUp/PgDn[::-] browse   [gray]h[::-] hide empty   [gray]p/Esc[::-] close")
+	skyHideUnstarted := false
+	character, server, _ := skyquest.CharacterIdentity(logPath)
+	renderSkyView = func() {
+		skyMu.Lock()
+		active := skyTracker
+		if active == nil {
+			skyMu.Unlock()
+			return
+		}
+		progress := active.QuestProgress()
+		inventory := active.Inventory()
+		skyMu.Unlock()
+		skyHeader.SetText(fmt.Sprintf("[::b]Plane of Sky Quest Tracker[::-]  %s / %s", character, server))
+		fillSkyQuestTable(skyTable, progress, inventory, skyHideUnstarted)
+		if skyHideUnstarted {
+			skyFooter.SetText("[gray]↑/↓ PgUp/PgDn[::-] browse   [gray]h[::-] show all   [gray]p/Esc[::-] close")
+		} else {
+			skyFooter.SetText("[gray]↑/↓ PgUp/PgDn[::-] browse   [gray]h[::-] hide empty   [gray]p/Esc[::-] close")
+		}
+	}
+	skyLayout := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(skyHeader, 1, 0, false).
+		AddItem(skyTable, 0, 1, true).
+		AddItem(skyFooter, 1, 0, false)
+	skySetupOpen := false
+	skyScanOpen := false
+	var skyScanCancel chan struct{}
+	var skyScanView *tview.TextView
+	var skyCatchupCancel chan struct{}
+	var skyCatchupView *tview.TextView
 	historyOpen := false
 	filterOpen := false
 	replayOpen := false
 	var replayCancel chan struct{}
 	var replayView *tview.TextView
+
+	openSkyView := func() {
+		skyMu.Lock()
+		enabled := skyTracker != nil
+		skyMu.Unlock()
+		if !enabled {
+			return
+		}
+		skyViewOpen = true
+		renderSkyView()
+		pages.AddPage("sky-view", skyLayout, true, true)
+		app.SetFocus(skyTable)
+		skyTable.ScrollToBeginning()
+		skyTable.Select(1, 0)
+	}
+
+	closeSkyView := func() {
+		pages.RemovePage("sky-view")
+		skyViewOpen = false
+		app.SetFocus(table)
+	}
+
+	closeSkySetup := func() {
+		pages.RemovePage("sky-setup")
+		skySetupOpen = false
+		app.SetFocus(table)
+	}
+
+	closeSkyScan := func() {
+		pages.RemovePage("sky-scan")
+		skyScanOpen = false
+		skyScanCancel = nil
+		skyScanView = nil
+		app.SetFocus(table)
+	}
+
+	startSkyCatchup := func() {
+		startOffset := skyTracker.Offset()
+		total := skyCatchupTarget - startOffset
+		skyCatchupCancel = make(chan struct{})
+		cancel := skyCatchupCancel
+		skyCatchupView = showProgressOverlay(app, pages, "sky-catchup", " Catching up Plane of Sky tracker — Esc cancel and exit ")
+		skyCatchupView.SetText(operationProgressText("Processing missed Plane of Sky activity…", 0, total, 0))
+
+		go func() {
+			catchupErr := skyTracker.SyncLogWithProgress(
+				logPath, skyCatchupTarget,
+				func(progress skyquest.ScanProgress) {
+					app.QueueUpdateDraw(func() {
+						if skyCatchupOpen && skyCatchupView != nil {
+							processed := progress.Bytes - startOffset
+							if processed < 0 {
+								processed = 0
+							}
+							skyCatchupView.SetText(operationProgressText("Processing missed Plane of Sky activity…", processed, total, progress.Lines))
+						}
+					})
+				},
+				cancel,
+			)
+			app.QueueUpdateDraw(func() {
+				if errors.Is(catchupErr, skyquest.ErrScanCancelled) {
+					skyMu.Lock()
+					skyTracker = nil
+					skyMu.Unlock()
+					app.Stop()
+					return
+				}
+				if catchupErr != nil {
+					skyMu.Lock()
+					skyTracker = nil
+					skyMu.Unlock()
+					errCh <- catchupErr
+					app.Stop()
+					return
+				}
+				skyCatchupOpen = false
+				skyCatchupCancel = nil
+				skyCatchupView = nil
+				pages.RemovePage("sky-catchup")
+				close(skyCatchupDone)
+				app.SetFocus(table)
+				render()
+			})
+		}()
+	}
+
+	startSkyScan := func() {
+		info, err := os.Stat(logPath)
+		if err != nil {
+			skyScanOpen = true
+			skyScanView = showProgressOverlay(app, pages, "sky-scan", " Plane of Sky scan failed — Esc close ")
+			skyScanView.SetText("[red]" + tview.Escape(err.Error()) + "[::-]")
+			return
+		}
+
+		skyScanOpen = true
+		skyScanCancel = make(chan struct{})
+		cancel := skyScanCancel
+		skyScanView = showProgressOverlay(app, pages, "sky-scan", " Initial Plane of Sky scan — Esc cancel ")
+		skyScanView.SetText(operationProgressText("Scanning existing loot history…", 0, info.Size(), 0))
+
+		go func(snapshotSize int64) {
+			created, scanErr := skyquest.InitializePersistentTracker(
+				logPath, skyDatabase, snapshotSize,
+				func(progress skyquest.ScanProgress) {
+					app.QueueUpdateDraw(func() {
+						if skyScanOpen && skyScanView != nil {
+							skyScanView.SetText(operationProgressText("Scanning existing loot history…", progress.Bytes, progress.Total, progress.Lines))
+						}
+					})
+				},
+				cancel,
+			)
+			if scanErr == nil {
+				skyMu.Lock()
+				scanErr = created.SyncLog(logPath)
+				if scanErr == nil {
+					skyTracker = created
+					skyNeedsSetup = false
+				}
+				skyMu.Unlock()
+			}
+			app.QueueUpdateDraw(func() {
+				if errors.Is(scanErr, skyquest.ErrScanCancelled) {
+					closeSkyScan()
+					return
+				}
+				if scanErr != nil {
+					skyScanCancel = nil
+					if skyScanView != nil {
+						skyScanView.SetTitle(" Plane of Sky scan failed — Esc close ")
+						skyScanView.SetText("[red]" + tview.Escape(scanErr.Error()) + "[::-]")
+					}
+					return
+				}
+				closeSkyScan()
+			})
+		}(info.Size())
+	}
+
+	showSkySetup := func() {
+		skySetupOpen = true
+		info, _ := os.Stat(logPath)
+		size := int64(0)
+		if info != nil {
+			size = info.Size()
+		}
+		modal := tview.NewModal().
+			SetText(fmt.Sprintf(
+				"Plane of Sky Quest Tracker\n\nTo determine which quest items you already own, eqdps needs to scan your existing logfile once.\n\nLog: %s\nSize: %s\n\nNo state file is created if you choose Not Now.",
+				filepath.Base(logPath), formatByteSize(size),
+			)).
+			AddButtons([]string{"Enable and Scan", "Not Now"}).
+			SetDoneFunc(func(_ int, label string) {
+				closeSkySetup()
+				if label == "Enable and Scan" {
+					startSkyScan()
+				}
+			})
+		pages.AddPage("sky-setup", modal, true, true)
+		app.SetFocus(modal)
+	}
 
 	closeHistoryModal := func() {
 		pages.RemovePage("history")
@@ -347,20 +713,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	showReplayModal := func() {
-		replayView = tview.NewTextView().
-			SetDynamicColors(true).
-			SetTextAlign(tview.AlignCenter)
-		replayView.SetBorder(true).SetTitle(" Loading history — Esc cancel ")
-		centered := tview.NewFlex().
-			SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(tview.NewFlex().
-				AddItem(nil, 0, 1, false).
-				AddItem(replayView, 58, 0, true).
-				AddItem(nil, 0, 1, false), 7, 0, true).
-			AddItem(nil, 0, 1, false)
-		pages.AddPage("replay", centered, true, true)
-		app.SetFocus(replayView)
+		replayView = showProgressOverlay(app, pages, "replay", " Loading history — Esc cancel ")
 	}
 
 	startReplay := func(duration time.Duration) {
@@ -376,7 +729,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		replayCancel = make(chan struct{})
 		cancel := replayCancel
 		showReplayModal()
-		replayView.SetText(progressText(replayProgress{Total: info.Size()}))
+		replayView.SetText(operationProgressText("Loading combat history…", 0, info.Size(), 0))
 
 		go func(snapshotSize int64) {
 			nextTracker, nextXP, replayErr := replayLogWithProgress(
@@ -384,7 +737,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				func(progress replayProgress) {
 					app.QueueUpdateDraw(func() {
 						if replayOpen && replayView != nil {
-							replayView.SetText(progressText(progress))
+							replayView.SetText(operationProgressText("Loading combat history…", progress.Bytes, progress.Total, progress.Lines))
 						}
 					})
 				},
@@ -496,6 +849,52 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if skyCatchupOpen {
+			if event.Key() == tcell.KeyEsc && skyCatchupCancel != nil {
+				close(skyCatchupCancel)
+				skyCatchupCancel = nil
+				if skyCatchupView != nil {
+					skyCatchupView.SetTitle(" Cancelling Plane of Sky catch-up… ")
+				}
+			}
+			return nil
+		}
+		if skyScanOpen {
+			if event.Key() == tcell.KeyEsc {
+				if skyScanCancel != nil {
+					close(skyScanCancel)
+					skyScanCancel = nil
+					if skyScanView != nil {
+						skyScanView.SetTitle(" Cancelling Plane of Sky scan… ")
+					}
+				} else {
+					closeSkyScan()
+				}
+				return nil
+			}
+			return nil
+		}
+		if skySetupOpen {
+			return event
+		}
+		if skyViewOpen {
+			if event.Key() == tcell.KeyEsc {
+				closeSkyView()
+				return nil
+			}
+			switch event.Rune() {
+			case 'p', 'P':
+				closeSkyView()
+				return nil
+			case 'h', 'H':
+				skyHideUnstarted = !skyHideUnstarted
+				renderSkyView()
+				skyTable.ScrollToBeginning()
+				skyTable.Select(1, 0)
+				return nil
+			}
+			return event
+		}
 		if replayOpen {
 			if event.Key() == tcell.KeyEsc {
 				if replayCancel != nil {
@@ -535,9 +934,10 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			row, _ := table.GetSelection()
 			if key, ok := expandableRows[row]; ok {
 				rowOffset, columnOffset := table.GetOffset()
+				wasAtEnd := tableViewAtEnd(table, rowOffset)
 				expandedRows[key] = !expandedRows[key]
 				render()
-				restoreTablePosition(table, expandableRows, key, rowOffset, columnOffset)
+				restoreTablePosition(table, expandableRows, key, rowOffset, columnOffset, wasAtEnd)
 				return nil
 			}
 		}
@@ -563,12 +963,13 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				return nil
 			}
 			rowOffset, columnOffset := table.GetOffset()
+			wasAtEnd := tableViewAtEnd(table, rowOffset)
 			mu.Lock()
 			sections := filterSections(tracker.DisplaySections(), fightFilter)
 			toggleRowTree(key, sections, expandedRows)
 			mu.Unlock()
 			render()
-			restoreTablePosition(table, expandableRows, key, rowOffset, columnOffset)
+			restoreTablePosition(table, expandableRows, key, rowOffset, columnOffset, wasAtEnd)
 			return nil
 		case 'o', 'O':
 			openHistoryModal()
@@ -576,12 +977,42 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		case '/':
 			openFilter()
 			return nil
+		case 'p', 'P':
+			skyMu.Lock()
+			enabled := skyTracker != nil
+			skyMu.Unlock()
+			if enabled {
+				openSkyView()
+			} else if !skySetupOpen && !skyScanOpen {
+				showSkySetup()
+			}
+			return nil
 		}
 		return event
 	})
+	if skyNeedsSetup {
+		showSkySetup()
+	}
 
-	err := app.SetRoot(pages, true).SetFocus(table).Run()
+	app.SetRoot(pages, true)
+	if skyCatchupOpen {
+		startSkyCatchup()
+	} else if !skyNeedsSetup {
+		app.SetFocus(table)
+	}
+	err := app.Run()
 	stop()
+	if skyScanCancel != nil {
+		close(skyScanCancel)
+		skyScanCancel = nil
+	}
+	skyMu.Lock()
+	if skyTracker != nil {
+		if saveErr := skyTracker.Save(); saveErr != nil && err == nil {
+			err = saveErr
+		}
+	}
+	skyMu.Unlock()
 	select {
 	case tailErr := <-errCh:
 		return tailErr
@@ -595,11 +1026,23 @@ func resetTableView(table *tview.Table) {
 	table.Select(1, 0)
 }
 
-func restoreTablePosition(table *tview.Table, expandableRows map[int]string, selectedKey string, rowOffset, columnOffset int) {
+func tableViewAtEnd(table *tview.Table, rowOffset int) bool {
+	_, _, _, height := table.GetInnerRect()
+	return height > 0 && rowOffset+height >= table.GetRowCount()
+}
+
+func restoreTablePosition(table *tview.Table, expandableRows map[int]string, selectedKey string, rowOffset, columnOffset int, wasAtEnd bool) {
 	for row, key := range expandableRows {
 		if key == selectedKey {
-			table.Select(row, 0)
-			table.SetOffset(rowOffset, columnOffset)
+			selectedRow, selectedColumn := table.GetSelection()
+			if selectedRow != row || selectedColumn != 0 {
+				table.Select(row, 0)
+			}
+			if wasAtEnd {
+				table.ScrollToEnd()
+			} else {
+				table.SetOffset(rowOffset, columnOffset)
+			}
 			return
 		}
 	}
@@ -631,18 +1074,19 @@ func processRecord(record eqlog.Record, tracker *combat.FightTracker, xpSession 
 	}
 }
 
-func followLog(logPath string, done <-chan struct{}, onLine func(string)) error {
+func followLog(logPath string, startOffset int64, done <-chan struct{}, onLine func(string, int64)) error {
 	file, err := os.Open(logPath)
 	if err != nil {
 		return fmt.Errorf("open log: %w", err)
 	}
 	defer file.Close()
 
-	if _, err := file.Seek(0, io.SeekEnd); err != nil {
-		return fmt.Errorf("seek log end: %w", err)
+	if _, err := file.Seek(startOffset, io.SeekStart); err != nil {
+		return fmt.Errorf("seek log checkpoint: %w", err)
 	}
 
 	reader := bufio.NewReader(file)
+	offset := startOffset
 	for {
 		select {
 		case <-done:
@@ -651,13 +1095,20 @@ func followLog(logPath string, done <-chan struct{}, onLine func(string)) error 
 		}
 
 		line, err := reader.ReadString('\n')
-		if len(line) > 0 {
-			onLine(line)
+		if strings.HasSuffix(line, "\n") {
+			offset += int64(len(line))
+			onLine(line, offset)
 		}
 		if err == nil {
 			continue
 		}
 		if errors.Is(err, io.EOF) {
+			if len(line) > 0 {
+				if _, seekErr := file.Seek(offset, io.SeekStart); seekErr != nil {
+					return fmt.Errorf("rewind partial log line: %w", seekErr)
+				}
+				reader.Reset(file)
+			}
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}
@@ -674,13 +1125,17 @@ func titleText(logPath string, terminalWidth int) string {
 	return fmt.Sprintf("[::b]%s[::-]  %s", title, fitText(logPath, maxPathWidth))
 }
 
-func statusText(snapshot xp.Snapshot, fightFilter string) string {
-	controls := "[gray]o[::-] history   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]a[::-] toggle tree   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+func shortcutsText() string {
+	return "[gray]o[::-] history   [gray]p[::-] Sky quests   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]a[::-] toggle tree   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+}
+
+func xpInfoText(snapshot xp.Snapshot, fightFilter string) string {
+	filter := ""
 	if fightFilter != "" {
-		controls = fmt.Sprintf("[yellow]filter: %s[::-]   %s", tview.Escape(fightFilter), controls)
+		filter = fmt.Sprintf("   [yellow]filter: %s[::-]", tview.Escape(fightFilter))
 	}
 	if snapshot.Gains == 0 {
-		return controls
+		return " XP: waiting for data" + filter
 	}
 	etaText := "~--:-- to level"
 	if eta, ok := snapshot.TimeToLevel(); ok {
@@ -690,13 +1145,42 @@ func statusText(snapshot xp.Snapshot, fightFilter string) string {
 	if snapshot.ProgressKnown {
 		progressPrefix = ""
 	}
-	return fmt.Sprintf("[green]XP %s%.1f%%  %.1f%%/h  %s[::-]   %s",
+	return fmt.Sprintf(" [green]XP %s%.1f%%  %.1f%%/h  %s[::-]%s",
 		progressPrefix,
 		snapshot.LevelPercent,
 		snapshot.PercentPerHour,
 		etaText,
-		controls,
+		filter,
 	)
+}
+
+func readyQuestSet(quests []skyquest.QuestProgress) map[string]bool {
+	result := make(map[string]bool, len(quests))
+	for _, quest := range quests {
+		result[quest.Quest.Name] = true
+	}
+	return result
+}
+
+func newReadyQuests(before map[string]bool, after []skyquest.QuestProgress) []skyquest.QuestProgress {
+	var result []skyquest.QuestProgress
+	for _, quest := range after {
+		if !before[quest.Quest.Name] {
+			result = append(result, quest)
+		}
+	}
+	return result
+}
+
+func readyNoticeText(quests []skyquest.QuestProgress) string {
+	if len(quests) == 0 {
+		return ""
+	}
+	text := "✓ READY: " + quests[0].Class + " — " + skyQuestDisplayName(quests[0].Class, quests[0].Quest.Name)
+	if len(quests) > 1 {
+		text += fmt.Sprintf(" (+%d more)", len(quests)-1)
+	}
+	return text
 }
 
 func historyDuration(label string) (time.Duration, bool) {
@@ -786,16 +1270,202 @@ func combatantTreeKeys(sectionKey string, player combat.PlayerStats) []string {
 	return keys
 }
 
-func progressText(progress replayProgress) string {
+func operationProgressText(message string, bytes, total int64, lines int) string {
 	const barWidth = 32
 	percentComplete := 0.0
-	if progress.Total > 0 {
-		percentComplete = float64(progress.Bytes) / float64(progress.Total)
+	if total > 0 {
+		percentComplete = float64(bytes) / float64(total)
 	}
 	percentComplete = min(max(percentComplete, 0), 1)
 	filled := int(percentComplete * barWidth)
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-	return fmt.Sprintf("\n[green]%s[::-]  %3.0f%%\n\n%d lines processed", bar, percentComplete*100, progress.Lines)
+	return fmt.Sprintf("\n%s\n\n[green]%s[::-]  %3.0f%%\n\n%s / %s   %d lines processed",
+		message, bar, percentComplete*100, formatByteSize(bytes), formatByteSize(total), lines)
+}
+
+func formatByteSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	divisor, exponent := int64(unit), 0
+	for value := bytes / unit; value >= unit && exponent < 3; value /= unit {
+		divisor *= unit
+		exponent++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(divisor), "KMGT"[exponent])
+}
+
+func centeredView(view tview.Primitive, width, height int) tview.Primitive {
+	return tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().
+			AddItem(nil, 0, 1, false).
+			AddItem(view, width, 0, true).
+			AddItem(nil, 0, 1, false), height, 0, true).
+		AddItem(nil, 0, 1, false)
+}
+
+func showProgressOverlay(app *tview.Application, pages *tview.Pages, page, title string) *tview.TextView {
+	view := tview.NewTextView().SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
+	view.SetBorder(true).SetTitle(title)
+	pages.AddPage(page, centeredView(view, 68, 9), true, true)
+	app.SetFocus(view)
+	return view
+}
+
+func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, inventory map[string]int, hideUnstarted bool) {
+	table.Clear()
+	headers := []string{"Quest / Required Item", "Status", "Have", "Need", "Source / Reward"}
+	for column, header := range headers {
+		cell := tview.NewTableCell(header).SetTextColor(tcell.ColorYellow).SetSelectable(false)
+		if column == 0 {
+			cell.SetExpansion(1).SetMaxWidth(46)
+		} else if column == 4 {
+			cell.SetExpansion(1)
+		} else {
+			cell.SetAlign(tview.AlignRight)
+		}
+		table.SetCell(0, column, cell)
+	}
+
+	row := 1
+	ready := make([]skyquest.QuestProgress, 0)
+	for _, item := range progress {
+		if item.Ready {
+			ready = append(ready, item)
+		}
+	}
+	table.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("READY TO TURN IN (%d)", len(ready))).SetTextColor(skyCompleteColor).SetSelectable(true))
+	row++
+	if len(ready) > 0 {
+		for _, item := range ready {
+			setSkyRow(table, row, "  ✓ "+item.Class+" — "+skyQuestDisplayName(item.Class, item.Quest.Name), "READY", "", "", questDetails(item.Quest), skyCompleteColor, true)
+			row++
+			setSkyRow(table, row, "      Quest giver: "+item.Quest.QuestGiver, "", "", "", "", skyCompleteColor, false)
+			row++
+			for _, requirement := range item.Quest.Requirements {
+				owned := inventory[requirement.Name]
+				setSkyRow(table, row, "      ↳ "+requirement.Name, "", fmt.Sprint(owned), fmt.Sprint(requirement.Quantity), skyRequirementSource(requirement), skyCompleteColor, false)
+				row++
+			}
+		}
+	}
+	setSkyRow(table, row, "", "", "", "", "", tcell.ColorDefault, false)
+	row++
+
+	table.SetCell(row, 0, tview.NewTableCell("ALL CLASSES").SetTextColor(tcell.ColorYellow).SetSelectable(false))
+	row++
+	for index := 0; index < len(progress); {
+		className := progress[index].Class
+		end := index
+		readyCount := 0
+		completedCount := 0
+		for end < len(progress) && progress[end].Class == className {
+			if progress[end].Ready {
+				readyCount++
+			}
+			if progress[end].Completed {
+				completedCount++
+			}
+			end++
+		}
+		visible := progress[index:end]
+		if hideUnstarted {
+			visible = nil
+			for _, item := range progress[index:end] {
+				if item.Completed || skyQuestHasItem(item.Quest, inventory) {
+					visible = append(visible, item)
+				}
+			}
+		}
+		if len(visible) == 0 {
+			index = end
+			continue
+		}
+		setSkyRow(table, row, className, fmt.Sprintf("%d/%d done · %d ready", completedCount, end-index, readyCount), "", "", "", tcell.ColorYellow, false)
+		row++
+		for _, item := range visible {
+			status := fmt.Sprintf("missing %d", len(item.Missing))
+			color := tcell.ColorWhite
+			if item.Completed {
+				status = "DONE"
+				color = skyDoneColor
+			} else if item.Ready {
+				status = "READY"
+				color = skyCompleteColor
+			}
+			details := item.Quest.QuestGiver + " — Reward: " + strings.Join(item.Quest.Rewards, " / ")
+			setSkyRow(table, row, "  "+skyQuestDisplayName(item.Class, item.Quest.Name), status, "", "", details, color, true)
+			row++
+			for _, requirement := range item.Quest.Requirements {
+				owned := inventory[requirement.Name]
+				mark := "✗"
+				requirementColor := skyMissingColor
+				ownedText, neededText := fmt.Sprint(owned), fmt.Sprint(requirement.Quantity)
+				if item.Completed {
+					mark = "✓"
+					requirementColor = skyDoneColor
+					ownedText, neededText = "—", "—"
+				} else if owned >= requirement.Quantity {
+					mark = "✓"
+					requirementColor = skyCompleteColor
+				}
+				setSkyRow(table, row, "      "+mark+" "+requirement.Name, "", ownedText, neededText, skyRequirementSource(requirement), requirementColor, false)
+				row++
+			}
+		}
+		index = end
+	}
+}
+
+func skyQuestHasItem(quest skyquest.Quest, inventory map[string]int) bool {
+	for _, requirement := range quest.Requirements {
+		if inventory[requirement.Name] > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func setSkyRow(table *tview.Table, row int, name, status, owned, needed, detail string, color tcell.Color, selectable bool) {
+	values := []string{name, status, owned, needed, detail}
+	for column, value := range values {
+		cell := tview.NewTableCell(value).SetTextColor(color).SetSelectable(selectable)
+		if column == 0 {
+			cell.SetExpansion(1).SetMaxWidth(46)
+		} else if column == 4 {
+			cell.SetExpansion(1)
+		} else {
+			cell.SetAlign(tview.AlignRight)
+		}
+		table.SetCell(row, column, cell)
+	}
+}
+
+func questDetails(quest skyquest.Quest) string {
+	return "Reward: " + strings.Join(quest.Rewards, " / ") + " — " + quest.QuestGiver
+}
+
+func skyQuestDisplayName(className, questName string) string {
+	return strings.TrimPrefix(questName, className+" ")
+}
+
+func skyRequirementSource(requirement skyquest.Requirement) string {
+	if requirement.Island > 0 && requirement.DropsFrom != "" {
+		return fmt.Sprintf("Island %d — %s", requirement.Island, requirement.DropsFrom)
+	}
+	if requirement.Island > 0 {
+		return fmt.Sprintf("Island %d", requirement.Island)
+	}
+	if requirement.Kind == "rune" {
+		return "Plane of Sky random drop"
+	}
+	if requirement.DropsFrom != "" {
+		return requirement.DropsFrom
+	}
+	return "Plane of Sky"
 }
 
 func fightTitle(fight *combat.Fight, current bool) string {
@@ -880,7 +1550,7 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 				fmt.Sprintf("%d", player.MinHit), fmt.Sprintf("%d", player.MaxHit), formatDuration(player.ActiveDuration()),
 			}
 			for col, value := range values {
-				table.SetCell(row, col, tableCell(value, col, layout))
+				table.SetCell(row, col, tableCell(value, col, layout).SetBackgroundColor(combatantRowColor))
 			}
 			if len(player.Breakdown) == 0 {
 				row++
@@ -964,6 +1634,49 @@ func tableLayoutForWidth(width int) tableLayout {
 	}
 
 	return tableLayout{combatantWidth: max(width-61, 20)}
+}
+
+type tableScrollBar struct {
+	*tview.Box
+	table *tview.Table
+}
+
+func newTableScrollBar(table *tview.Table) *tableScrollBar {
+	return &tableScrollBar{Box: tview.NewBox(), table: table}
+}
+
+func (bar *tableScrollBar) Draw(screen tcell.Screen) {
+	bar.Box.DrawForSubclass(screen, bar)
+	x, y, _, height := bar.GetInnerRect()
+	thumbStart, thumbHeight, visible := scrollBarMetrics(bar.table.GetRowCount(), height, tableRowOffset(bar.table))
+	for line := 0; line < height; line++ {
+		character := ' '
+		color := scrollTrackColor
+		if visible {
+			character = '│'
+			if line >= thumbStart && line < thumbStart+thumbHeight {
+				character = '█'
+				color = scrollThumbColor
+			}
+		}
+		screen.SetContent(x, y+line, character, nil, tcell.StyleDefault.Foreground(color))
+	}
+}
+
+func tableRowOffset(table *tview.Table) int {
+	row, _ := table.GetOffset()
+	return row
+}
+
+func scrollBarMetrics(rowCount, height, rowOffset int) (thumbStart, thumbHeight int, visible bool) {
+	if height <= 0 || rowCount <= height {
+		return 0, 0, false
+	}
+	thumbHeight = max(1, height*height/rowCount)
+	maxOffset := rowCount - height
+	rowOffset = min(max(rowOffset, 0), maxOffset)
+	thumbStart = (height - thumbHeight) * rowOffset / maxOffset
+	return thumbStart, thumbHeight, true
 }
 
 func tableCell(value string, col int, layout tableLayout) *tview.TableCell {

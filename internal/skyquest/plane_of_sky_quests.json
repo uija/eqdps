@@ -1,0 +1,2567 @@
+{
+  "schema_version": 1,
+  "source": "https://eqlwiki.com/Plane_of_Sky#Plane_of_Sky_Class_Quests",
+  "source_page_id": 34191,
+  "source_revision": 151528,
+  "classes": [
+    {
+      "name": "Bard",
+      "quest_npc": "Cilin Spellsinger",
+      "quests": [
+        {
+          "name": "Bard Test of Tone",
+          "quest_giver": "Clarisa Spiritsong",
+          "requirements": [
+            {
+              "name": "Wind Rune Meda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Light Woolen Mask",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Mask of Song"
+          ]
+        },
+        {
+          "name": "Bard Test of Voice",
+          "quest_giver": "Clarisa Spiritsong",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Light Woolen Mantle",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Mantle of the Songweaver"
+          ]
+        },
+        {
+          "name": "Bard Test of Pitch",
+          "quest_giver": "Clarisa Spiritsong",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Crude Wooden Flute",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Ervaj's Flute of Flight"
+          ]
+        },
+        {
+          "name": "Bard Test of Wind",
+          "quest_giver": "Denise Songweaver",
+          "requirements": [
+            {
+              "name": "Wind Rune Caza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Amulet of Woven Hair",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Fae Amulet"
+          ]
+        },
+        {
+          "name": "Bard Test of Brass",
+          "quest_giver": "Denise Songweaver",
+          "requirements": [
+            {
+              "name": "Wind Rune Fana",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Glowing Diamond",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Efreeti War Horn",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air / The Hand of Veeshan",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Denon's Horn of Disaster"
+          ]
+        },
+        {
+          "name": "Bard Test of Harmony",
+          "quest_giver": "Denise Songweaver",
+          "requirements": [
+            {
+              "name": "Wind Rune Heda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Nebulous Diamond",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti War Spear",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Harmonic Spear"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Beastlord",
+      "quest_npc": "Animist Kratho",
+      "quests": [
+        {
+          "name": "Beastlord Test of Aviak",
+          "quest_giver": "Animist Kratho",
+          "requirements": [
+            {
+              "name": "Wind Rune Beza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Spiroc Elder's Totem",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Spiroc Beak Earcuff"
+          ]
+        },
+        {
+          "name": "Beastlord Test of Azarack",
+          "quest_giver": "Animist Kratho",
+          "requirements": [
+            {
+              "name": "Wind Rune Heda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Azarack Skin",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 2,
+              "drops_from": "Protector of Sky",
+              "source_hint": "(2-PoS)"
+            }
+          ],
+          "rewards": [
+            "Azarack Skin Wristwraps"
+          ]
+        },
+        {
+          "name": "Beastlord Test of Claw",
+          "quest_giver": "Animist Kratho",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Sphinx Claw",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Mithril Bands",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Brass Knuckles",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air / The Hand of Veeshan",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Windhowl",
+            "Spirit Render"
+          ]
+        },
+        {
+          "name": "Beastlord Test of Harpy",
+          "quest_giver": "Animist Kratho",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Leather Cord",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Griffon-Hide Armguards"
+          ]
+        },
+        {
+          "name": "Beastlord Test of Wind",
+          "quest_giver": "Animist Kratho",
+          "requirements": [
+            {
+              "name": "Wind Rune Geza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silken Wrap",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Diaphonous Waistband"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Berserker",
+      "quest_npc": "Stragen The Hewer",
+      "quests": [
+        {
+          "name": "Berserker Test of Sharpness",
+          "quest_giver": "Stragen The Hewer",
+          "requirements": [
+            {
+              "name": "Wind Rune Jaka",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Djinni War Blade",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Efreeti Standard",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Skycleaver"
+          ]
+        },
+        {
+          "name": "Berserker Test of Will",
+          "quest_giver": "Stragen The Hewer",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Pulsating Ruby",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Molten Coil"
+          ]
+        },
+        {
+          "name": "Berserker Test of Ferocity",
+          "quest_giver": "Stragen The Hewer",
+          "requirements": [
+            {
+              "name": "Wind Rune Ozah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "High Quality Raiment",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Sash of Ferocity"
+          ]
+        },
+        {
+          "name": "Berserker Test of Burden",
+          "quest_giver": "Stragen The Hewer",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Feathered Cape",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Shroud of the Sky"
+          ]
+        },
+        {
+          "name": "Berserker Test of Blood",
+          "quest_giver": "Stragen The Hewer",
+          "requirements": [
+            {
+              "name": "Wind Rune Lena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Azarack Blood",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 2,
+              "drops_from": "Protector of Sky",
+              "source_hint": "(2-PoS)"
+            }
+          ],
+          "rewards": [
+            "Blood-Drawn Runes"
+          ]
+        },
+        {
+          "name": "Berserker Test of Fools Errand",
+          "quest_giver": "Stragen The Hewer",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Jester's Mask",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            },
+            {
+              "name": "Efreeti Great Staff",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Eye of Veeshan / Noble Dojorn",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Cudgel of the Fool"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleric",
+      "quest_npc": "Josin Faithbringer",
+      "source": "https://eqlwiki.com/Cleric_Plane_of_Sky_Tests",
+      "source_page_id": 15113,
+      "source_revision": 30275,
+      "quests": [
+        {
+          "name": "Cleric Test of Courage",
+          "quest_giver": "Josin Faithbringer",
+          "requirements": [
+            {
+              "name": "Wind Rune Lena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silver Hoop",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Truewind Earring"
+          ]
+        },
+        {
+          "name": "Cleric Test of Skill",
+          "quest_giver": "Josin Faithbringer",
+          "requirements": [
+            {
+              "name": "Wind Rune Meda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Small Shield",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Aegis of the Wind"
+          ]
+        },
+        {
+          "name": "Cleric Test of Protection",
+          "quest_giver": "Josin Faithbringer",
+          "requirements": [
+            {
+              "name": "Wind Rune Caza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Shiny Pauldrons",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Pauldrons of Piety"
+          ]
+        },
+        {
+          "name": "Cleric Test of Resolution",
+          "quest_giver": "Josin Faithbringer",
+          "requirements": [
+            {
+              "name": "Wind Rune Neza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silvered Spiroc Necklace",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Necklace of Resolution"
+          ]
+        },
+        {
+          "name": "Cleric Test of Theurgy",
+          "quest_giver": "Josin Faithbringer",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Djinni Aura",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Efreeti Mace",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Theurgist's Star"
+          ]
+        },
+        {
+          "name": "Cleric Test of The Weak",
+          "quest_giver": "Josin Faithbringer",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Mithril Bands",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti Standard",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Baton of the Sky"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Druid",
+      "quest_npc": "Strandar Pinemist",
+      "source": "https://eqlwiki.com/Druid_Plane_of_Sky_Tests",
+      "source_page_id": 15114,
+      "source_revision": 30277,
+      "quests": [
+        {
+          "name": "Druid Test of Wolf",
+          "quest_giver": "Strandar Pinemist",
+          "requirements": [
+            {
+              "name": "Wind Rune Meda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Worn Leather Mask",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Drake-Hide Mask"
+          ]
+        },
+        {
+          "name": "Druid Test of Bear",
+          "quest_giver": "Strandar Pinemist",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Mantle of Woven Grass",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Nature Walker's Mantle"
+          ]
+        },
+        {
+          "name": "Druid Test of Tree",
+          "quest_giver": "Strandar Pinemist",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Spiroc Battle Staff",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            },
+            {
+              "name": "Efreeti Statuette",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "an essence harvester / an essence tamer",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Shillelagh"
+          ]
+        },
+        {
+          "name": "Druid Test of The Bee",
+          "quest_giver": "Strandar Pinemist",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Divine Honeycomb",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Honeycomb Belt"
+          ]
+        },
+        {
+          "name": "Druid Test of Eagle",
+          "quest_giver": "Strandar Pinemist",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Ethereal Ruby",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Spiroc Elder's Totem",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Spiroc Banisher Focus"
+          ]
+        },
+        {
+          "name": "Druid Test of Nature",
+          "quest_giver": "Strandar Pinemist",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Storm Sky Opal",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti Scimitar",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Espri"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Enchanter",
+      "quest_npc": "Enchanter Jolas",
+      "source": "https://eqlwiki.com/Enchanter_Plane_of_Sky_Tests",
+      "source_page_id": 15115,
+      "source_revision": 151372,
+      "quests": [
+        {
+          "name": "Enchanter Test of Illusion",
+          "quest_giver": "Enchanter Jolas",
+          "requirements": [
+            {
+              "name": "Wind Rune Meda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Finely Woven Cloth Cord",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Sphinx Hair Cord"
+          ]
+        },
+        {
+          "name": "Enchanter Test of Metamorphism",
+          "quest_giver": "Enchanter Jolas",
+          "requirements": [
+            {
+              "name": "Wind Rune Ozah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Light Cloth Mantle",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Wind Walker's Mantle"
+          ]
+        },
+        {
+          "name": "Enchanter Test of Deception",
+          "quest_giver": "Enchanter Jolas",
+          "requirements": [
+            {
+              "name": "Wind Rune Beza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silken Mask",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Ivory Mask"
+          ]
+        },
+        {
+          "name": "Enchanter Test of Disillusion",
+          "quest_giver": "Enchanter Jolas",
+          "requirements": [
+            {
+              "name": "Wind Rune Caza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Adamantium Earring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Earring of Displacement"
+          ]
+        },
+        {
+          "name": "Enchanter Test of Memorization",
+          "quest_giver": "Enchanter Jolas",
+          "requirements": [
+            {
+              "name": "Wind Rune Fana",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Glowing Necklace",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Necklace of Whispering Winds"
+          ]
+        },
+        {
+          "name": "Enchanter Test of Incapacitation",
+          "quest_giver": "Enchanter Jolas",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Large Sky Sapphire",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti Wind Staff",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / The Hand of Veeshan",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Rod of the Protecting Winds"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Magician",
+      "quest_npc": "Magi Frinon",
+      "source": "https://eqlwiki.com/Magician_Plane_of_Sky_Tests",
+      "source_page_id": 15126,
+      "source_revision": 124794,
+      "quests": [
+        {
+          "name": "Magician Test of Clarification",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Lena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Feathered Cape",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Bracelet of Clarification"
+          ]
+        },
+        {
+          "name": "Magician Test of Empowerment",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Neza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Ceramic Mask",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Mask of Empowerment"
+          ]
+        },
+        {
+          "name": "Magician Test of Shielding",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Golden Coffer",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Gold White Pendant"
+          ]
+        },
+        {
+          "name": "Magician Test of Summoning",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Large Diamond",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Drake-Hide Amice"
+          ]
+        },
+        {
+          "name": "Magician Test of Interpretation",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Golden Efreeti Ring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Duennan Shielding Ring"
+          ]
+        },
+        {
+          "name": "Magician Test of Gesticulation",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Jaka",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Hazy Opal",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti Magi Staff",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Staff of The Magister"
+          ]
+        },
+        {
+          "name": "Magician Test of Displacement",
+          "quest_giver": "Magi Frinon",
+          "requirements": [
+            {
+              "name": "Wind Rune Heda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Crown Of Elemental Mastery",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Island trash",
+              "source_hint": "(7-Trash)"
+            },
+            {
+              "name": "Large Opal",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Djinni Stave",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Staff of Elemental Mastery: Air"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Monk",
+      "quest_npc": "Holwin",
+      "source": "https://eqlwiki.com/Monk_Plane_of_Sky_Tests",
+      "source_page_id": 15116,
+      "source_revision": 156336,
+      "quests": [
+        {
+          "name": "Monk Test of Strength",
+          "quest_giver": "Holwin",
+          "requirements": [
+            {
+              "name": "Wind Rune Caza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silken Strands",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Back Straps of Mastery"
+          ]
+        },
+        {
+          "name": "Monk Test of Sight",
+          "quest_giver": "Holwin",
+          "requirements": [
+            {
+              "name": "Wind Rune Geza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Cracked Leather Eyepatch",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Ton Po's Eye Patch"
+          ]
+        },
+        {
+          "name": "Monk Test of Speed",
+          "quest_giver": "Holwin",
+          "requirements": [
+            {
+              "name": "Wind Rune Jaka",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Dove Slippers",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Sandals of Alacrity"
+          ]
+        },
+        {
+          "name": "Monk Test of Tears",
+          "quest_giver": "Holwin",
+          "requirements": [
+            {
+              "name": "Wind Rune Beza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silken Wrap",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Ton Po's Shoulder Wraps"
+          ]
+        },
+        {
+          "name": "Monk Test of Fists",
+          "quest_giver": "Holwin",
+          "requirements": [
+            {
+              "name": "Wind Rune Neza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Nebulous Sapphire",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Brass Knuckles",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air / The Hand of Veeshan",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Wu's Fist of Mastery"
+          ]
+        },
+        {
+          "name": "Monk Test of Tranquility",
+          "quest_giver": "Holwin",
+          "requirements": [
+            {
+              "name": "Wind Rune Lena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Tear of Quellious",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            }
+          ],
+          "rewards": [
+            "Golden Sash of Tranquility"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Necromancer",
+      "quest_npc": "Drakis Bloodcaster",
+      "source": "https://eqlwiki.com/Necromancer_Plane_of_Sky_Tests",
+      "source_page_id": 15117,
+      "source_revision": 151298,
+      "quests": [
+        {
+          "name": "Necromancer Test of Flight",
+          "quest_giver": "Drakis Bloodcaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Lena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Griffon's Beak",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Bloody Griffon-Hide Wrist Guard"
+          ]
+        },
+        {
+          "name": "Necromancer Test of Power",
+          "quest_giver": "Drakis Bloodcaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Neza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Black Silk Cape",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Cloak of Spiroc Feathers"
+          ]
+        },
+        {
+          "name": "Necromancer Test of Mind",
+          "quest_giver": "Drakis Bloodcaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Ozah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Fine Cloth Raiment",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Bloodsoaked Raiment"
+          ]
+        },
+        {
+          "name": "Necromancer Test of Heart",
+          "quest_giver": "Drakis Bloodcaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Pulsating Ruby",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Sphinx Heart Amulet"
+          ]
+        },
+        {
+          "name": "Necromancer Test of Finger",
+          "quest_giver": "Drakis Bloodcaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Caza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Ring of Veeshan",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Band of Wailing Winds"
+          ]
+        },
+        {
+          "name": "Necromancer Test of Hands",
+          "quest_giver": "Drakis Bloodcaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Fana",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Gorgon Head",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            },
+            {
+              "name": "Efreeti Great Staff",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Eye of Veeshan / Noble Dojorn",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Gorgon Head Staff"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Paladin",
+      "quest_npc": "Dason Goldblade",
+      "source": "https://eqlwiki.com/Paladin_Plane_of_Sky_Tests",
+      "source_page_id": 15121,
+      "source_revision": 30291,
+      "quests": [
+        {
+          "name": "Paladin Test of Spirit",
+          "quest_giver": "Dason Goldblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Lena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Ivory Sky Diamond",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Girdle of Faith"
+          ]
+        },
+        {
+          "name": "Paladin Test of Sacrifice",
+          "quest_giver": "Dason Goldblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Ozah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Bixie Sword Blade",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Aldryn, Blade of the Ocean"
+          ]
+        },
+        {
+          "name": "Paladin Test of Love",
+          "quest_giver": "Dason Goldblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Geza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Golden Hilt",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "drops_from": "a greater sphinx / a heartsbane drake / an undine spirit",
+              "source_hint": "EQL Wiki item page"
+            },
+            {
+              "name": "Sphinx Claw",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Thelvorn, Blade of Light"
+          ]
+        },
+        {
+          "name": "Paladin Test of Compassion",
+          "quest_giver": "Dason Goldblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Large Sky Diamond",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti Zweihander",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Truvinan"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ranger",
+      "quest_npc": "the Ranger Spirit",
+      "source": "https://eqlwiki.com/Ranger_Plane_of_Sky_Tests",
+      "source_page_id": 15118,
+      "source_revision": 30285,
+      "quests": [
+        {
+          "name": "Ranger Test of Body",
+          "quest_giver": "the Ranger Spirit",
+          "requirements": [
+            {
+              "name": "Wind Rune Meda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Griffon Talon",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Griffon Talon Necklace"
+          ]
+        },
+        {
+          "name": "Ranger Test of Defense",
+          "quest_giver": "the Ranger Spirit",
+          "requirements": [
+            {
+              "name": "Wind Rune Neza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Fine Velvet Cloak",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Dark Cloak of the Sky"
+          ]
+        },
+        {
+          "name": "Ranger Test of The Earth",
+          "quest_giver": "the Ranger Spirit",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Spiroc Earth Totem",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Earthshaker's Mantle"
+          ]
+        },
+        {
+          "name": "Ranger Test of Thunder",
+          "quest_giver": "the Ranger Spirit",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "White Gold Earring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Thunderforged Earring"
+          ]
+        },
+        {
+          "name": "Ranger Test of Blade",
+          "quest_giver": "the Ranger Spirit",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Circlet of Brambles",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Efreeti Long Sword",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Arydryidriyorn"
+          ]
+        },
+        {
+          "name": "Ranger Test of Ranged Attack",
+          "quest_giver": "the Ranger Spirit",
+          "requirements": [
+            {
+              "name": "Wind Rune Heda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Shimmering Pearl",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti War Bow",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air / The Hand of Veeshan",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Windstriker"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rogue",
+      "quest_npc": "Thalik Silenthand",
+      "source": "https://eqlwiki.com/Rogue_Plane_of_Sky_Tests",
+      "source_page_id": 15119,
+      "source_revision": 30287,
+      "quests": [
+        {
+          "name": "Rogue Test of Thievery",
+          "quest_giver": "Thalik Silenthand",
+          "requirements": [
+            {
+              "name": "Wind Rune Ozah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Inlaid Choker",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Wispy Choker of Vigor"
+          ]
+        },
+        {
+          "name": "Rogue Test of Trickery",
+          "quest_giver": "Thalik Silenthand",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Sphinxian Circlet",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Renard's Belt of Quickness"
+          ]
+        },
+        {
+          "name": "Rogue Test of Silence",
+          "quest_giver": "Thalik Silenthand",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Spiroc Sky Totem",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Griffon Wing Spauldors"
+          ]
+        },
+        {
+          "name": "Rogue Test of Cunning",
+          "quest_giver": "Thalik Silenthand",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Jester's Mask",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Crystal Mask"
+          ]
+        },
+        {
+          "name": "Rogue Test of Stealth",
+          "quest_giver": "Thalik Silenthand",
+          "requirements": [
+            {
+              "name": "Wind Rune Geza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Fine Wool Cloak",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Scintillating Bracer of Protection"
+          ]
+        },
+        {
+          "name": "Rogue Test of Deception",
+          "quest_giver": "Thalik Silenthand",
+          "requirements": [
+            {
+              "name": "Wind Rune Jaka",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Bixie Stinger",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            },
+            {
+              "name": "Bloodsky Sapphire",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            }
+          ],
+          "rewards": [
+            "Thornstinger"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shadow Knight",
+      "quest_npc": "Sarkis Ebonblade",
+      "source": "https://eqlwiki.com/Shadow_Knight_Plane_of_Sky_Tests",
+      "source_page_id": 15123,
+      "source_revision": 30295,
+      "quests": [
+        {
+          "name": "Shadow Knight Test of Bash",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Ozah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Finely Crafted Amulet",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Amulet of the Sphinx Eye"
+          ]
+        },
+        {
+          "name": "Shadow Knight Test of Smash",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Beza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Silvery Ring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Crimson Ring of the Djinni"
+          ]
+        },
+        {
+          "name": "Shadow Knight Test of Slash",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Finely Woven Cloth Belt",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Pegasus-Hide Belt"
+          ]
+        },
+        {
+          "name": "Shadow Knight Test of Disempowerment",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Fana",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Rusted Pauldrons",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            }
+          ],
+          "rewards": [
+            "Blood Sky Face Plate"
+          ]
+        },
+        {
+          "name": "Shadow Knight Test of Envenoming",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Heda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Efreeti War Shield",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Obtenebrate Mithril Guard"
+          ]
+        },
+        {
+          "name": "Shadow Knight Test of Raising of the Dead",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Sphinxian Ring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Fae Pauldrons",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            }
+          ],
+          "rewards": [
+            "Pearlescent Pauldrons"
+          ]
+        },
+        {
+          "name": "Shadow Knight Test of Necropotence",
+          "quest_giver": "Sarkis Ebonblade",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Blood Sky Ruby",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti War Axe",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Khyldorn the Blood Drinker"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shaman",
+      "quest_npc": "Medicine Man Veetra",
+      "source": "https://eqlwiki.com/Shaman_Plane_of_Sky_Tests",
+      "source_page_id": 15122,
+      "source_revision": 30293,
+      "quests": [
+        {
+          "name": "Shaman Test of Might",
+          "quest_giver": "Medicine Man Veetra",
+          "requirements": [
+            {
+              "name": "Wind Rune Meda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Leather Cord",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Amulet of the Fang"
+          ]
+        },
+        {
+          "name": "Shaman Test of Health",
+          "quest_giver": "Medicine Man Veetra",
+          "requirements": [
+            {
+              "name": "Wind Rune Kala",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Ceremonial Belt",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Bracelet of the Spirits"
+          ]
+        },
+        {
+          "name": "Shaman Test of Sight",
+          "quest_giver": "Medicine Man Veetra",
+          "requirements": [
+            {
+              "name": "Wind Rune Beza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Light Damask Mantle",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Fairy-Hide Mantle"
+          ]
+        },
+        {
+          "name": "Shaman Test of Shrink",
+          "quest_giver": "Medicine Man Veetra",
+          "requirements": [
+            {
+              "name": "Wind Rune Ena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Corrosive Venom",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            },
+            {
+              "name": "Efreeti War Club",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Warhammer of the Wind"
+          ]
+        },
+        {
+          "name": "Shaman Test of Snake",
+          "quest_giver": "Medicine Man Veetra",
+          "requirements": [
+            {
+              "name": "Wind Rune Heda",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Bixie Essence",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "drops_from": "Bazzzazzt / Bizazzzt / Bzzzt",
+              "source_hint": "EQL Wiki item page"
+            },
+            {
+              "name": "Spiritualist`s Ring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Vermilion Sky Ring"
+          ]
+        },
+        {
+          "name": "Shaman Test of The Witch Doctor",
+          "quest_giver": "Medicine Man Veetra",
+          "requirements": [
+            {
+              "name": "Wind Rune Geza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Symbol of Veeshan",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti War Maul",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Garduk"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Warrior",
+      "quest_npc": "Torgon Blademaster",
+      "source": "https://eqlwiki.com/Warrior_Plane_of_Sky_Tests",
+      "source_page_id": 15124,
+      "source_revision": 30297,
+      "quests": [
+        {
+          "name": "Warrior Test of Skill",
+          "quest_giver": "Torgon Blademaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Neza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Azure Ring",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Azure Ruby Ring"
+          ]
+        },
+        {
+          "name": "Warrior Test of Strength",
+          "quest_giver": "Torgon Blademaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Azia",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Stone Amulet",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Runed Wind Amulet"
+          ]
+        },
+        {
+          "name": "Warrior Test of Force",
+          "quest_giver": "Torgon Blademaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Beza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Spiroc Air Totem",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Pauldrons of the Blue Sky"
+          ]
+        },
+        {
+          "name": "Warrior Test of Think",
+          "quest_giver": "Torgon Blademaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Fana",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Wind Tablet",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            },
+            {
+              "name": "Efreeti Belt",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / The Hand of Veeshan",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Belt of the Four Winds"
+          ]
+        },
+        {
+          "name": "Warrior Test of Smash",
+          "quest_giver": "Torgon Blademaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Jaka",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Djinni War Blade",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            },
+            {
+              "name": "Gem of Invigoration",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Island trash",
+              "source_hint": "(7-Trash)"
+            }
+          ],
+          "rewards": [
+            "Dagas"
+          ]
+        },
+        {
+          "name": "Warrior Test of Bash",
+          "quest_giver": "Torgon Blademaster",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Ethereal Emerald",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti Battle Axe",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Fangol"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wizard",
+      "quest_npc": "Wizard Schrock",
+      "source": "https://eqlwiki.com/Wizard_Plane_of_Sky_Tests",
+      "source_page_id": 15125,
+      "source_revision": 30299,
+      "quests": [
+        {
+          "name": "Wizard Test of Concentration",
+          "quest_giver": "Wizard Schrock",
+          "requirements": [
+            {
+              "name": "Wind Rune Dena",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Grey Damask Cloak",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 3,
+              "drops_from": "Gorgalosk",
+              "source_hint": "(3-Gorga)"
+            }
+          ],
+          "rewards": [
+            "Augmentor's Mask"
+          ]
+        },
+        {
+          "name": "Wizard Test of Focus",
+          "quest_giver": "Wizard Schrock",
+          "requirements": [
+            {
+              "name": "Wind Rune Fana",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Woven Skull Cap",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 4,
+              "drops_from": "Keeper of Souls",
+              "source_hint": "(4-KoS)"
+            }
+          ],
+          "rewards": [
+            "Al`Kabor's Cap of Binding"
+          ]
+        },
+        {
+          "name": "Wizard Test of Meditation",
+          "quest_giver": "Wizard Schrock",
+          "requirements": [
+            {
+              "name": "Wind Rune Geza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "High Quality Raiment",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 5,
+              "drops_from": "The Spiroc Lord",
+              "source_hint": "(5-SL)"
+            }
+          ],
+          "rewards": [
+            "Raiment of Thunder"
+          ]
+        },
+        {
+          "name": "Wizard Test of Conception",
+          "quest_giver": "Wizard Schrock",
+          "requirements": [
+            {
+              "name": "Wind Rune Izah",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Box of Winds",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 6,
+              "drops_from": "Bazzt Zzzt",
+              "source_hint": "(6-BZ)"
+            },
+            {
+              "name": "Efreeti Statuette",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "an essence harvester / an essence tamer",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Solidate Mithril Ring"
+          ]
+        },
+        {
+          "name": "Wizard Test of Visualization",
+          "quest_giver": "Wizard Schrock",
+          "requirements": [
+            {
+              "name": "Wind Rune Jaka",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Amethyst Amulet",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 7,
+              "drops_from": "Sister of the Spire",
+              "source_hint": "(7-SotS)"
+            }
+          ],
+          "rewards": [
+            "Amulet of the Void"
+          ]
+        },
+        {
+          "name": "Wizard Test of Preparation",
+          "quest_giver": "Wizard Schrock",
+          "requirements": [
+            {
+              "name": "Wind Rune Caza",
+              "kind": "rune",
+              "quantity": 1
+            },
+            {
+              "name": "Large Sky Lapis",
+              "kind": "item",
+              "quantity": 1,
+              "no_drop": true,
+              "island": 8,
+              "drops_from": "Eye of Veeshan",
+              "source_hint": "(8-EoV)"
+            },
+            {
+              "name": "Efreeti War Staff",
+              "kind": "item",
+              "quantity": 1,
+              "drops_from": "The Hand of Veeshan / Noble Dojorn / Overseer of Air",
+              "source_hint": "EQL Wiki item page"
+            }
+          ],
+          "rewards": [
+            "Nargon's Staff"
+          ]
+        }
+      ]
+    }
+  ]
+}

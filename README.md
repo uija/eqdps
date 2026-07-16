@@ -51,14 +51,19 @@ From a local checkout:
 go run . /path/to/eqlog_character_server.txt
 ```
 
-By default, live mode starts at the current end of the log file and only parses
-new lines written after startup.
+By default, combat live mode starts at the current end of the log file and only
+parses new combat lines written after startup. Once Plane of Sky tracking is
+enabled, its character state resumes from its saved logfile offset and catches
+up missed loot and turn-ins before following live lines. A backlog larger than
+5 MiB opens the TUI immediately and uses the shared progress overlay; `Esc`
+cancels that catch-up and exits with a valid saved checkpoint.
 
 ## Hotkeys
 
 | Key | Action |
 | --- | --- |
 | `o` | Open history menu, including a full-log replay |
+| `p` | Open the Plane of Sky quest tracker |
 | `/` | Filter the displayed fights by mob name |
 | `Enter` | Expand/collapse a mob, combatant, or detail category |
 | `a` | Fully expand or collapse the selected subtree |
@@ -97,8 +102,10 @@ eqdps --text --back=30 /path/to/log.txt
 
 ## Session XP Rate
 
-The status bar shows progress in the current level, average XP/hour, and
-estimated time until the next level. Progress resets when a level-up is observed,
+The information bar shows progress in the current level, average XP/hour,
+estimated time until the next level, and the number of ready Plane of Sky
+turn-ins. Shortcuts occupy a separate line below it. Progress resets when a
+level-up is observed,
 and the paired XP award from the dinging kill is not counted in the new level.
 When the app starts partway through a level, progress is prefixed with `~`
 because the log does not reveal the character's starting XP bar. The ETA always
