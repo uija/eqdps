@@ -109,6 +109,19 @@ func TestParseRecordRejectsInvalidEnvelope(t *testing.T) {
 	}
 }
 
+func TestParseRecordAfterRejectsOldLineBeforeClassification(t *testing.T) {
+	cutoff := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
+	line := "[Thu Jul 09 09:20:17 2026] --You have looted a Wind Rune Fana from Protector of Sky's corpse.--"
+	if record, ok := ParseRecordAfter(line, cutoff); ok {
+		t.Fatalf("unexpected old record: %#v", record)
+	}
+
+	record, ok := ParseRecordAfter("[Thu Jul 16 10:47:28 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--", cutoff)
+	if !ok || record.Kind != RecordLoot || record.Loot.Item != "Wind Rune Caza" {
+		t.Fatalf("unexpected accepted record: %#v, ok=%v", record, ok)
+	}
+}
+
 func TestParseTime(t *testing.T) {
 	timestamp, ok := ParseTime("[Thu Jul 02 05:19:07 2026] Lobantik pierces a lizardman scout for 14 points of damage.")
 	if !ok {

@@ -101,8 +101,18 @@ type Record struct {
 }
 
 func ParseRecord(line string) (Record, bool) {
+	return ParseRecordAfter(line, time.Time{})
+}
+
+// ParseRecordAfter parses the timestamp envelope and only classifies messages
+// at or after cutoff. This keeps short history replays from running every old
+// log line through all combat and loot expressions.
+func ParseRecordAfter(line string, cutoff time.Time) (Record, bool) {
 	timestamp, message, ok := parseEnvelope(line)
 	if !ok {
+		return Record{}, false
+	}
+	if !cutoff.IsZero() && timestamp.Before(cutoff) {
 		return Record{}, false
 	}
 	record := Record{Time: timestamp}

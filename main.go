@@ -146,15 +146,12 @@ func replayLogWithProgress(logPath string, idleTimeout, back time.Duration, sinc
 		line := scanner.Text()
 		bytesRead += int64(len(scanner.Bytes()) + 1)
 		linesRead++
-		record, hasTimestamp := eqlog.ParseRecord(line)
+		record, hasTimestamp := eqlog.ParseRecordAfter(line, cutoff)
 		if hasTimestamp && record.Time.After(latest) {
 			latest = record.Time
 		}
 		if onProgress != nil && linesRead%5000 == 0 {
 			onProgress(replayProgress{Bytes: min(bytesRead, maxBytes), Total: maxBytes, Lines: linesRead})
-		}
-		if !cutoff.IsZero() && (!hasTimestamp || record.Time.Before(cutoff)) {
-			continue
 		}
 		if hasTimestamp {
 			processRecord(record, tracker, xpSession, idleTimeout)
