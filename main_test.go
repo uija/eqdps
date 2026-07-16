@@ -507,6 +507,9 @@ func TestFillTableExplainsEmptyHistory(t *testing.T) {
 	if got := table.GetCell(1, 0).Text; got != "No fights found in the selected history." {
 		t.Fatalf("unexpected empty-history message: %q", got)
 	}
+	if table.GetCell(1, 0).NotSelectable {
+		t.Fatal("empty-history row must remain selectable so table navigation has a valid target")
+	}
 	if len(actions) != 0 {
 		t.Fatalf("empty history exposed expandable rows: %#v", actions)
 	}

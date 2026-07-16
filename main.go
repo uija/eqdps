@@ -1511,7 +1511,7 @@ func fillTable(table *tview.Table, sections []combat.DisplaySection, expandedRow
 		table.SetCell(0, col, tableCell(header, col, layout).SetTextColor(tcell.ColorYellow).SetSelectable(false))
 	}
 	if len(sections) == 0 {
-		table.SetCell(1, 0, tableCell("No fights found in the selected history.", 0, layout).SetTextColor(tcell.ColorGray).SetSelectable(false))
+		table.SetCell(1, 0, tableCell("No fights found in the selected history.", 0, layout).SetTextColor(tcell.ColorGray).SetSelectable(true))
 		return expandableRows
 	}
 
