@@ -22,9 +22,10 @@ func TestTrackerOnlyAddsRetainedKnownLootInPlaneOfSky(t *testing.T) {
 	}
 
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:05 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--")
+	processTestLine(t, tracker, "[Thu Jul 16 10:40:05 2026] You looted a Wind Rune Caza from Protector of Sky's corpse and stored it in your Dragon Hoard")
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:06 2026] --You have looted a Not A Quest Item from Protector of Sky's corpse.--")
-	if got := tracker.Owned("Wind Rune Caza"); got != 1 {
-		t.Fatalf("retained rune count = %d, want 1", got)
+	if got := tracker.Owned("Wind Rune Caza"); got != 2 {
+		t.Fatalf("retained and directly stored rune count = %d, want 2", got)
 	}
 	if got := tracker.Owned("Not A Quest Item"); got != 0 {
 		t.Fatalf("unknown item count = %d, want 0", got)
