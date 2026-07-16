@@ -16,6 +16,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
 	"github.com/uija/eqdps/internal/eqlog"
+	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
 
@@ -42,6 +43,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(2)
 	}
+	skyDatabase, err := skyquest.LoadDatabase()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	skyTracker, err := skyquest.OpenPersistentTracker(logPath, skyDatabase)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 	if *textMode {
 		tracker, xpSession, err := replayLog(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit)
 		if err != nil {
@@ -52,7 +63,7 @@ func main() {
 		return
 	}
 
-	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit); err != nil {
+	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit, skyTracker); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -235,7 +246,7 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 	}
 }
 
-func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) error {
+func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, skyTracker *skyquest.PersistentTracker) error {
 	app := tview.NewApplication()
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
 	xpSession := xp.NewSession()
@@ -293,10 +304,15 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		})
 	}
 	go func() {
-		if err := followLog(logPath, done, func(line string) {
+		if err := followLog(logPath, skyTracker.Offset(), done, func(line string, endOffset int64) {
 			mu.Lock()
 			processLine(line, tracker, xpSession, idleTimeout)
 			mu.Unlock()
+			if err := skyTracker.ProcessLine(line, endOffset); err != nil {
+				errCh <- err
+				app.Stop()
+				return
+			}
 			app.QueueUpdateDraw(render)
 		}); err != nil {
 			errCh <- err
@@ -582,6 +598,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 
 	err := app.SetRoot(pages, true).SetFocus(table).Run()
 	stop()
+	if saveErr := skyTracker.Save(); saveErr != nil && err == nil {
+		err = saveErr
+	}
 	select {
 	case tailErr := <-errCh:
 		return tailErr
@@ -631,18 +650,19 @@ func processRecord(record eqlog.Record, tracker *combat.FightTracker, xpSession 
 	}
 }
 
-func followLog(logPath string, done <-chan struct{}, onLine func(string)) error {
+func followLog(logPath string, startOffset int64, done <-chan struct{}, onLine func(string, int64)) error {
 	file, err := os.Open(logPath)
 	if err != nil {
 		return fmt.Errorf("open log: %w", err)
 	}
 	defer file.Close()
 
-	if _, err := file.Seek(0, io.SeekEnd); err != nil {
-		return fmt.Errorf("seek log end: %w", err)
+	if _, err := file.Seek(startOffset, io.SeekStart); err != nil {
+		return fmt.Errorf("seek log checkpoint: %w", err)
 	}
 
 	reader := bufio.NewReader(file)
+	offset := startOffset
 	for {
 		select {
 		case <-done:
@@ -651,13 +671,20 @@ func followLog(logPath string, done <-chan struct{}, onLine func(string)) error 
 		}
 
 		line, err := reader.ReadString('\n')
-		if len(line) > 0 {
-			onLine(line)
+		if strings.HasSuffix(line, "\n") {
+			offset += int64(len(line))
+			onLine(line, offset)
 		}
 		if err == nil {
 			continue
 		}
 		if errors.Is(err, io.EOF) {
+			if len(line) > 0 {
+				if _, seekErr := file.Seek(offset, io.SeekStart); seekErr != nil {
+					return fmt.Errorf("rewind partial log line: %w", seekErr)
+				}
+				reader.Reset(file)
+			}
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}
