@@ -18,9 +18,6 @@ func TestEmbeddedDatabaseHasCompleteClassQuestTables(t *testing.T) {
 		}
 		quests += len(class.Quests)
 		for _, quest := range class.Quests {
-			if len(quest.Triggers) == 0 || quest.Triggers[0] == "" {
-				t.Errorf("quest %q has no trigger phrase", quest.Name)
-			}
 			if class.Name == "Necromancer" && quest.QuestGiver != "Drakis Bloodcaster" {
 				t.Errorf("Necromancer quest %q giver = %q, want Drakis Bloodcaster", quest.Name, quest.QuestGiver)
 			}

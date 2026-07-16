@@ -133,7 +133,7 @@ func TestOperationsShareDetailedProgressText(t *testing.T) {
 
 func TestFillSkyQuestTableShowsReadySummaryAndRequirementSources(t *testing.T) {
 	quest := skyquest.Quest{
-		Name: "Bard Test of Tone", QuestGiver: "Clarisa Spiritsong", Triggers: []string{"tone"}, Rewards: []string{"Mask of Song"},
+		Name: "Bard Test of Tone", QuestGiver: "Clarisa Spiritsong", Rewards: []string{"Mask of Song"},
 		Requirements: []skyquest.Requirement{
 			{Name: "Wind Rune Meda", Kind: "rune", Quantity: 1},
 			{Name: "Light Woolen Mask", Kind: "item", Quantity: 1, Island: 3, DropsFrom: "Gorgalosk"},
@@ -172,6 +172,12 @@ func TestSkyQuestDisplayNameRemovesOnlyMatchingClassPrefix(t *testing.T) {
 		if got := skyQuestDisplayName(test.className, test.questName); got != test.want {
 			t.Errorf("skyQuestDisplayName(%q, %q) = %q, want %q", test.className, test.questName, got, test.want)
 		}
+	}
+}
+
+func TestSkyQuestTriggerComesFromTestName(t *testing.T) {
+	if got := skyQuestTrigger("Shadow Knight Test of Raising of the Dead"); got != "raising of the dead" {
+		t.Fatalf("trigger = %q, want %q", got, "raising of the dead")
 	}
 }
 

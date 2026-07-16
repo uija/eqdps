@@ -11,9 +11,6 @@
         {
           "name": "Bard Test of Tone",
           "quest_giver": "Clarisa Spiritsong",
-          "trigger_phrases": [
-            "tone"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -37,9 +34,6 @@
         {
           "name": "Bard Test of Voice",
           "quest_giver": "Clarisa Spiritsong",
-          "trigger_phrases": [
-            "voice"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -63,9 +57,6 @@
         {
           "name": "Bard Test of Pitch",
           "quest_giver": "Clarisa Spiritsong",
-          "trigger_phrases": [
-            "pitch"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -89,9 +80,6 @@
         {
           "name": "Bard Test of Wind",
           "quest_giver": "Denise Songweaver",
-          "trigger_phrases": [
-            "wind"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Caza",
@@ -115,9 +103,6 @@
         {
           "name": "Bard Test of Brass",
           "quest_giver": "Denise Songweaver",
-          "trigger_phrases": [
-            "brass"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -146,9 +131,6 @@
         {
           "name": "Bard Test of Harmony",
           "quest_giver": "Denise Songweaver",
-          "trigger_phrases": [
-            "harmony"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -183,9 +165,6 @@
         {
           "name": "Beastlord Test of Aviak",
           "quest_giver": "Animist Kratho",
-          "trigger_phrases": [
-            "aviak"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Beza",
@@ -209,9 +188,6 @@
         {
           "name": "Beastlord Test of Azarack",
           "quest_giver": "Animist Kratho",
-          "trigger_phrases": [
-            "azarack"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -235,9 +211,6 @@
         {
           "name": "Beastlord Test of Claw",
           "quest_giver": "Animist Kratho",
-          "trigger_phrases": [
-            "claw"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -276,9 +249,6 @@
         {
           "name": "Beastlord Test of Harpy",
           "quest_giver": "Animist Kratho",
-          "trigger_phrases": [
-            "harpy"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -302,9 +272,6 @@
         {
           "name": "Beastlord Test of Wind",
           "quest_giver": "Animist Kratho",
-          "trigger_phrases": [
-            "wind"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Geza",
@@ -334,9 +301,6 @@
         {
           "name": "Berserker Test of Sharpness",
           "quest_giver": "Stragen The Hewer",
-          "trigger_phrases": [
-            "sharpness"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Jaka",
@@ -365,9 +329,6 @@
         {
           "name": "Berserker Test of Will",
           "quest_giver": "Stragen The Hewer",
-          "trigger_phrases": [
-            "will"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -391,9 +352,6 @@
         {
           "name": "Berserker Test of Ferocity",
           "quest_giver": "Stragen The Hewer",
-          "trigger_phrases": [
-            "ferocity"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ozah",
@@ -417,9 +375,6 @@
         {
           "name": "Berserker Test of Burden",
           "quest_giver": "Stragen The Hewer",
-          "trigger_phrases": [
-            "burden"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -443,9 +398,6 @@
         {
           "name": "Berserker Test of Blood",
           "quest_giver": "Stragen The Hewer",
-          "trigger_phrases": [
-            "blood"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Lena",
@@ -469,9 +421,6 @@
         {
           "name": "Berserker Test of Fools Errand",
           "quest_giver": "Stragen The Hewer",
-          "trigger_phrases": [
-            "fools errand"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -509,9 +458,6 @@
         {
           "name": "Cleric Test of Courage",
           "quest_giver": "Josin Faithbringer",
-          "trigger_phrases": [
-            "courage"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Lena",
@@ -535,9 +481,6 @@
         {
           "name": "Cleric Test of Skill",
           "quest_giver": "Josin Faithbringer",
-          "trigger_phrases": [
-            "skill"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -561,9 +504,6 @@
         {
           "name": "Cleric Test of Protection",
           "quest_giver": "Josin Faithbringer",
-          "trigger_phrases": [
-            "protection"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Caza",
@@ -587,9 +527,6 @@
         {
           "name": "Cleric Test of Resolution",
           "quest_giver": "Josin Faithbringer",
-          "trigger_phrases": [
-            "resolution"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -613,9 +550,6 @@
         {
           "name": "Cleric Test of Theurgy",
           "quest_giver": "Josin Faithbringer",
-          "trigger_phrases": [
-            "theurgy"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -644,9 +578,6 @@
         {
           "name": "Cleric Test of The Weak",
           "quest_giver": "Josin Faithbringer",
-          "trigger_phrases": [
-            "weak"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -684,9 +615,6 @@
         {
           "name": "Druid Test of Wolf",
           "quest_giver": "Strandar Pinemist",
-          "trigger_phrases": [
-            "wolf"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -710,9 +638,6 @@
         {
           "name": "Druid Test of Bear",
           "quest_giver": "Strandar Pinemist",
-          "trigger_phrases": [
-            "bear"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -736,9 +661,6 @@
         {
           "name": "Druid Test of Tree",
           "quest_giver": "Strandar Pinemist",
-          "trigger_phrases": [
-            "tree"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -767,9 +689,6 @@
         {
           "name": "Druid Test of The Bee",
           "quest_giver": "Strandar Pinemist",
-          "trigger_phrases": [
-            "bee"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -793,9 +712,6 @@
         {
           "name": "Druid Test of Eagle",
           "quest_giver": "Strandar Pinemist",
-          "trigger_phrases": [
-            "eagle"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -828,9 +744,6 @@
         {
           "name": "Druid Test of Nature",
           "quest_giver": "Strandar Pinemist",
-          "trigger_phrases": [
-            "nature"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -868,9 +781,6 @@
         {
           "name": "Enchanter Test of Illusion",
           "quest_giver": "Enchanter Jolas",
-          "trigger_phrases": [
-            "illusion"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -894,9 +804,6 @@
         {
           "name": "Enchanter Test of Metamorphism",
           "quest_giver": "Enchanter Jolas",
-          "trigger_phrases": [
-            "metamorphism"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ozah",
@@ -920,9 +827,6 @@
         {
           "name": "Enchanter Test of Deception",
           "quest_giver": "Enchanter Jolas",
-          "trigger_phrases": [
-            "deception"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Beza",
@@ -946,9 +850,6 @@
         {
           "name": "Enchanter Test of Disillusion",
           "quest_giver": "Enchanter Jolas",
-          "trigger_phrases": [
-            "disillusion"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Caza",
@@ -972,9 +873,6 @@
         {
           "name": "Enchanter Test of Memorization",
           "quest_giver": "Enchanter Jolas",
-          "trigger_phrases": [
-            "memorization"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -998,9 +896,6 @@
         {
           "name": "Enchanter Test of Incapacitation",
           "quest_giver": "Enchanter Jolas",
-          "trigger_phrases": [
-            "incapacitation"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -1038,9 +933,6 @@
         {
           "name": "Magician Test of Clarification",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "clarification"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Lena",
@@ -1064,9 +956,6 @@
         {
           "name": "Magician Test of Empowerment",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "empowerment"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -1090,9 +979,6 @@
         {
           "name": "Magician Test of Shielding",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "shielding"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -1116,9 +1002,6 @@
         {
           "name": "Magician Test of Summoning",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "summoning"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -1142,9 +1025,6 @@
         {
           "name": "Magician Test of Interpretation",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "interpretation"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -1168,9 +1048,6 @@
         {
           "name": "Magician Test of Gesticulation",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "gesticulation"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Jaka",
@@ -1199,9 +1076,6 @@
         {
           "name": "Magician Test of Displacement",
           "quest_giver": "Magi Frinon",
-          "trigger_phrases": [
-            "displacement"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -1252,9 +1126,6 @@
         {
           "name": "Monk Test of Strength",
           "quest_giver": "Holwin",
-          "trigger_phrases": [
-            "strength"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Caza",
@@ -1278,9 +1149,6 @@
         {
           "name": "Monk Test of Sight",
           "quest_giver": "Holwin",
-          "trigger_phrases": [
-            "sight"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Geza",
@@ -1304,9 +1172,6 @@
         {
           "name": "Monk Test of Speed",
           "quest_giver": "Holwin",
-          "trigger_phrases": [
-            "speed"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Jaka",
@@ -1330,9 +1195,6 @@
         {
           "name": "Monk Test of Tears",
           "quest_giver": "Holwin",
-          "trigger_phrases": [
-            "tears"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Beza",
@@ -1356,9 +1218,6 @@
         {
           "name": "Monk Test of Fists",
           "quest_giver": "Holwin",
-          "trigger_phrases": [
-            "fists"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -1387,9 +1246,6 @@
         {
           "name": "Monk Test of Tranquility",
           "quest_giver": "Holwin",
-          "trigger_phrases": [
-            "tranquility"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Lena",
@@ -1422,9 +1278,6 @@
         {
           "name": "Necromancer Test of Flight",
           "quest_giver": "Drakis Bloodcaster",
-          "trigger_phrases": [
-            "flight"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Lena",
@@ -1448,9 +1301,6 @@
         {
           "name": "Necromancer Test of Power",
           "quest_giver": "Drakis Bloodcaster",
-          "trigger_phrases": [
-            "power"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -1474,9 +1324,6 @@
         {
           "name": "Necromancer Test of Mind",
           "quest_giver": "Drakis Bloodcaster",
-          "trigger_phrases": [
-            "mind"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ozah",
@@ -1500,9 +1347,6 @@
         {
           "name": "Necromancer Test of Heart",
           "quest_giver": "Drakis Bloodcaster",
-          "trigger_phrases": [
-            "heart"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -1526,9 +1370,6 @@
         {
           "name": "Necromancer Test of Finger",
           "quest_giver": "Drakis Bloodcaster",
-          "trigger_phrases": [
-            "finger"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Caza",
@@ -1552,9 +1393,6 @@
         {
           "name": "Necromancer Test of Hands",
           "quest_giver": "Drakis Bloodcaster",
-          "trigger_phrases": [
-            "hands"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -1592,9 +1430,6 @@
         {
           "name": "Paladin Test of Spirit",
           "quest_giver": "Dason Goldblade",
-          "trigger_phrases": [
-            "spirit"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Lena",
@@ -1618,9 +1453,6 @@
         {
           "name": "Paladin Test of Sacrifice",
           "quest_giver": "Dason Goldblade",
-          "trigger_phrases": [
-            "sacrifice"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ozah",
@@ -1644,9 +1476,6 @@
         {
           "name": "Paladin Test of Love",
           "quest_giver": "Dason Goldblade",
-          "trigger_phrases": [
-            "love"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Geza",
@@ -1676,9 +1505,6 @@
         {
           "name": "Paladin Test of Compassion",
           "quest_giver": "Dason Goldblade",
-          "trigger_phrases": [
-            "compassion"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -1716,9 +1542,6 @@
         {
           "name": "Ranger Test of Body",
           "quest_giver": "the Ranger Spirit",
-          "trigger_phrases": [
-            "body"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -1742,9 +1565,6 @@
         {
           "name": "Ranger Test of Defense",
           "quest_giver": "the Ranger Spirit",
-          "trigger_phrases": [
-            "defense"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -1768,9 +1588,6 @@
         {
           "name": "Ranger Test of The Earth",
           "quest_giver": "the Ranger Spirit",
-          "trigger_phrases": [
-            "elemental earth"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -1794,9 +1611,6 @@
         {
           "name": "Ranger Test of Thunder",
           "quest_giver": "the Ranger Spirit",
-          "trigger_phrases": [
-            "thunder"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -1820,9 +1634,6 @@
         {
           "name": "Ranger Test of Blade",
           "quest_giver": "the Ranger Spirit",
-          "trigger_phrases": [
-            "blade"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -1851,9 +1662,6 @@
         {
           "name": "Ranger Test of Ranged Attack",
           "quest_giver": "the Ranger Spirit",
-          "trigger_phrases": [
-            "ranged attack"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -1891,9 +1699,6 @@
         {
           "name": "Rogue Test of Thievery",
           "quest_giver": "Thalik Silenthand",
-          "trigger_phrases": [
-            "thievery"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ozah",
@@ -1917,9 +1722,6 @@
         {
           "name": "Rogue Test of Trickery",
           "quest_giver": "Thalik Silenthand",
-          "trigger_phrases": [
-            "trickery"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -1943,9 +1745,6 @@
         {
           "name": "Rogue Test of Silence",
           "quest_giver": "Thalik Silenthand",
-          "trigger_phrases": [
-            "silence"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -1969,9 +1768,6 @@
         {
           "name": "Rogue Test of Cunning",
           "quest_giver": "Thalik Silenthand",
-          "trigger_phrases": [
-            "cunning"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -1995,9 +1791,6 @@
         {
           "name": "Rogue Test of Stealth",
           "quest_giver": "Thalik Silenthand",
-          "trigger_phrases": [
-            "stealth"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Geza",
@@ -2021,9 +1814,6 @@
         {
           "name": "Rogue Test of Deception",
           "quest_giver": "Thalik Silenthand",
-          "trigger_phrases": [
-            "deception"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Jaka",
@@ -2065,9 +1855,6 @@
         {
           "name": "Shadow Knight Test of Bash",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "bash"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ozah",
@@ -2091,9 +1878,6 @@
         {
           "name": "Shadow Knight Test of Smash",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "smash"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Beza",
@@ -2117,9 +1901,6 @@
         {
           "name": "Shadow Knight Test of Slash",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "slash"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -2143,9 +1924,6 @@
         {
           "name": "Shadow Knight Test of Disempowerment",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "disempowerment"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -2169,9 +1947,6 @@
         {
           "name": "Shadow Knight Test of Envenoming",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "envenoming"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -2191,9 +1966,6 @@
         {
           "name": "Shadow Knight Test of Raising of the Dead",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "raising of the dead"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -2226,9 +1998,6 @@
         {
           "name": "Shadow Knight Test of Necropotence",
           "quest_giver": "Sarkis Ebonblade",
-          "trigger_phrases": [
-            "necropotence"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -2266,9 +2035,6 @@
         {
           "name": "Shaman Test of Might",
           "quest_giver": "Medicine Man Veetra",
-          "trigger_phrases": [
-            "might"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Meda",
@@ -2292,9 +2058,6 @@
         {
           "name": "Shaman Test of Health",
           "quest_giver": "Medicine Man Veetra",
-          "trigger_phrases": [
-            "health"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Kala",
@@ -2318,9 +2081,6 @@
         {
           "name": "Shaman Test of Sight",
           "quest_giver": "Medicine Man Veetra",
-          "trigger_phrases": [
-            "sight"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Beza",
@@ -2344,9 +2104,6 @@
         {
           "name": "Shaman Test of Shrink",
           "quest_giver": "Medicine Man Veetra",
-          "trigger_phrases": [
-            "shrink"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Ena",
@@ -2375,9 +2132,6 @@
         {
           "name": "Shaman Test of Snake",
           "quest_giver": "Medicine Man Veetra",
-          "trigger_phrases": [
-            "snake"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Heda",
@@ -2407,9 +2161,6 @@
         {
           "name": "Shaman Test of The Witch Doctor",
           "quest_giver": "Medicine Man Veetra",
-          "trigger_phrases": [
-            "witch doctor"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Geza",
@@ -2447,9 +2198,6 @@
         {
           "name": "Warrior Test of Skill",
           "quest_giver": "Torgon Blademaster",
-          "trigger_phrases": [
-            "wish to be tested by Falorn"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Neza",
@@ -2473,9 +2221,6 @@
         {
           "name": "Warrior Test of Strength",
           "quest_giver": "Torgon Blademaster",
-          "trigger_phrases": [
-            "wish to be tested by Falorn"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Azia",
@@ -2499,9 +2244,6 @@
         {
           "name": "Warrior Test of Force",
           "quest_giver": "Torgon Blademaster",
-          "trigger_phrases": [
-            "wish to be tested by Falorn"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Beza",
@@ -2525,9 +2267,6 @@
         {
           "name": "Warrior Test of Think",
           "quest_giver": "Torgon Blademaster",
-          "trigger_phrases": [
-            "wish to be tested by Ogog"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -2556,9 +2295,6 @@
         {
           "name": "Warrior Test of Smash",
           "quest_giver": "Torgon Blademaster",
-          "trigger_phrases": [
-            "wish to be tested by Ogog"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Jaka",
@@ -2591,9 +2327,6 @@
         {
           "name": "Warrior Test of Bash",
           "quest_giver": "Torgon Blademaster",
-          "trigger_phrases": [
-            "wish to be tested by Ogog"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -2631,9 +2364,6 @@
         {
           "name": "Wizard Test of Concentration",
           "quest_giver": "Wizard Schrock",
-          "trigger_phrases": [
-            "wish to be tested by Neasin"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Dena",
@@ -2657,9 +2387,6 @@
         {
           "name": "Wizard Test of Focus",
           "quest_giver": "Wizard Schrock",
-          "trigger_phrases": [
-            "wish to be tested by Neasin"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Fana",
@@ -2683,9 +2410,6 @@
         {
           "name": "Wizard Test of Meditation",
           "quest_giver": "Wizard Schrock",
-          "trigger_phrases": [
-            "wish to be tested by Neasin"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Geza",
@@ -2709,9 +2433,6 @@
         {
           "name": "Wizard Test of Conception",
           "quest_giver": "Wizard Schrock",
-          "trigger_phrases": [
-            "wish to be tested by Abec"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Izah",
@@ -2740,9 +2461,6 @@
         {
           "name": "Wizard Test of Visualization",
           "quest_giver": "Wizard Schrock",
-          "trigger_phrases": [
-            "wish to be tested by Abec"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Jaka",
@@ -2766,9 +2484,6 @@
         {
           "name": "Wizard Test of Preparation",
           "quest_giver": "Wizard Schrock",
-          "trigger_phrases": [
-            "wish to be tested by Abec"
-          ],
           "requirements": [
             {
               "name": "Wind Rune Caza",

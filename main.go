@@ -1125,7 +1125,7 @@ func fillSkyQuestTable(table *tview.Table, progress []skyquest.QuestProgress, in
 				status = "READY"
 				color = tcell.ColorGreen
 			}
-			details := "Say: " + strings.Join(item.Quest.Triggers, " / ") + " — " + item.Quest.QuestGiver + " — Reward: " + strings.Join(item.Quest.Rewards, " / ")
+			details := "Say: " + skyQuestTrigger(item.Quest.Name) + " — " + item.Quest.QuestGiver + " — Reward: " + strings.Join(item.Quest.Rewards, " / ")
 			setSkyRow(table, row, "  "+skyQuestDisplayName(item.Class, item.Quest.Name), status, "", "", details, color, true)
 			row++
 			for _, requirement := range item.Quest.Requirements {
@@ -1165,6 +1165,14 @@ func questDetails(quest skyquest.Quest) string {
 
 func skyQuestDisplayName(className, questName string) string {
 	return strings.TrimPrefix(questName, className+" ")
+}
+
+func skyQuestTrigger(questName string) string {
+	const marker = "Test of "
+	if index := strings.Index(questName, marker); index >= 0 {
+		return strings.ToLower(strings.TrimSpace(questName[index+len(marker):]))
+	}
+	return strings.ToLower(strings.TrimSpace(questName))
 }
 
 func skyRequirementSource(requirement skyquest.Requirement) string {

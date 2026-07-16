@@ -37,7 +37,6 @@ type class struct {
 type quest struct {
 	Name         string        `json:"name"`
 	QuestGiver   string        `json:"quest_giver"`
-	Triggers     []string      `json:"trigger_phrases"`
 	Requirements []requirement `json:"requirements"`
 	Rewards      []string      `json:"rewards"`
 }
@@ -219,7 +218,6 @@ func extract(response apiResponse) (database, error) {
 			q := quest{
 				Name:         clean(cells[0]),
 				QuestGiver:   clean(cells[1]),
-				Triggers:     triggers(cells[2]),
 				Requirements: append(requirements(cells[3], "rune"), requirements(cells[4], "item")...),
 				Rewards:      rewards(strings.Join(cells[5:], "\n")),
 			}
@@ -274,29 +272,6 @@ func requirements(cell, kind string) []requirement {
 		result = append(result, item)
 	}
 	return result
-}
-
-func triggers(cell string) []string {
-	cell = strings.ReplaceAll(cell, "<br />", "\n")
-	cell = strings.ReplaceAll(cell, "<br/>", "\n")
-	var questPhrases, npcPhrases []string
-	for _, value := range strings.Split(cell, "\n") {
-		value = clean(value)
-		if phrase, found := strings.CutPrefix(value, "Quest:"); found {
-			if phrase = strings.TrimSpace(phrase); phrase != "" {
-				questPhrases = append(questPhrases, phrase)
-			}
-		}
-		if phrase, found := strings.CutPrefix(value, "NPC:"); found {
-			if phrase = strings.TrimSpace(phrase); phrase != "" {
-				npcPhrases = append(npcPhrases, phrase)
-			}
-		}
-	}
-	if len(questPhrases) > 0 {
-		return questPhrases
-	}
-	return npcPhrases
 }
 
 func rewards(cell string) []string {

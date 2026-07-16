@@ -30,7 +30,6 @@ type Class struct {
 type Quest struct {
 	Name         string        `json:"name"`
 	QuestGiver   string        `json:"quest_giver"`
-	Triggers     []string      `json:"trigger_phrases"`
 	Requirements []Requirement `json:"requirements"`
 	Rewards      []string      `json:"rewards"`
 }
