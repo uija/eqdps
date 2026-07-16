@@ -10,7 +10,6 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
-	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
 
@@ -114,17 +113,17 @@ func TestReplayReportsProgressAndSupportsCancellation(t *testing.T) {
 }
 
 func TestProgressTextShowsPercentageAndLineCount(t *testing.T) {
-	got := progressText(replayProgress{Bytes: 50, Total: 100, Lines: 12345})
-	for _, want := range []string{"50%", "12345 lines processed", "████"} {
+	got := operationProgressText("Loading combat history…", 512*1024, 1024*1024, 12345)
+	for _, want := range []string{"Loading combat history…", "50%", "512.0 KiB / 1.0 MiB", "12345 lines processed", "████"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected progress text %q to contain %q", got, want)
 		}
 	}
 }
 
-func TestSkyScanProgressTextShowsSizeAndLines(t *testing.T) {
-	got := skyScanProgressText(skyquest.ScanProgress{Bytes: 512 * 1024, Total: 1024 * 1024, Lines: 4321})
-	for _, want := range []string{"50%", "512.0 KiB", "1.0 MiB", "4321 lines"} {
+func TestOperationsShareDetailedProgressText(t *testing.T) {
+	got := operationProgressText("Scanning existing loot history…", 512*1024, 1024*1024, 4321)
+	for _, want := range []string{"Scanning existing loot history…", "50%", "512.0 KiB / 1.0 MiB", "4321 lines processed", "████"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("progress text %q does not contain %q", got, want)
 		}

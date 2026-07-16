@@ -399,22 +399,16 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		info, err := os.Stat(logPath)
 		if err != nil {
 			skyScanOpen = true
-			skyScanView = tview.NewTextView().SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
-			skyScanView.SetBorder(true).SetTitle(" Plane of Sky scan failed — Esc close ")
+			skyScanView = showProgressOverlay(app, pages, "sky-scan", " Plane of Sky scan failed — Esc close ")
 			skyScanView.SetText("[red]" + tview.Escape(err.Error()) + "[::-]")
-			pages.AddPage("sky-scan", centeredView(skyScanView, 64, 7), true, true)
-			app.SetFocus(skyScanView)
 			return
 		}
 
 		skyScanOpen = true
 		skyScanCancel = make(chan struct{})
 		cancel := skyScanCancel
-		skyScanView = tview.NewTextView().SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
-		skyScanView.SetBorder(true).SetTitle(" Initial Plane of Sky scan — Esc cancel ")
-		skyScanView.SetText(skyScanProgressText(skyquest.ScanProgress{Total: info.Size()}))
-		pages.AddPage("sky-scan", centeredView(skyScanView, 64, 7), true, true)
-		app.SetFocus(skyScanView)
+		skyScanView = showProgressOverlay(app, pages, "sky-scan", " Initial Plane of Sky scan — Esc cancel ")
+		skyScanView.SetText(operationProgressText("Scanning existing loot history…", 0, info.Size(), 0))
 
 		go func(snapshotSize int64) {
 			created, scanErr := skyquest.InitializePersistentTracker(
@@ -422,7 +416,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				func(progress skyquest.ScanProgress) {
 					app.QueueUpdateDraw(func() {
 						if skyScanOpen && skyScanView != nil {
-							skyScanView.SetText(skyScanProgressText(progress))
+							skyScanView.SetText(operationProgressText("Scanning existing loot history…", progress.Bytes, progress.Total, progress.Lines))
 						}
 					})
 				},
@@ -492,20 +486,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	showReplayModal := func() {
-		replayView = tview.NewTextView().
-			SetDynamicColors(true).
-			SetTextAlign(tview.AlignCenter)
-		replayView.SetBorder(true).SetTitle(" Loading history — Esc cancel ")
-		centered := tview.NewFlex().
-			SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(tview.NewFlex().
-				AddItem(nil, 0, 1, false).
-				AddItem(replayView, 58, 0, true).
-				AddItem(nil, 0, 1, false), 7, 0, true).
-			AddItem(nil, 0, 1, false)
-		pages.AddPage("replay", centered, true, true)
-		app.SetFocus(replayView)
+		replayView = showProgressOverlay(app, pages, "replay", " Loading history — Esc cancel ")
 	}
 
 	startReplay := func(duration time.Duration) {
@@ -521,7 +502,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		replayCancel = make(chan struct{})
 		cancel := replayCancel
 		showReplayModal()
-		replayView.SetText(progressText(replayProgress{Total: info.Size()}))
+		replayView.SetText(operationProgressText("Loading combat history…", 0, info.Size(), 0))
 
 		go func(snapshotSize int64) {
 			nextTracker, nextXP, replayErr := replayLogWithProgress(
@@ -529,7 +510,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				func(progress replayProgress) {
 					app.QueueUpdateDraw(func() {
 						if replayOpen && replayView != nil {
-							replayView.SetText(progressText(progress))
+							replayView.SetText(operationProgressText("Loading combat history…", progress.Bytes, progress.Total, progress.Lines))
 						}
 					})
 				},
@@ -975,24 +956,17 @@ func combatantTreeKeys(sectionKey string, player combat.PlayerStats) []string {
 	return keys
 }
 
-func progressText(progress replayProgress) string {
+func operationProgressText(message string, bytes, total int64, lines int) string {
 	const barWidth = 32
 	percentComplete := 0.0
-	if progress.Total > 0 {
-		percentComplete = float64(progress.Bytes) / float64(progress.Total)
+	if total > 0 {
+		percentComplete = float64(bytes) / float64(total)
 	}
 	percentComplete = min(max(percentComplete, 0), 1)
 	filled := int(percentComplete * barWidth)
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-	return fmt.Sprintf("\n[green]%s[::-]  %3.0f%%\n\n%d lines processed", bar, percentComplete*100, progress.Lines)
-}
-
-func skyScanProgressText(progress skyquest.ScanProgress) string {
-	percentage := 0
-	if progress.Total > 0 {
-		percentage = int(math.Round(float64(progress.Bytes) * 100 / float64(progress.Total)))
-	}
-	return fmt.Sprintf("\nScanning existing loot history…\n\n%d%%   %s / %s\n%d lines", percentage, formatByteSize(progress.Bytes), formatByteSize(progress.Total), progress.Lines)
+	return fmt.Sprintf("\n%s\n\n[green]%s[::-]  %3.0f%%\n\n%s / %s   %d lines processed",
+		message, bar, percentComplete*100, formatByteSize(bytes), formatByteSize(total), lines)
 }
 
 func formatByteSize(bytes int64) string {
@@ -1017,6 +991,14 @@ func centeredView(view tview.Primitive, width, height int) tview.Primitive {
 			AddItem(view, width, 0, true).
 			AddItem(nil, 0, 1, false), height, 0, true).
 		AddItem(nil, 0, 1, false)
+}
+
+func showProgressOverlay(app *tview.Application, pages *tview.Pages, page, title string) *tview.TextView {
+	view := tview.NewTextView().SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
+	view.SetBorder(true).SetTitle(title)
+	pages.AddPage(page, centeredView(view, 68, 9), true, true)
+	app.SetFocus(view)
+	return view
 }
 
 func fightTitle(fight *combat.Fight, current bool) string {
