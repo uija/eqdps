@@ -6,11 +6,14 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"gioui.org/app"
 	"gioui.org/font"
 	"gioui.org/io/pointer"
+	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -19,6 +22,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/ncruces/zenity"
 )
 
 var palette = struct {
@@ -42,8 +46,14 @@ type shell struct {
 	fightList  layout.List
 	workspace  int
 	activeMenu int
+	activeSub  int
 	treeClicks map[string]*widget.Clickable
 	expanded   map[string]bool
+	window     *app.Window
+	settings   guiSettings
+	currentLog string
+	statusText string
+	fileChosen chan fileChoice
 	menus      []menu
 	rail       []railItem
 }
@@ -59,6 +69,16 @@ type menuItem struct {
 	detail  string
 	click   widget.Clickable
 	enabled bool
+	action  string
+	back    time.Duration
+	path    string
+	items   []menuItem
+}
+
+type fileChoice struct {
+	path string
+	back time.Duration
+	err  error
 }
 
 type railItem struct {
@@ -142,7 +162,7 @@ func main() {
 }
 
 func run(window *app.Window) error {
-	ui := newShell()
+	ui := newShell(window)
 	var ops op.Ops
 	for {
 		switch event := window.Event().(type) {
@@ -156,14 +176,35 @@ func run(window *app.Window) error {
 	}
 }
 
-func newShell() *shell {
+func newShell(window *app.Window) *shell {
 	theme := material.NewTheme()
 	theme.Palette.Fg = palette.text
 	theme.Palette.Bg = palette.window
+	settings, settingsErr := loadSettings()
+	statusText := "No logfile selected"
+	currentLog := ""
+	if settingsErr != nil {
+		statusText = "Could not read saved GUI settings"
+	} else if settings.LastLogfile != "" {
+		if _, err := os.Stat(settings.LastLogfile); err == nil {
+			currentLog = settings.LastLogfile
+			statusText = "Reopened last logfile · live only"
+		} else {
+			statusText = "Last logfile is no longer available"
+		}
+	}
+	ranges := historyRangeItems("open")
+	recents := recentMenuItems(settings)
 	return &shell{
 		theme:      theme,
 		fightList:  layout.List{Axis: layout.Vertical},
 		activeMenu: -1,
+		activeSub:  -1,
+		window:     window,
+		settings:   settings,
+		currentLog: currentLog,
+		statusText: statusText,
+		fileChosen: make(chan fileChoice, 1),
 		treeClicks: make(map[string]*widget.Clickable),
 		expanded: map[string]bool{
 			"fight:0:You":              true,
@@ -171,8 +212,8 @@ func newShell() *shell {
 			"fight:0:You:detail:Procs": true,
 		},
 		menus: []menu{
-			{name: "File", items: []menuItem{{name: "Open logfile…", detail: "Choose an EverQuest log", enabled: true}, {name: "Recent logfiles", detail: "No recent files", enabled: false}, {name: "Exit", enabled: true}}},
-			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true}, {name: "History…", enabled: true}, {name: "Load last hour", enabled: true}, {name: "Filter…", enabled: true}}},
+			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
+			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true}}},
 			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true}, {name: "Plane of Sky", enabled: true}, {name: "DPS overlay", detail: "Not available in this preview", enabled: false}}},
 			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true}}},
 			{name: "Help", items: []menuItem{{name: "About eqdps", enabled: true}}},
@@ -193,16 +234,29 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 			)
 		}),
 		layout.Stacked(s.layoutOpenMenu),
+		layout.Stacked(s.layoutOpenSubmenu),
 	)
 }
 
 func (s *shell) update(gtx layout.Context) {
+	select {
+	case choice := <-s.fileChosen:
+		if choice.err == nil {
+			s.rememberChosenFile(choice)
+		} else if s.currentLog != "" {
+			s.statusText = filepath.Base(s.currentLog) + " · live only"
+		} else {
+			s.statusText = "No logfile selected"
+		}
+	default:
+	}
 	for index := range s.menus {
 		if s.menus[index].click.Clicked(gtx) {
 			if s.activeMenu == index {
 				s.activeMenu = -1
 			} else {
 				s.activeMenu = index
+				s.activeSub = -1
 			}
 		}
 	}
@@ -221,9 +275,90 @@ func (s *shell) update(gtx layout.Context) {
 		for index := range s.menus[s.activeMenu].items {
 			item := &s.menus[s.activeMenu].items[index]
 			if item.enabled && item.click.Clicked(gtx) {
-				s.activeMenu = -1
+				if len(item.items) > 0 {
+					s.activeSub = index
+				} else {
+					s.activateItem(*item)
+				}
 			}
 		}
+		if s.activeSub >= 0 {
+			for index := range s.menus[s.activeMenu].items[s.activeSub].items {
+				item := &s.menus[s.activeMenu].items[s.activeSub].items[index]
+				if item.enabled && item.click.Clicked(gtx) {
+					s.activateItem(*item)
+				}
+			}
+		}
+	}
+}
+
+func historyRangeItems(action string) []menuItem {
+	return []menuItem{
+		{name: "Live only", enabled: true, action: action},
+		{name: "Last 1 hour", enabled: true, action: action, back: time.Hour},
+		{name: "Last 4 hours", enabled: true, action: action, back: 4 * time.Hour},
+		{name: "Last 8 hours", enabled: true, action: action, back: 8 * time.Hour},
+		{name: "Full history", enabled: true, action: action, back: -time.Nanosecond},
+	}
+}
+
+func recentMenuItems(settings guiSettings) []menuItem {
+	items := make([]menuItem, 0, len(settings.RecentLogfiles))
+	for _, path := range settings.RecentLogfiles {
+		if _, err := os.Stat(path); err == nil {
+			items = append(items, menuItem{name: filepath.Base(path), detail: path, enabled: true, action: "recent", path: path})
+		}
+	}
+	return items
+}
+
+func (s *shell) activateItem(item menuItem) {
+	s.activeMenu, s.activeSub = -1, -1
+	switch item.action {
+	case "open":
+		s.statusText = "Choosing logfile…"
+		go func(back time.Duration) {
+			path, err := zenity.SelectFile(zenity.Title("Open EverQuest logfile"), zenity.FileFilters{{Name: "EverQuest logs", Patterns: []string{"eqlog_*.txt", "*.txt"}}})
+			s.fileChosen <- fileChoice{path: path, back: back, err: err}
+			s.window.Invalidate()
+		}(item.back)
+	case "recent":
+		s.rememberChosenFile(fileChoice{path: item.path})
+	case "reload":
+		s.statusText = historyStatus(item.back)
+	case "exit":
+		s.window.Perform(system.ActionClose)
+	}
+}
+
+func (s *shell) rememberChosenFile(choice fileChoice) {
+	s.currentLog = choice.path
+	s.settings.rememberLog(choice.path)
+	recents := recentMenuItems(s.settings)
+	s.menus[0].items[1].items = recents
+	s.menus[0].items[1].enabled = len(recents) > 0
+	if err := saveSettings(s.settings); err != nil {
+		s.statusText = "Log opened; settings could not be saved"
+	} else {
+		s.statusText = filepath.Base(choice.path) + " · " + historyStatus(choice.back)
+	}
+	// Enable history loading now that a current logfile exists.
+	s.menus[1].items[1].enabled = true
+}
+
+func historyStatus(back time.Duration) string {
+	switch back {
+	case 0:
+		return "live only"
+	case time.Hour:
+		return "last 1 hour"
+	case 4 * time.Hour:
+		return "last 4 hours"
+	case 8 * time.Hour:
+		return "last 8 hours"
+	default:
+		return "full history"
 	}
 }
 
@@ -454,7 +589,7 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 		return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, "Wyrmberg · rivervale", unit.Sp(15), palette.text, text.Start)
+					return label(gtx, s.theme, s.statusText, unit.Sp(15), palette.text, text.Start)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -492,6 +627,31 @@ func (s *shell) layoutOpenMenu(gtx layout.Context) layout.Dimensions {
 		index := index
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return menuControl(gtx, s.theme, &menu.items[index])
+		}))
+	}
+	return outline(gtx, palette.line, func(gtx layout.Context) layout.Dimensions {
+		fill(gtx, palette.panel)
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	})
+}
+
+func (s *shell) layoutOpenSubmenu(gtx layout.Context) layout.Dimensions {
+	if s.activeMenu < 0 || s.activeSub < 0 {
+		return layout.Dimensions{}
+	}
+	xOffsets := []int{12, 68, 151, 215, 278}
+	x := xOffsets[s.activeMenu] + 230
+	y := 38 + s.activeSub*42
+	offset := op.Offset(image.Pt(gtx.Dp(unit.Dp(x)), gtx.Dp(unit.Dp(y)))).Push(gtx.Ops)
+	defer offset.Pop()
+	items := s.menus[s.activeMenu].items[s.activeSub].items
+	gtx.Constraints.Min = image.Pt(gtx.Dp(unit.Dp(250)), gtx.Dp(unit.Dp(42*len(items)+2)))
+	gtx.Constraints.Max = gtx.Constraints.Min
+	children := make([]layout.FlexChild, 0, len(items))
+	for index := range items {
+		index := index
+		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return menuControl(gtx, s.theme, &items[index])
 		}))
 	}
 	return outline(gtx, palette.line, func(gtx layout.Context) layout.Dimensions {
@@ -548,9 +708,13 @@ func menuControl(gtx layout.Context, theme *material.Theme, item *menuItem) layo
 			foreground = palette.muted
 		}
 		return inset(unit.Dp(12), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			name := item.name
+			if len(item.items) > 0 {
+				name += "  ›"
+			}
 			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, theme, item.name, unit.Sp(16), foreground, text.Start)
+					return label(gtx, theme, name, unit.Sp(16), foreground, text.Start)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if item.detail == "" {
