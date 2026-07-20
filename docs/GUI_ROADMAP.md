@@ -5,7 +5,21 @@ existing TUI remains functional and keeps its independent dependency graph.
 Both frontends consume the shared parser and application packages from the
 root module.
 
+## Running the Current Preview
+
+From the repository root:
+
+```bash
+go run ./gui
+```
+
+The application-shell milestone currently uses fake combat and character data.
+It is for evaluating layout, navigation, density, colors, and interaction before
+the GUI is connected to a logfile.
+
 ## 1. Application Shell
+
+**Status:** initial preview available
 
 - Create the isolated Gio module and executable.
 - Establish the dark visual theme.

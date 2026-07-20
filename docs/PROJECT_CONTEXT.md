@@ -27,6 +27,8 @@ intentionally not duplicated under `docs/`.
 | `tui/main.go` | CLI, TUI construction, rendering, input handling, and presentation callbacks |
 | `tui/main_test.go` | UI layout and history-menu helper tests |
 | `tui/go.mod` | Terminal frontend module and tview/tcell dependency graph |
+| `gui/main.go` | Gio application-shell preview using fake combat data |
+| `gui/go.mod` | Graphical frontend module and Gio dependency graph |
 | `go.mod` | Shared parser and application-engine module with no UI dependencies |
 | `go.work` | Local workspace connecting the shared and TUI modules |
 | `internal/eqlog/parser.go` | Unified log records plus damage, cast, XP, aggro, and death parsing |
