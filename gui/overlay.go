@@ -2,15 +2,19 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"log"
 	"os"
 	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font"
+	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -18,13 +22,14 @@ import (
 )
 
 type combatOverlay struct {
-	window  *app.Window
-	theme   *material.Theme
-	updates chan overlayUpdate
-	closed  chan<- *combatOverlay
-	owner   *app.Window
-	list    widget.List
-	fights  []fakeFightSection
+	window      *app.Window
+	theme       *material.Theme
+	updates     chan overlayUpdate
+	closed      chan<- *combatOverlay
+	owner       *app.Window
+	list        widget.List
+	decorations widget.Decorations
+	fights      []fakeFightSection
 }
 
 type overlayUpdate struct {
@@ -178,11 +183,23 @@ func (o *combatOverlay) displayFight() *fakeFightSection {
 func (o *combatOverlay) layout(gtx layout.Context) layout.Dimensions {
 	fill(gtx, palette.window)
 	fight := o.displayFight()
-	if fight == nil {
-		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return label(gtx, o.theme, "Waiting for combat…", unit.Sp(18), palette.muted, text.Middle)
-		})
-	}
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			if fight == nil {
+				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return label(gtx, o.theme, "Waiting for combat…", unit.Sp(18), palette.muted, text.Middle)
+				})
+			}
+			return o.layoutFight(gtx, fight)
+		}),
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = gtx.Constraints.Max
+			return layout.NE.Layout(gtx, o.layoutDragHandle)
+		}),
+	)
+}
+
+func (o *combatOverlay) layoutFight(gtx layout.Context, fight *fakeFightSection) layout.Dimensions {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(42))
@@ -195,7 +212,9 @@ func (o *combatOverlay) layout(gtx layout.Context) layout.Dimensions {
 							return labelWeight(gtx, o.theme, fight.name, unit.Sp(18), palette.text, text.Start, font.SemiBold)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return label(gtx, o.theme, fight.duration, unit.Sp(16), palette.accent, text.End)
+							return (layout.Inset{Right: unit.Dp(40)}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return label(gtx, o.theme, fight.duration, unit.Sp(16), palette.accent, text.End)
+							})
 						}),
 					)
 				})
@@ -211,6 +230,26 @@ func (o *combatOverlay) layout(gtx layout.Context) layout.Dimensions {
 			})
 		}),
 	)
+}
+
+func (o *combatOverlay) layoutDragHandle(gtx layout.Context) layout.Dimensions {
+	return inset(unit.Dp(7), unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return o.decorations.LayoutMove(gtx, func(gtx layout.Context) layout.Dimensions {
+			pointer.CursorPointer.Add(gtx.Ops)
+			size := gtx.Dp(unit.Dp(28))
+			lineWidth := gtx.Dp(unit.Dp(16))
+			lineHeight := gtx.Dp(unit.Dp(2))
+			left := (size - lineWidth) / 2
+			for _, top := range []int{7, 13, 19} {
+				y := gtx.Dp(unit.Dp(top))
+				paint.FillShape(gtx.Ops, palette.text, clip.Rect{
+					Min: image.Pt(left, y),
+					Max: image.Pt(left+lineWidth, y+lineHeight),
+				}.Op())
+			}
+			return layout.Dimensions{Size: image.Pt(size, size)}
+		})
+	})
 }
 
 func (o *combatOverlay) layoutRow(gtx layout.Context, row fakeCombatant, header bool) layout.Dimensions {
