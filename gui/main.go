@@ -184,7 +184,7 @@ func (s *shell) layoutMenuBar(gtx layout.Context) layout.Dimensions {
 		}
 		children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return label(gtx, s.theme, "GUI SHELL PREVIEW", unit.Sp(11), palette.muted, text.End)
+				return label(gtx, s.theme, "GUI SHELL PREVIEW", unit.Sp(12), palette.muted, text.End)
 			})
 		}))
 		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
@@ -265,25 +265,27 @@ func (s *shell) layoutDamageMeter(gtx layout.Context) layout.Dimensions {
 }
 
 func (s *shell) layoutFightSummary(gtx layout.Context) layout.Dimensions {
-	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(44))
+	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(40))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	fill(gtx, palette.panel)
-	return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return label(gtx, s.theme, "6 combatants", unit.Sp(13), palette.text, text.Start)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return inset(unit.Dp(22), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, "13,388 total damage", unit.Sp(13), palette.muted, text.Start)
-				})
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, "CURRENT FIGHT", unit.Sp(11), palette.success, text.End)
-				})
-			}),
-		)
+	return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
+		return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return label(gtx, s.theme, "6 combatants", unit.Sp(14), palette.text, text.Start)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return inset(unit.Dp(22), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return label(gtx, s.theme, "13,388 total damage", unit.Sp(14), palette.muted, text.Start)
+					})
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return label(gtx, s.theme, "CURRENT FIGHT", unit.Sp(12), palette.success, text.End)
+					})
+				}),
+			)
+		})
 	})
 }
 
@@ -299,7 +301,7 @@ func (s *shell) layoutCombatRows(gtx layout.Context) layout.Dimensions {
 }
 
 func (s *shell) layoutCombatRow(gtx layout.Context, row fakeCombatant, header, alternate bool) layout.Dimensions {
-	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(42))
+	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(34))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	if alternate {
 		fill(gtx, palette.panel)
@@ -315,17 +317,19 @@ func (s *shell) layoutCombatRow(gtx layout.Context, row fakeCombatant, header, a
 	}
 	cell := func(value string, weight float32, align text.Alignment) layout.FlexChild {
 		return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
-			return labelWeight(gtx, s.theme, value, unit.Sp(12), nameColor, align, fontWeight)
+			return labelWeight(gtx, s.theme, value, unit.Sp(14), nameColor, align, fontWeight)
 		})
 	}
 	values := []string{row.name, formatCell(row.damage, "DAMAGE"), formatCell(row.dps, "DPS"), formatCell(row.sdps, "SDPS"), formatCell(row.hits, "HITS"), formatCell(row.crits, "CRITS"), row.active}
 	if header {
 		values = []string{"COMBATANT", "DAMAGE", "DPS", "SDPS", "HITS", "CRITS", "ACTIVE"}
 	}
-	return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-			cell(values[0], 3.8, text.Start), cell(values[1], 1.4, text.End), cell(values[2], 1, text.End), cell(values[3], 1, text.End), cell(values[4], 1, text.End), cell(values[5], 1, text.End), cell(values[6], 1.2, text.End),
-		)
+	return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
+		return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				cell(values[0], 3.8, text.Start), cell(values[1], 1.4, text.End), cell(values[2], 1, text.End), cell(values[3], 1, text.End), cell(values[4], 1, text.End), cell(values[5], 1, text.End), cell(values[6], 1.2, text.End),
+			)
+		})
 	})
 }
 
@@ -345,28 +349,30 @@ func (s *shell) layoutPlaceholder(gtx layout.Context, title, description string)
 }
 
 func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
-	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(32))
+	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(34))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	fill(gtx, palette.chrome)
-	return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return label(gtx, s.theme, "Wyrmberg · rivervale", unit.Sp(11), palette.text, text.Start)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, "XP ~42.1% · 18.4%/h", unit.Sp(11), palette.muted, text.Start)
-				})
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return label(gtx, s.theme, "PoS: 2 ready", unit.Sp(11), palette.accent, text.Start)
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, "●  LIVE", unit.Sp(11), palette.success, text.End)
-				})
-			}),
-		)
+	return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
+		return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return label(gtx, s.theme, "Wyrmberg · rivervale", unit.Sp(12), palette.text, text.Start)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return label(gtx, s.theme, "XP ~42.1% · 18.4%/h", unit.Sp(12), palette.muted, text.Start)
+					})
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return label(gtx, s.theme, "PoS: 2 ready", unit.Sp(12), palette.accent, text.Start)
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return label(gtx, s.theme, "●  LIVE", unit.Sp(12), palette.success, text.End)
+					})
+				}),
+			)
+		})
 	})
 }
 
@@ -403,7 +409,7 @@ func flatTextControl(gtx layout.Context, theme *material.Theme, click *widget.Cl
 			fill(gtx, palette.panelAlt)
 		}
 		return inset(unit.Dp(12), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return label(gtx, theme, value, unit.Sp(13), palette.text, text.Start)
+			return label(gtx, theme, value, unit.Sp(14), palette.text, text.Start)
 		})
 	})
 }
@@ -424,7 +430,7 @@ func railControl(gtx layout.Context, theme *material.Theme, click *widget.Clicka
 			if selected {
 				valueColor = palette.accent
 			}
-			return labelWeight(gtx, theme, item.short, unit.Sp(11), valueColor, text.Middle, font.SemiBold)
+			return labelWeight(gtx, theme, item.short, unit.Sp(12), valueColor, text.Middle, font.SemiBold)
 		})
 	})
 }
@@ -446,13 +452,13 @@ func menuControl(gtx layout.Context, theme *material.Theme, item *menuItem) layo
 		return inset(unit.Dp(12), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, theme, item.name, unit.Sp(12), foreground, text.Start)
+					return label(gtx, theme, item.name, unit.Sp(13), foreground, text.Start)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if item.detail == "" {
 						return layout.Dimensions{}
 					}
-					return label(gtx, theme, item.detail, unit.Sp(9), palette.muted, text.Start)
+					return label(gtx, theme, item.detail, unit.Sp(10), palette.muted, text.Start)
 				}),
 			)
 		})
@@ -498,4 +504,21 @@ func separator(gtx layout.Context) layout.Dimensions {
 func outline(gtx layout.Context, border color.NRGBA, content layout.Widget) layout.Dimensions {
 	paint.FillShape(gtx.Ops, border, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	return layout.UniformInset(unit.Dp(1)).Layout(gtx, content)
+}
+
+// centerContent lays out a naturally sized child inside an exact-height area.
+// Passing the area's minimum height directly to a label makes its glyphs hug
+// the top of the row instead of centering the label itself.
+func centerContent(gtx layout.Context, content layout.Widget) layout.Dimensions {
+	size := image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Min.Y)
+	macro := op.Record(gtx.Ops)
+	child := gtx
+	child.Constraints.Min = image.Point{}
+	child.Constraints.Max = size
+	dimensions := content(child)
+	call := macro.Stop()
+	offset := op.Offset(image.Pt(0, max(0, (size.Y-dimensions.Size.Y)/2))).Push(gtx.Ops)
+	call.Add(gtx.Ops)
+	offset.Pop()
+	return layout.Dimensions{Size: size}
 }
