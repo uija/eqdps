@@ -470,7 +470,7 @@ func (s *shell) layoutWaylandHelp(gtx layout.Context) layout.Dimensions {
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return label(gtx, s.theme, guidance, unit.Sp(15), palette.muted, text.Start)
+							return label(gtx, s.theme, guidance, unit.Sp(15), palette.text, text.Start)
 						})
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -479,7 +479,7 @@ func (s *shell) layoutWaylandHelp(gtx layout.Context) layout.Dimensions {
 								pointer.CursorPointer.Add(gtx.Ops)
 								fill(gtx, palette.panelAlt)
 								return layout.UniformInset(unit.Dp(10)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return labelWeight(gtx, s.theme, "Got it", unit.Sp(16), palette.text, text.Middle, font.SemiBold)
+									return labelWeight(gtx, s.theme, "Got it", unit.Sp(16), palette.accent, text.Middle, font.SemiBold)
 								})
 							})
 						})

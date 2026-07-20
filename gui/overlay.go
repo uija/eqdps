@@ -90,10 +90,6 @@ func (s *shell) showWaylandHelpOnce() bool {
 
 func (s *shell) showWaylandHelp() {
 	s.waylandHelp = true
-	if s.overlay != nil {
-		s.openAfterHelp = true
-		s.overlay.window.Perform(system.ActionClose)
-	}
 }
 
 func (s *shell) setOverlayVisible(visible bool) {
