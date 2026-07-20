@@ -14,8 +14,10 @@ import (
 )
 
 type combatUpdate struct {
-	fights []fakeFightSection
-	status string
+	fights   []fakeFightSection
+	status   string
+	progress *engine.ReplayProgress
+	loadDone bool
 }
 
 func (s *shell) loadLog(path string, back time.Duration) {
@@ -25,26 +27,36 @@ func (s *shell) loadLog(path string, back time.Duration) {
 	cancel := make(chan struct{})
 	s.logCancel = cancel
 	s.fights = nil
+	s.loading = back != 0
+	s.loadBytes, s.loadTotal, s.loadLines = 0, 0, 0
 	s.statusText = filepathBase(path) + " · loading " + historyStatus(back) + "…"
 	go func() {
 		info, err := os.Stat(path)
 		if err != nil {
-			s.sendCombatUpdate(combatUpdate{status: err.Error()})
+			s.sendCombatUpdate(combatUpdate{status: err.Error(), loadDone: true})
 			return
 		}
 		limit := info.Size()
+		if back != 0 {
+			progress := engine.ReplayProgress{Total: limit}
+			s.sendCombatUpdate(combatUpdate{progress: &progress})
+		}
 		tracker := combat.NewFightTracker()
 		xpSession := xp.NewSession()
 		if back != 0 {
-			tracker, xpSession, err = engine.ReplayWithProgress(path, combat.DefaultIdleTimeout, back, time.Time{}, combat.DefaultFightHistory, limit, nil, cancel)
+			tracker, xpSession, err = engine.ReplayWithProgress(path, combat.DefaultIdleTimeout, back, time.Time{}, combat.DefaultFightHistory, limit, func(progress engine.ReplayProgress) {
+				s.sendCombatUpdate(combatUpdate{progress: &progress})
+			}, cancel)
 			if err != nil {
 				if !errors.Is(err, engine.ErrReplayCancelled) {
-					s.sendCombatUpdate(combatUpdate{status: err.Error()})
+					s.sendCombatUpdate(combatUpdate{status: err.Error(), loadDone: true})
+				} else {
+					s.sendCombatUpdate(combatUpdate{loadDone: true})
 				}
 				return
 			}
 		}
-		s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · " + historyStatus(back)})
+		s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · " + historyStatus(back), loadDone: true})
 		err = engine.Follow(path, limit, cancel, func(line string, _ int64) {
 			engine.ProcessLine(line, tracker, xpSession, combat.DefaultIdleTimeout)
 			s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · live"})

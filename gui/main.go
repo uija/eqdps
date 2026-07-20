@@ -56,6 +56,10 @@ type shell struct {
 	fileChosen    chan fileChoice
 	combatUpdates chan combatUpdate
 	logCancel     chan struct{}
+	loading       bool
+	loadBytes     int64
+	loadTotal     int64
+	loadLines     int
 	fights        []fakeFightSection
 	menus         []menu
 	rail          []railItem
@@ -244,6 +248,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
+		layout.Stacked(s.layoutLoadingOverlay),
 	)
 }
 
@@ -261,6 +266,15 @@ func (s *shell) update(gtx layout.Context) {
 	}
 	select {
 	case update := <-s.combatUpdates:
+		if update.progress != nil {
+			s.loading = true
+			s.loadBytes = update.progress.Bytes
+			s.loadTotal = update.progress.Total
+			s.loadLines = update.progress.Lines
+		}
+		if update.loadDone {
+			s.loading = false
+		}
 		if update.fights != nil {
 			s.fights = update.fights
 		}
@@ -312,6 +326,46 @@ func (s *shell) update(gtx layout.Context) {
 			}
 		}
 	}
+}
+
+func (s *shell) layoutLoadingOverlay(gtx layout.Context) layout.Dimensions {
+	if !s.loading {
+		return layout.Dimensions{}
+	}
+	paint.Fill(gtx.Ops, color.NRGBA{A: 165})
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Min = image.Pt(gtx.Dp(unit.Dp(480)), gtx.Dp(unit.Dp(150)))
+		gtx.Constraints.Max = gtx.Constraints.Min
+		return outline(gtx, palette.line, func(gtx layout.Context) layout.Dimensions {
+			fill(gtx, palette.panel)
+			return layout.UniformInset(unit.Dp(22)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				progress := float32(0)
+				if s.loadTotal > 0 {
+					progress = float32(s.loadBytes) / float32(s.loadTotal)
+				}
+				percent := int(progress*100 + .5)
+				detail := fmt.Sprintf("%d%% · %d lines processed", percent, s.loadLines)
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return labelWeight(gtx, s.theme, "Loading combat history…", unit.Sp(20), palette.text, text.Start, font.SemiBold)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return inset(0, unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							bar := material.ProgressBar(s.theme, progress)
+							bar.Color = palette.accent
+							bar.TrackColor = palette.line
+							bar.Height = unit.Dp(8)
+							bar.Radius = unit.Dp(4)
+							return bar.Layout(gtx)
+						})
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return label(gtx, s.theme, detail, unit.Sp(15), palette.muted, text.Start)
+					}),
+				)
+			})
+		})
+	})
 }
 
 func historyRangeItems(action string) []menuItem {
