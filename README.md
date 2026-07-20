@@ -57,10 +57,22 @@ go run ./tui /path/to/eqlog_character_server.txt
 ### Graphical frontend
 
 The in-development Gio frontend is isolated from the terminal module and can
-be run from a checkout with:
+be run from a checkout.
+
+#### Fedora build dependencies
+
+Install Go and the native libraries required to compile Gio:
+
+```bash
+sudo dnf install golang
+sudo dnf install libxkbcommon-devel wayland-devel vulkan-loader-devel libX11-devel libglvnd-devel libxkbcommon-x11-devel libXcursor-devel libXfixes-devel
+```
+
+Then run or build the graphical frontend from the repository root:
 
 ```bash
 go run ./gui
+go build -o eqdps-gui ./gui
 ```
 
 Open the compact current-fight window through **View → Show DPS overlay**. Its
