@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -16,6 +14,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
+	"github.com/uija/eqdps/internal/engine"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
@@ -98,7 +97,7 @@ func main() {
 		if !skyStateExists {
 			fmt.Fprintln(os.Stderr, "Plane of Sky quest tracking is not initialized; launch the TUI once to enable it")
 		}
-		tracker, xpSession, err := replayLog(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit)
+		tracker, xpSession, err := engine.Replay(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
@@ -139,129 +138,6 @@ func parseSince(value string) (time.Time, error) {
 		}
 	}
 	return time.Time{}, fmt.Errorf("parse --since: expected YYYY-MM-DD HH:MM, got %q", value)
-}
-
-func replayLog(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) (*combat.FightTracker, *xp.Session, error) {
-	return replayLogWithProgress(logPath, idleTimeout, back, since, historyLimit, 0, nil, nil)
-}
-
-type replayProgress struct {
-	Bytes int64
-	Total int64
-	Lines int
-}
-
-var errReplayCancelled = errors.New("replay cancelled")
-
-func replayLogWithProgress(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, maxBytes int64, onProgress func(replayProgress), cancel <-chan struct{}) (*combat.FightTracker, *xp.Session, error) {
-	cutoff, err := replayCutoffWithCancel(logPath, back, since, cancel)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	file, err := os.Open(logPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("open log: %w", err)
-	}
-	defer file.Close()
-	if maxBytes <= 0 {
-		info, statErr := file.Stat()
-		if statErr != nil {
-			return nil, nil, fmt.Errorf("stat log: %w", statErr)
-		}
-		maxBytes = info.Size()
-	}
-
-	tracker := combat.NewFightTrackerWithHistory(historyLimit)
-	xpSession := xp.NewSession()
-	var latest time.Time
-	var bytesRead int64
-	linesRead := 0
-	scanner := bufio.NewScanner(io.LimitReader(file, maxBytes))
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	for scanner.Scan() {
-		if linesRead%1000 == 0 && replayCancelled(cancel) {
-			return nil, nil, errReplayCancelled
-		}
-		line := scanner.Text()
-		bytesRead += int64(len(scanner.Bytes()) + 1)
-		linesRead++
-		record, hasTimestamp := eqlog.ParseRecordAfter(line, cutoff)
-		if hasTimestamp && record.Time.After(latest) {
-			latest = record.Time
-		}
-		if onProgress != nil && linesRead%5000 == 0 {
-			onProgress(replayProgress{Bytes: min(bytesRead, maxBytes), Total: maxBytes, Lines: linesRead})
-		}
-		if hasTimestamp {
-			processRecord(record, tracker, xpSession, idleTimeout)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, nil, fmt.Errorf("read log: %w", err)
-	}
-	if !latest.IsZero() {
-		tracker.EndIdleAtLogTime(latest, idleTimeout)
-	}
-	if replayCancelled(cancel) {
-		return nil, nil, errReplayCancelled
-	}
-	if onProgress != nil {
-		onProgress(replayProgress{Bytes: maxBytes, Total: maxBytes, Lines: linesRead})
-	}
-	return tracker, xpSession, nil
-}
-
-func replayCancelled(cancel <-chan struct{}) bool {
-	if cancel == nil {
-		return false
-	}
-	select {
-	case <-cancel:
-		return true
-	default:
-		return false
-	}
-}
-
-func replayCutoff(logPath string, back time.Duration, since time.Time) (time.Time, error) {
-	return replayCutoffWithCancel(logPath, back, since, nil)
-}
-
-func replayCutoffWithCancel(logPath string, back time.Duration, since time.Time, cancel <-chan struct{}) (time.Time, error) {
-	if !since.IsZero() {
-		return since, nil
-	}
-	if back <= 0 {
-		return time.Time{}, nil
-	}
-
-	file, err := os.Open(logPath)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("open log: %w", err)
-	}
-	defer file.Close()
-
-	var latest time.Time
-	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	linesRead := 0
-	for scanner.Scan() {
-		if linesRead%1000 == 0 && replayCancelled(cancel) {
-			return time.Time{}, errReplayCancelled
-		}
-		linesRead++
-		if timestamp, ok := eqlog.ParseTime(scanner.Text()); ok && timestamp.After(latest) {
-			latest = timestamp
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return time.Time{}, fmt.Errorf("read log: %w", err)
-	}
-	if latest.IsZero() {
-		return time.Time{}, nil
-	}
-	return latest.Add(-back), nil
 }
 
 func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
@@ -330,7 +206,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	if back > 0 || !since.IsZero() {
-		backfill, backfillXP, err := replayLog(logPath, idleTimeout, back, since, historyLimit)
+		backfill, backfillXP, err := engine.Replay(logPath, idleTimeout, back, since, historyLimit)
 		if err != nil {
 			return err
 		}
@@ -436,10 +312,10 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			}
 			skyMu.Unlock()
 		}
-		if err := followLog(logPath, followOffset, done, func(line string, endOffset int64) {
+		if err := engine.Follow(logPath, followOffset, done, func(line string, endOffset int64) {
 			if isLiveLineAfterCatchup(endOffset, skyCatchupTarget) {
 				mu.Lock()
-				processLine(line, tracker, xpSession, idleTimeout)
+				engine.ProcessLine(line, tracker, xpSession, idleTimeout)
 				mu.Unlock()
 			}
 			skyMu.Lock()
@@ -742,9 +618,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 
 		go func(snapshotSize int64) {
 			lastProgressUpdate := time.Time{}
-			nextTracker, nextXP, replayErr := replayLogWithProgress(
+			nextTracker, nextXP, replayErr := engine.ReplayWithProgress(
 				logPath, idleTimeout, duration, time.Time{}, historyLimit, snapshotSize,
-				func(progress replayProgress) {
+				func(progress engine.ReplayProgress) {
 					now := time.Now()
 					if progress.Bytes < progress.Total && !lastProgressUpdate.IsZero() && now.Sub(lastProgressUpdate) < 100*time.Millisecond {
 						return
@@ -759,7 +635,7 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				cancel,
 			)
 			app.QueueUpdateDraw(func() {
-				if errors.Is(replayErr, errReplayCancelled) {
+				if errors.Is(replayErr, engine.ErrReplayCancelled) {
 					closeReplayModal()
 					return
 				}
@@ -1069,74 +945,6 @@ func restoreTablePosition(table *tview.Table, expandableRows map[int]string, sel
 			}
 			return
 		}
-	}
-}
-
-func processLine(line string, tracker *combat.FightTracker, xpSession *xp.Session, idleTimeout time.Duration) {
-	record, ok := eqlog.ParseRecord(line)
-	if ok {
-		processRecord(record, tracker, xpSession, idleTimeout)
-	}
-}
-
-func processRecord(record eqlog.Record, tracker *combat.FightTracker, xpSession *xp.Session, idleTimeout time.Duration) {
-	xpSession.Observe(record.Time, time.Now())
-	switch record.Kind {
-	case eqlog.RecordCast:
-		tracker.AddCast(record.Cast)
-	case eqlog.RecordDamage:
-		xpSession.AddCombat(record.Damage.Time)
-		tracker.AddDamageWithIdle(record.Damage, idleTimeout)
-	case eqlog.RecordExperience:
-		xpSession.AddGain(record.Experience.Time, record.Experience.Percent)
-	case eqlog.RecordLevelUp:
-		xpSession.AddLevelUp(record.LevelUp.Time)
-	case eqlog.RecordAggroClear:
-		tracker.ForgetEnemies(record.Time)
-	case eqlog.RecordDeath:
-		tracker.AddDeath(record.Death)
-	}
-}
-
-func followLog(logPath string, startOffset int64, done <-chan struct{}, onLine func(string, int64)) error {
-	file, err := os.Open(logPath)
-	if err != nil {
-		return fmt.Errorf("open log: %w", err)
-	}
-	defer file.Close()
-
-	if _, err := file.Seek(startOffset, io.SeekStart); err != nil {
-		return fmt.Errorf("seek log checkpoint: %w", err)
-	}
-
-	reader := bufio.NewReader(file)
-	offset := startOffset
-	for {
-		select {
-		case <-done:
-			return nil
-		default:
-		}
-
-		line, err := reader.ReadString('\n')
-		if strings.HasSuffix(line, "\n") {
-			offset += int64(len(line))
-			onLine(line, offset)
-		}
-		if err == nil {
-			continue
-		}
-		if errors.Is(err, io.EOF) {
-			if len(line) > 0 {
-				if _, seekErr := file.Seek(offset, io.SeekStart); seekErr != nil {
-					return fmt.Errorf("rewind partial log line: %w", seekErr)
-				}
-				reader.Reset(file)
-			}
-			time.Sleep(250 * time.Millisecond)
-			continue
-		}
-		return fmt.Errorf("read log: %w", err)
 	}
 }
 

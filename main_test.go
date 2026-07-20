@@ -10,6 +10,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
+	"github.com/uija/eqdps/internal/engine"
 	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
@@ -143,8 +144,8 @@ func TestReplayCutoffCanBeCancelledDuringLatestTimestampScan(t *testing.T) {
 	cancel := make(chan struct{})
 	close(cancel)
 
-	_, err := replayCutoffWithCancel(path, time.Hour, time.Time{}, cancel)
-	if !errors.Is(err, errReplayCancelled) {
+	_, err := engine.ReplayCutoffWithCancel(path, time.Hour, time.Time{}, cancel)
+	if !errors.Is(err, engine.ErrReplayCancelled) {
 		t.Fatalf("expected replay cancellation, got %v", err)
 	}
 }
@@ -154,7 +155,7 @@ func TestFullHistoryUsesBeginningOfLogCutoff(t *testing.T) {
 	if !ok {
 		t.Fatal("expected Full history selection")
 	}
-	cutoff, err := replayCutoff("unused", full, time.Time{})
+	cutoff, err := engine.ReplayCutoff("unused", full, time.Time{})
 	if err != nil || !cutoff.IsZero() {
 		t.Fatalf("full history must replay from the beginning, cutoff=%v err=%v", cutoff, err)
 	}
@@ -168,8 +169,8 @@ func TestReplayReportsProgressAndSupportsCancellation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var latest replayProgress
-	tracker, _, err := replayLogWithProgress(logPath, combat.DefaultIdleTimeout, -time.Nanosecond, time.Time{}, 0, int64(len(log)), func(progress replayProgress) {
+	var latest engine.ReplayProgress
+	tracker, _, err := engine.ReplayWithProgress(logPath, combat.DefaultIdleTimeout, -time.Nanosecond, time.Time{}, 0, int64(len(log)), func(progress engine.ReplayProgress) {
 		latest = progress
 	}, nil)
 	if err != nil || tracker == nil || latest.Bytes != latest.Total || latest.Lines != 2 {
@@ -178,7 +179,7 @@ func TestReplayReportsProgressAndSupportsCancellation(t *testing.T) {
 
 	cancel := make(chan struct{})
 	close(cancel)
-	if _, _, err := replayLogWithProgress(logPath, combat.DefaultIdleTimeout, -time.Nanosecond, time.Time{}, 0, int64(len(log)), nil, cancel); !errors.Is(err, errReplayCancelled) {
+	if _, _, err := engine.ReplayWithProgress(logPath, combat.DefaultIdleTimeout, -time.Nanosecond, time.Time{}, 0, int64(len(log)), nil, cancel); !errors.Is(err, engine.ErrReplayCancelled) {
 		t.Fatalf("expected replay cancellation, got %v", err)
 	}
 }
@@ -401,8 +402,8 @@ func TestFilterSectionsMatchesMobNamesCaseInsensitively(t *testing.T) {
 func TestProcessLineUpdatesCombatAndXPTrackers(t *testing.T) {
 	combatTracker := combat.NewFightTracker()
 	xpSession := xp.NewSession()
-	processLine("[Mon Jul 13 16:46:18 2026] You pierce an elemental visier for 44 points of damage.", combatTracker, xpSession, combat.DefaultIdleTimeout)
-	processLine("[Mon Jul 13 16:46:49 2026] You gain experience! (1.239%)", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	engine.ProcessLine("[Mon Jul 13 16:46:18 2026] You pierce an elemental visier for 44 points of damage.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	engine.ProcessLine("[Mon Jul 13 16:46:49 2026] You gain experience! (1.239%)", combatTracker, xpSession, combat.DefaultIdleTimeout)
 
 	snapshot := xpSession.SnapshotAtLatestLog()
 	if snapshot.Percent != 1.239 || snapshot.Gains != 1 {
@@ -416,8 +417,8 @@ func TestProcessLineUpdatesCombatAndXPTrackers(t *testing.T) {
 func TestProcessLineCorrelatesCastDamage(t *testing.T) {
 	combatTracker := combat.NewFightTracker()
 	xpSession := xp.NewSession()
-	processLine("[Wed Jul 15 18:53:34 2026] Zonektik begins casting Furor.", combatTracker, xpSession, combat.DefaultIdleTimeout)
-	processLine("[Wed Jul 15 18:53:36 2026] Zonektik hit a dar ghoul knight for 33 points of magic damage by Furor.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	engine.ProcessLine("[Wed Jul 15 18:53:34 2026] Zonektik begins casting Furor.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	engine.ProcessLine("[Wed Jul 15 18:53:36 2026] Zonektik hit a dar ghoul knight for 33 points of magic damage by Furor.", combatTracker, xpSession, combat.DefaultIdleTimeout)
 
 	fight, _ := combatTracker.DisplayFight()
 	player := fight.Meter.Players()[0]
@@ -429,8 +430,8 @@ func TestProcessLineCorrelatesCastDamage(t *testing.T) {
 func TestProcessLineClosesCombatWhenEnemiesForgetYou(t *testing.T) {
 	combatTracker := combat.NewFightTracker()
 	xpSession := xp.NewSession()
-	processLine("[Mon Jul 13 14:56:40 2026] A lava guardian hits YOU for 20 points of damage.", combatTracker, xpSession, combat.DefaultIdleTimeout)
-	processLine("[Mon Jul 13 14:56:50 2026] Your enemies have forgotten you!", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	engine.ProcessLine("[Mon Jul 13 14:56:40 2026] A lava guardian hits YOU for 20 points of damage.", combatTracker, xpSession, combat.DefaultIdleTimeout)
+	engine.ProcessLine("[Mon Jul 13 14:56:50 2026] Your enemies have forgotten you!", combatTracker, xpSession, combat.DefaultIdleTimeout)
 
 	fight, current := combatTracker.DisplayFight()
 	if fight == nil || current || fight.EndReason != "enemies forgot you" {

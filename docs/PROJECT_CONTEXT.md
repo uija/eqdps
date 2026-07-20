@@ -24,9 +24,10 @@ intentionally not duplicated under `docs/`.
 
 | Path | Responsibility |
 | --- | --- |
-| `main.go` | CLI, replay, live file tailing, TUI, rendering, input handling |
+| `main.go` | CLI, TUI construction, rendering, input handling, and presentation callbacks |
 | `main_test.go` | UI layout and history-menu helper tests |
 | `internal/eqlog/parser.go` | Unified log records plus damage, cast, XP, aggro, and death parsing |
+| `internal/engine/log.go` | UI-independent logfile replay, live tailing, and combat/XP record dispatch |
 | `internal/eqlog/parser_test.go` | Exact production log format regressions |
 | `internal/combat/combat.go` | Stats, pet merging, per-mob lifecycle, history |
 | `internal/combat/combat_test.go` | Meter and per-mob state behavior |
@@ -52,7 +53,18 @@ log line
 ```
 
 Live mode opens the file and seeks to EOF, so invocation without replay flags
-starts at "now." `followLog` polls EOF every 250 ms and processes appended lines.
+starts at "now." `engine.Follow` polls EOF every 250 ms and processes appended
+lines.
+
+Log replay, live tailing, and combat/XP record dispatch live in
+`internal/engine` and must remain free of `tview`, `tcell`, and any future GUI
+dependency. `main.go` owns the terminal widgets and presentation callbacks.
+
+A future graphical frontend should be added as a nested Go module (for example
+`gui/go.mod`) rather than adding its UI dependencies to the root `go.mod`. That
+keeps the existing root/TUI build graph free of Gio and its Linux native build
+requirements. A nested module whose path remains below `github.com/uija/eqdps`
+can consume the shared `internal` packages.
 
 Plane of Sky quest tracking is independent of combat replay. Once enabled, it
 maintains `CHARACTER_SERVER_PoS.json` beside the selected logfile and resumes
