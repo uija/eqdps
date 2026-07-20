@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font"
@@ -67,6 +69,22 @@ func (s *shell) toggleOverlay() {
 	}
 	s.openOverlay()
 	s.setOverlayVisible(true)
+	s.showWaylandHelpOnce()
+}
+
+func isWaylandSession() bool {
+	return strings.EqualFold(os.Getenv("XDG_SESSION_TYPE"), "wayland") || os.Getenv("WAYLAND_DISPLAY") != ""
+}
+
+func (s *shell) showWaylandHelpOnce() {
+	if !isWaylandSession() || s.settings.WaylandNotice {
+		return
+	}
+	s.settings.WaylandNotice = true
+	s.waylandHelp = true
+	if err := saveSettings(s.settings); err != nil {
+		s.statusText = "Wayland help preference could not be saved"
+	}
 }
 
 func (s *shell) setOverlayVisible(visible bool) {

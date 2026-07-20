@@ -54,6 +54,46 @@ From a local checkout:
 go run ./tui /path/to/eqlog_character_server.txt
 ```
 
+### Graphical preview
+
+The in-development Gio frontend is isolated from the terminal module and can
+be run from a checkout with:
+
+```bash
+go run ./gui
+```
+
+Open the compact current-fight window through **View → Show DPS overlay**. Its
+visible/hidden state is remembered between launches.
+
+#### DPS overlay on Wayland
+
+Wayland compositors control floating, stacking, opacity, and placement; an
+application cannot request those behaviors portably. eqdps detects Wayland and
+shows this explanation once when the DPS overlay is first opened. It remains
+available under **Help → Wayland overlay setup**.
+
+For Hyprland 0.55 and newer, add this rule to
+`~/.config/hypr/hyprland.lua`:
+
+```lua
+hl.window_rule({
+    name = "eqdps-overlay",
+    match = { title = "^eqdps — Current Fight$" },
+    float = true,
+    pin = true,
+    no_initial_focus = true,
+    persistent_size = true,
+    move = {100, 100},
+    opacity = "0.75 override 0.75 override 0.75 override",
+})
+```
+
+Change `move` and `opacity` to taste. KDE Plasma users can create an equivalent
+Window Rule matching the title `eqdps — Current Fight`. Sway users can match
+the same title with `for_window` and enable floating/sticky behavior. GNOME
+Wayland may require an extension for persistent always-on-top behavior.
+
 By default, combat live mode starts at the current end of the log file and only
 parses new combat lines written after startup. Once Plane of Sky tracking is
 enabled, its character state resumes from its saved logfile offset and catches

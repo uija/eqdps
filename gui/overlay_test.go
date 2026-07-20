@@ -28,6 +28,25 @@ func TestOverlayPrefersNewestOfConcurrentCurrentFights(t *testing.T) {
 	}
 }
 
+func TestWaylandSessionDetection(t *testing.T) {
+	t.Setenv("XDG_SESSION_TYPE", "wayland")
+	t.Setenv("WAYLAND_DISPLAY", "")
+	if !isWaylandSession() {
+		t.Fatal("expected XDG Wayland session to be detected")
+	}
+
+	t.Setenv("XDG_SESSION_TYPE", "x11")
+	t.Setenv("WAYLAND_DISPLAY", "wayland-1")
+	if !isWaylandSession() {
+		t.Fatal("expected WAYLAND_DISPLAY to be detected")
+	}
+
+	t.Setenv("WAYLAND_DISPLAY", "")
+	if isWaylandSession() {
+		t.Fatal("did not expect X11 session to be detected as Wayland")
+	}
+}
+
 func TestOverlayPrefersCurrentFightOverHistory(t *testing.T) {
 	overlay := combatOverlay{fights: []fakeFightSection{
 		{name: "latest completed"},

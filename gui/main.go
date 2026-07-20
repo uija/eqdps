@@ -62,6 +62,8 @@ type shell struct {
 	loadLines     int
 	overlay       *combatOverlay
 	overlayClosed chan *combatOverlay
+	waylandHelp   bool
+	helpClose     widget.Clickable
 	fights        []fakeFightSection
 	menus         []menu
 	rail          []railItem
@@ -229,7 +231,7 @@ func newShell(window *app.Window) *shell {
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true}}},
 			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true}, {name: "Plane of Sky", enabled: true}, {name: "Show DPS overlay", detail: "Toggle compact current-fight window", enabled: true, action: "overlay"}}},
 			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true}}},
-			{name: "Help", items: []menuItem{{name: "About eqdps", enabled: true}}},
+			{name: "Help", items: []menuItem{{name: "Wayland overlay setup…", enabled: true, action: "wayland-help"}, {name: "About eqdps", enabled: true}}},
 		},
 		rail: []railItem{{short: "DPS", name: "Combat Log"}, {short: "SKY", name: "Plane of Sky"}, {short: "SET", name: "Settings"}},
 	}
@@ -239,6 +241,7 @@ func newShell(window *app.Window) *shell {
 	if settings.OverlayVisible {
 		result.menus[2].items[2].name = "Hide DPS overlay"
 		result.openOverlay()
+		result.showWaylandHelpOnce()
 	}
 	return result
 }
@@ -257,10 +260,14 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
 		layout.Expanded(s.layoutLoadingOverlay),
+		layout.Expanded(s.layoutWaylandHelp),
 	)
 }
 
 func (s *shell) update(gtx layout.Context) {
+	if s.helpClose.Clicked(gtx) {
+		s.waylandHelp = false
+	}
 	select {
 	case closed := <-s.overlayClosed:
 		if s.overlay == closed {
@@ -421,9 +428,49 @@ func (s *shell) activateItem(item menuItem) {
 		s.loadLog(s.currentLog, item.back)
 	case "overlay":
 		s.toggleOverlay()
+	case "wayland-help":
+		s.waylandHelp = true
 	case "exit":
 		s.window.Perform(system.ActionClose)
 	}
+}
+
+func (s *shell) layoutWaylandHelp(gtx layout.Context) layout.Dimensions {
+	if !s.waylandHelp {
+		return layout.Dimensions{}
+	}
+	paint.Fill(gtx.Ops, color.NRGBA{A: 175})
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Min = image.Pt(gtx.Dp(unit.Dp(640)), gtx.Dp(unit.Dp(390)))
+		gtx.Constraints.Max = gtx.Constraints.Min
+		return outline(gtx, palette.line, func(gtx layout.Context) layout.Dimensions {
+			fill(gtx, palette.panel)
+			return layout.UniformInset(unit.Dp(24)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				const guidance = "Wayland compositors decide whether windows float, stay above other windows, and use opacity. eqdps cannot set these properties portably.\n\nHyprland 0.55+: add the title-based rule from the README to hyprland.lua. It can float, pin, position, resize, and apply opacity to ‘eqdps — Current Fight’.\n\nKDE Plasma: create a Window Rule matching that title. Sway: use a for_window rule matching the title. GNOME may require an extension for persistent always-on-top behavior."
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return labelWeight(gtx, s.theme, "Configure the DPS overlay on Wayland", unit.Sp(21), palette.text, text.Start, font.SemiBold)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return label(gtx, s.theme, guidance, unit.Sp(15), palette.muted, text.Start)
+						})
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return s.helpClose.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								pointer.CursorPointer.Add(gtx.Ops)
+								fill(gtx, palette.panelAlt)
+								return layout.UniformInset(unit.Dp(10)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return labelWeight(gtx, s.theme, "Got it", unit.Sp(16), palette.text, text.Middle, font.SemiBold)
+								})
+							})
+						})
+					}),
+				)
+			})
+		})
+	})
 }
 
 func (s *shell) rememberChosenFile(choice fileChoice) {
