@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font"
@@ -41,6 +42,8 @@ type shell struct {
 	fightList  layout.List
 	workspace  int
 	activeMenu int
+	treeClicks map[string]*widget.Clickable
+	expanded   map[string]bool
 	menus      []menu
 	rail       []railItem
 }
@@ -70,6 +73,15 @@ type fakeCombatant struct {
 	hits, crits       int
 	active            string
 	accent            bool
+	details           []fakeBreakdown
+}
+
+type fakeBreakdown struct {
+	name              string
+	damage, dps, sdps int
+	hits, crits       int
+	active            string
+	children          []fakeBreakdown
 }
 
 type fakeFightSection struct {
@@ -79,7 +91,21 @@ type fakeFightSection struct {
 }
 
 var fakeFight = []fakeCombatant{
-	{name: "You", damage: 4789, dps: 165, hits: 56, crits: 5, active: "00:29", accent: true},
+	{name: "You", damage: 4789, dps: 165, hits: 56, crits: 5, active: "00:29", accent: true, details: []fakeBreakdown{
+		{name: "Melee", damage: 3213, dps: 111, hits: 48, crits: 5, active: "00:29", children: []fakeBreakdown{
+			{name: "Slashes", damage: 2112, dps: 73, hits: 32, crits: 2, active: "00:29"},
+			{name: "Strikes", damage: 461, dps: 19, hits: 6, crits: 1, active: "00:24"},
+			{name: "Kicks", damage: 430, dps: 27, hits: 5, crits: 1, active: "00:16"},
+			{name: "Smites", damage: 210, dps: 11, hits: 5, crits: 1, active: "00:19"},
+		}},
+		{name: "Procs", damage: 1536, dps: 77, hits: 51, active: "00:20", children: []fakeBreakdown{
+			{name: "Smiting Strike", damage: 1050, dps: 55, hits: 35, active: "00:19"},
+			{name: "Banish Summoned", damage: 486, dps: 486, hits: 16, active: "00:01"},
+		}},
+		{name: "Damage Shield", damage: 40, dps: 4, hits: 1, active: "00:09", children: []fakeBreakdown{
+			{name: "thorns", damage: 40, dps: 4, hits: 1, active: "00:09"},
+		}},
+	}},
 	{name: "Gigglemage", damage: 3779, dps: 130, sdps: 126, hits: 57, crits: 1, active: "00:29"},
 	{name: "Griz", damage: 3138, dps: 116, sdps: 105, hits: 105, crits: 3, active: "00:27"},
 	{name: "Moth", damage: 2918, dps: 112, sdps: 97, hits: 97, crits: 21, active: "00:26"},
@@ -138,6 +164,12 @@ func newShell() *shell {
 		theme:      theme,
 		fightList:  layout.List{Axis: layout.Vertical},
 		activeMenu: -1,
+		treeClicks: make(map[string]*widget.Clickable),
+		expanded: map[string]bool{
+			"fight:0:You":              true,
+			"fight:0:You:detail:Melee": true,
+			"fight:0:You:detail:Procs": true,
+		},
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile…", detail: "Choose an EverQuest log", enabled: true}, {name: "Recent logfiles", detail: "No recent files", enabled: false}, {name: "Exit", enabled: true}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true}, {name: "History…", enabled: true}, {name: "Load last hour", enabled: true}, {name: "Filter…", enabled: true}}},
@@ -178,6 +210,11 @@ func (s *shell) update(gtx layout.Context) {
 		if s.rail[index].click.Clicked(gtx) {
 			s.workspace = index
 			s.activeMenu = -1
+		}
+	}
+	for key, click := range s.treeClicks {
+		if click.Clicked(gtx) {
+			s.expanded[key] = !s.expanded[key]
 		}
 	}
 	if s.activeMenu >= 0 {
@@ -259,7 +296,7 @@ func (s *shell) layoutDamageMeter(gtx layout.Context) layout.Dimensions {
 				fight := fakeFights[index]
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return s.layoutFightHeader(gtx, fight) }),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return s.layoutCombatRows(gtx, fight.combatants) }),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return s.layoutCombatRows(gtx, index, fight.combatants) }),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(14)))}
 					}),
@@ -298,15 +335,64 @@ func (s *shell) layoutFightHeader(gtx layout.Context, fight fakeFightSection) la
 	})
 }
 
-func (s *shell) layoutCombatRows(gtx layout.Context, combatants []fakeCombatant) layout.Dimensions {
-	children := make([]layout.FlexChild, 0, len(combatants))
+func (s *shell) layoutCombatRows(gtx layout.Context, fightIndex int, combatants []fakeCombatant) layout.Dimensions {
+	children := make([]layout.FlexChild, 0, len(combatants)*2)
 	for index, combatant := range combatants {
 		index, combatant := index, combatant
+		key := fmt.Sprintf("fight:%d:%s", fightIndex, combatant.name)
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return s.layoutCombatRow(gtx, combatant, false, index%2 == 1)
+			if len(combatant.details) == 0 {
+				return s.layoutCombatRow(gtx, combatant, false, index%2 == 1)
+			}
+			return s.layoutToggleRow(gtx, key, combatant, index%2 == 1)
 		}))
+		if len(combatant.details) > 0 && s.expanded[key] {
+			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return s.layoutBreakdowns(gtx, key, combatant.details, 1)
+			}))
+		}
 	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+}
+
+func (s *shell) layoutBreakdowns(gtx layout.Context, parent string, details []fakeBreakdown, level int) layout.Dimensions {
+	children := make([]layout.FlexChild, 0, len(details)*2)
+	for _, detail := range details {
+		detail := detail
+		key := parent + ":detail:" + detail.name
+		row := fakeCombatant{name: detail.name, damage: detail.damage, dps: detail.dps, sdps: detail.sdps, hits: detail.hits, crits: detail.crits, active: detail.active}
+		row.name = strings.Repeat("    ", level) + row.name
+		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if len(detail.children) == 0 {
+				return s.layoutCombatRow(gtx, row, false, false)
+			}
+			return s.layoutToggleRow(gtx, key, row, true)
+		}))
+		if len(detail.children) > 0 && s.expanded[key] {
+			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return s.layoutBreakdowns(gtx, key, detail.children, level+1)
+			}))
+		}
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+}
+
+func (s *shell) layoutToggleRow(gtx layout.Context, key string, row fakeCombatant, alternate bool) layout.Dimensions {
+	click := s.treeClicks[key]
+	if click == nil {
+		click = new(widget.Clickable)
+		s.treeClicks[key] = click
+	}
+	marker := "+ "
+	if s.expanded[key] {
+		marker = "- "
+	}
+	indent := len(row.name) - len(strings.TrimLeft(row.name, " "))
+	row.name = row.name[:indent] + marker + row.name[indent:]
+	return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		pointer.CursorPointer.Add(gtx.Ops)
+		return s.layoutCombatRow(gtx, row, false, alternate)
+	})
 }
 
 func (s *shell) layoutCombatRow(gtx layout.Context, row fakeCombatant, header, alternate bool) layout.Dimensions {
