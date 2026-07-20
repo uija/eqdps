@@ -43,7 +43,7 @@ var palette = struct {
 
 type shell struct {
 	theme         *material.Theme
-	fightList     layout.List
+	fightList     widget.List
 	workspace     int
 	activeMenu    int
 	activeSub     int
@@ -204,7 +204,7 @@ func newShell(window *app.Window) *shell {
 	recents := recentMenuItems(settings)
 	result := &shell{
 		theme:         theme,
-		fightList:     layout.List{Axis: layout.Vertical},
+		fightList:     widget.List{List: layout.List{Axis: layout.Vertical}},
 		activeMenu:    -1,
 		activeSub:     -1,
 		window:        window,
@@ -248,7 +248,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
-		layout.Stacked(s.layoutLoadingOverlay),
+		layout.Expanded(s.layoutLoadingOverlay),
 	)
 }
 
@@ -506,7 +506,13 @@ func (s *shell) layoutDamageMeter(gtx layout.Context) layout.Dimensions {
 			if len(s.fights) == 0 {
 				return s.layoutPlaceholder(gtx, "No fights yet", "Following the logfile for new combat.")
 			}
-			return s.fightList.Layout(gtx, len(s.fights), func(gtx layout.Context, index int) layout.Dimensions {
+			list := material.List(s.theme, &s.fightList)
+			list.AnchorStrategy = material.Occupy
+			list.Indicator.Color = palette.muted
+			list.Indicator.HoverColor = palette.text
+			list.Indicator.MinorWidth = unit.Dp(7)
+			list.Indicator.CornerRadius = unit.Dp(3.5)
+			return list.Layout(gtx, len(s.fights), func(gtx layout.Context, index int) layout.Dimensions {
 				fight := s.fights[index]
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return s.layoutFightHeader(gtx, fight) }),
