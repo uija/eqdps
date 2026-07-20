@@ -93,6 +93,8 @@ TUI.
 
 ## 5. Plane of Sky Workspace
 
+**Status:** embedded database and saved-state read-only view available
+
 - Display class and quest progress, owned items, requirements, and sources.
 - Show ready-to-turn-in and completed quests.
 - Support hiding unstarted quests.

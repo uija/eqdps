@@ -23,6 +23,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
+	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
 
@@ -77,6 +78,15 @@ type shell struct {
 	fightFilter   string
 	filterEditor  widget.Editor
 	filterClear   widget.Clickable
+	skyDatabase   skyquest.Database
+	skyProgress   []skyquest.QuestProgress
+	skyInventory  map[string]int
+	skyRows       []skyRow
+	skyIdentity   string
+	skyMessage    string
+	skyHideEmpty  bool
+	skyHideClick  widget.Clickable
+	skyList       widget.List
 	fights        []fakeFightSection
 	menus         []menu
 	rail          []railItem
@@ -206,6 +216,7 @@ func newShell(window *app.Window) *shell {
 	theme.Palette.Fg = palette.text
 	theme.Palette.Bg = palette.window
 	settings, settingsErr := loadSettings()
+	skyDatabase, skyDatabaseErr := skyquest.LoadDatabase()
 	settings.normalize()
 	theme.TextSize = unit.Sp(16 * settings.MainFontScale)
 	statusText := "No logfile selected"
@@ -236,6 +247,9 @@ func newShell(window *app.Window) *shell {
 		overlayClosed: make(chan *combatOverlay, 1),
 		fights:        fakeFights,
 		allFights:     fakeFights,
+		skyDatabase:   skyDatabase,
+		skyInventory:  make(map[string]int),
+		skyList:       widget.List{List: layout.List{Axis: layout.Vertical}},
 		treeClicks:    make(map[string]*widget.Clickable),
 		expanded: map[string]bool{
 			"fight:0:You":              true,
@@ -245,7 +259,7 @@ func newShell(window *app.Window) *shell {
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}}},
-			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true}, {name: "Plane of Sky", enabled: true}, {name: "Show DPS overlay", detail: "Toggle compact current-fight window", enabled: true, action: "overlay"}}},
+			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true, action: "damage"}, {name: "Plane of Sky", enabled: true, action: "sky"}, {name: "Show DPS overlay", detail: "Toggle compact current-fight window", enabled: true, action: "overlay"}}},
 			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true, action: "preferences"}}},
 			{name: "Help", items: []menuItem{{name: "Wayland overlay setup…", enabled: true, action: "wayland-help"}, {name: "About eqdps", enabled: true}}},
 		},
@@ -255,6 +269,11 @@ func newShell(window *app.Window) *shell {
 	result.mainScale.Value = settingToSlider(settings.MainFontScale, .75, 1.5)
 	result.dpsScale.Value = settingToSlider(settings.DPSFontScale, .5, 1.5)
 	result.dpsOpacity.Value = settingToSlider(settings.DPSOpacity, .35, 1)
+	if skyDatabaseErr != nil {
+		result.skyMessage = skyDatabaseErr.Error()
+	} else {
+		result.loadSkyState(currentLog)
+	}
 	if currentLog != "" {
 		result.loadLog(currentLog, 0)
 	}
@@ -354,6 +373,11 @@ func (s *shell) update(gtx layout.Context) {
 		s.filterEditor.SetText("")
 		s.applyFightFilter()
 		s.fightList.ScrollTo(0)
+	}
+	if s.skyHideClick.Clicked(gtx) {
+		s.skyHideEmpty = !s.skyHideEmpty
+		s.rebuildSkyRows()
+		s.skyList.ScrollTo(0)
 	}
 	for index := range s.menus {
 		if s.menus[index].click.Clicked(gtx) {
@@ -480,6 +504,10 @@ func (s *shell) activateItem(item menuItem) {
 		s.showWaylandHelp()
 	case "preferences":
 		s.workspace = 2
+	case "damage":
+		s.workspace = 0
+	case "sky":
+		s.workspace = 1
 	case "current":
 		s.showCurrentFight()
 	case "filter":
@@ -541,6 +569,7 @@ func (s *shell) rememberChosenFile(choice fileChoice) {
 	// Enable history loading now that a current logfile exists.
 	s.menus[1].items[1].enabled = true
 	s.loadLog(choice.path, choice.back)
+	s.loadSkyState(choice.path)
 }
 
 func historyStatus(back time.Duration) string {
@@ -608,7 +637,7 @@ func (s *shell) layoutRail(gtx layout.Context) layout.Dimensions {
 func (s *shell) layoutWorkspace(gtx layout.Context) layout.Dimensions {
 	switch s.workspace {
 	case 1:
-		return s.layoutPlaceholder(gtx, "Plane of Sky", "Quest progress will use this dedicated workspace.")
+		return s.layoutSkyWorkspace(gtx)
 	case 2:
 		return s.layoutPreferences(gtx)
 	default:
@@ -800,6 +829,16 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return label(gtx, s.theme, xpStatusText(s.xpSnapshot, s.fightFilter), unit.Sp(15), palette.muted, text.Start)
+					})
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					ready := s.skyReadyCount()
+					foreground := palette.muted
+					if ready > 0 {
+						foreground = skyReadyColor
+					}
+					return inset(unit.Dp(18), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return label(gtx, s.theme, fmt.Sprintf("PoS: %d ready", ready), unit.Sp(15), foreground, text.Start)
 					})
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
