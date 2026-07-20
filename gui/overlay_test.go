@@ -28,6 +28,19 @@ func TestOverlayPrefersNewestOfConcurrentCurrentFights(t *testing.T) {
 	}
 }
 
+func TestOverlayPrefersCurrentFightMostRecentlyDamagedIntentionallyByYou(t *testing.T) {
+	now := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	overlay := combatOverlay{fights: []fakeFightSection{
+		{name: "newer incidental fight", current: true, started: now.Add(10 * time.Second)},
+		{name: "your target", current: true, started: now, lastYouIntentional: now.Add(5 * time.Second)},
+		{name: "your previous target", current: true, started: now.Add(2 * time.Second), lastYouIntentional: now.Add(time.Second)},
+	}}
+
+	if got := overlay.displayFight(); got == nil || got.name != "your target" {
+		t.Fatalf("expected latest intentional target, got %#v", got)
+	}
+}
+
 func TestWaylandSessionDetection(t *testing.T) {
 	t.Setenv("XDG_SESSION_TYPE", "wayland")
 	t.Setenv("WAYLAND_DISPLAY", "")

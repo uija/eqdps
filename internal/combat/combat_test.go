@@ -52,6 +52,20 @@ func TestMeterTracksNestedDamageBreakdownStatistics(t *testing.T) {
 	}
 }
 
+func TestMeterTracksOnlyIntentionalDamageForOverlayPriority(t *testing.T) {
+	meter := NewMeter()
+	now := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	meter.Add(Event{Time: now, Source: "You", Target: "mob", Amount: 10})
+	meter.Add(Event{Time: now.Add(time.Second), Source: "You", Target: "mob", Amount: 11, Passive: true})
+	meter.Add(Event{Time: now.Add(2 * time.Second), Source: "You", Target: "mob", Amount: 12, Passive: true, DamageOverTime: true})
+	meter.Add(Event{Time: now.Add(3 * time.Second), Source: "You", Target: "mob", Amount: 13, Incidental: true})
+
+	players := meter.Players()
+	if len(players) != 1 || !players[0].LastIntentionalDamage.Equal(now) {
+		t.Fatalf("passive or incidental damage changed overlay priority: %#v", players)
+	}
+}
+
 func TestFightTrackerSeparatesCastMagicFromProcs(t *testing.T) {
 	tracker := NewFightTracker()
 	now := time.Date(2026, 7, 15, 18, 53, 34, 0, time.UTC)

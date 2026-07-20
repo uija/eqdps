@@ -163,6 +163,7 @@ type fakeFightSection struct {
 	name, status, duration string
 	current                bool
 	started                time.Time
+	lastYouIntentional     time.Time
 	combatants             []fakeCombatant
 }
 

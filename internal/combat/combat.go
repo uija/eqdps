@@ -48,6 +48,10 @@ type PlayerStats struct {
 	LastSeen  time.Time
 	Breakdown map[string]*BreakdownStats
 	EngagedAt time.Time
+	// LastIntentionalDamage records the latest direct, non-incidental damage
+	// initiated by this combatant. Passive shields, DoTs, ripostes, and other
+	// incidental hits do not advance it.
+	LastIntentionalDamage time.Time
 }
 
 type BreakdownStats struct {
@@ -151,6 +155,9 @@ func (m *Meter) Add(event Event) {
 	}
 	if event.Source == "You" && !event.Incidental && (!event.Passive || event.DamageOverTime) && stats.EngagedAt.IsZero() {
 		stats.EngagedAt = event.Time
+	}
+	if !event.Passive && !event.Incidental && event.Time.After(stats.LastIntentionalDamage) {
+		stats.LastIntentionalDamage = event.Time
 	}
 	m.events++
 	if m.started.IsZero() || event.Time.Before(m.started) {

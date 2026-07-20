@@ -162,12 +162,21 @@ func (o *combatOverlay) update() {
 }
 
 func (o *combatOverlay) displayFight() *fakeFightSection {
-	var newest *fakeFightSection
+	var prioritized, newest *fakeFightSection
 	for index := range o.fights {
 		fight := &o.fights[index]
-		if fight.current && (newest == nil || fight.started.After(newest.started)) {
+		if !fight.current {
+			continue
+		}
+		if !fight.lastYouIntentional.IsZero() && (prioritized == nil || fight.lastYouIntentional.After(prioritized.lastYouIntentional)) {
+			prioritized = fight
+		}
+		if newest == nil || fight.started.After(newest.started) {
 			newest = fight
 		}
+	}
+	if prioritized != nil {
+		return prioritized
 	}
 	if newest != nil {
 		return newest
