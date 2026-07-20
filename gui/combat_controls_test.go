@@ -26,6 +26,15 @@ func TestEmptyFightFilterRestoresAllFights(t *testing.T) {
 	}
 }
 
+func TestFilterPreviewUsesCurrentEditorText(t *testing.T) {
+	shell := shell{allFights: []fakeFightSection{{name: "a goblin"}, {name: "a golem"}}}
+	shell.filterEditor.SetText("golem")
+	shell.previewFightFilter()
+	if shell.fightFilter != "golem" || len(shell.fights) != 1 || shell.fights[0].name != "a golem" {
+		t.Fatalf("unexpected preview filter state: filter=%q fights=%#v", shell.fightFilter, shell.fights)
+	}
+}
+
 func TestXPStatusUsesObservedSnapshotAndFilter(t *testing.T) {
 	got := xpStatusText(xp.Snapshot{Gains: 2, LevelPercent: 12.5, PercentPerHour: 3.25}, "golem")
 	if !strings.Contains(got, "XP ~12.5%") || !strings.Contains(got, "3.2%/h") || !strings.Contains(got, "filter: golem") {

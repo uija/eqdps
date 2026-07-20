@@ -58,6 +58,9 @@ func (s *shell) updateFilterDialog(gtx layout.Context) {
 		s.fightList.ScrollTo(0)
 		s.filterOpen = false
 	case s.filterCancel.Clicked(gtx):
+		s.fightFilter = s.filterOriginal
+		s.applyFightFilter()
+		s.fightList.ScrollTo(0)
 		s.filterOpen = false
 	}
 }
@@ -83,7 +86,11 @@ func (s *shell) layoutFilterDialog(gtx layout.Context) layout.Dimensions {
 							editor.Color = palette.text
 							editor.HintColor = palette.muted
 							return outline(gtx, palette.line, func(gtx layout.Context) layout.Dimensions {
-								return layout.UniformInset(unit.Dp(9)).Layout(gtx, editor.Layout)
+								return layout.UniformInset(unit.Dp(9)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									dimensions := editor.Layout(gtx)
+									s.previewFightFilter()
+									return dimensions
+								})
 							})
 						})
 					}),
@@ -106,6 +113,19 @@ func (s *shell) layoutFilterDialog(gtx layout.Context) layout.Dimensions {
 			})
 		})
 	})
+}
+
+func (s *shell) previewFightFilter() {
+	filter := strings.TrimSpace(s.filterEditor.Text())
+	if filter == s.fightFilter {
+		return
+	}
+	s.fightFilter = filter
+	s.applyFightFilter()
+	s.fightList.ScrollTo(0)
+	if s.window != nil {
+		s.window.Invalidate()
+	}
 }
 
 func dialogButton(gtx layout.Context, theme *material.Theme, click *widget.Clickable, value string, accent bool) layout.Dimensions {

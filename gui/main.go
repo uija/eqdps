@@ -43,46 +43,47 @@ var palette = struct {
 }
 
 type shell struct {
-	theme         *material.Theme
-	fightList     widget.List
-	workspace     int
-	activeMenu    int
-	activeSub     int
-	treeClicks    map[string]*widget.Clickable
-	expanded      map[string]bool
-	window        *app.Window
-	settings      guiSettings
-	currentLog    string
-	statusText    string
-	fileChosen    chan fileChoice
-	combatUpdates chan combatUpdate
-	logCancel     chan struct{}
-	loading       bool
-	loadBytes     int64
-	loadTotal     int64
-	loadLines     int
-	overlay       *combatOverlay
-	overlayClosed chan *combatOverlay
-	waylandHelp   bool
-	openAfterHelp bool
-	rememberHelp  bool
-	helpClose     widget.Clickable
-	mainScale     widget.Float
-	dpsScale      widget.Float
-	dpsOpacity    widget.Float
-	prefsDirty    bool
-	xpSnapshot    xp.Snapshot
-	parserState   string
-	allFights     []fakeFightSection
-	fightFilter   string
-	filterOpen    bool
-	filterEditor  widget.Editor
-	filterApply   widget.Clickable
-	filterClear   widget.Clickable
-	filterCancel  widget.Clickable
-	fights        []fakeFightSection
-	menus         []menu
-	rail          []railItem
+	theme          *material.Theme
+	fightList      widget.List
+	workspace      int
+	activeMenu     int
+	activeSub      int
+	treeClicks     map[string]*widget.Clickable
+	expanded       map[string]bool
+	window         *app.Window
+	settings       guiSettings
+	currentLog     string
+	statusText     string
+	fileChosen     chan fileChoice
+	combatUpdates  chan combatUpdate
+	logCancel      chan struct{}
+	loading        bool
+	loadBytes      int64
+	loadTotal      int64
+	loadLines      int
+	overlay        *combatOverlay
+	overlayClosed  chan *combatOverlay
+	waylandHelp    bool
+	openAfterHelp  bool
+	rememberHelp   bool
+	helpClose      widget.Clickable
+	mainScale      widget.Float
+	dpsScale       widget.Float
+	dpsOpacity     widget.Float
+	prefsDirty     bool
+	xpSnapshot     xp.Snapshot
+	parserState    string
+	allFights      []fakeFightSection
+	fightFilter    string
+	filterOriginal string
+	filterOpen     bool
+	filterEditor   widget.Editor
+	filterApply    widget.Clickable
+	filterClear    widget.Clickable
+	filterCancel   widget.Clickable
+	fights         []fakeFightSection
+	menus          []menu
+	rail           []railItem
 }
 
 type menu struct {
@@ -485,6 +486,7 @@ func (s *shell) activateItem(item menuItem) {
 	case "current":
 		s.showCurrentFight()
 	case "filter":
+		s.filterOriginal = s.fightFilter
 		s.filterEditor.SetText(s.fightFilter)
 		s.filterOpen = true
 	case "exit":
@@ -796,18 +798,15 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 	return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
 		return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 					return label(gtx, s.theme, s.statusText, unit.Sp(15), palette.text, text.Start)
 				}),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return label(gtx, s.theme, xpStatusText(s.xpSnapshot, s.fightFilter), unit.Sp(15), palette.muted, text.Start)
 					})
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Dimensions{}
-				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						stateText, stateColor := parserStatus(s.parserState, s.currentLog != "")
 						return label(gtx, s.theme, stateText, unit.Sp(15), stateColor, text.End)
