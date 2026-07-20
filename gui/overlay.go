@@ -105,10 +105,15 @@ func (o *combatOverlay) update() {
 }
 
 func (o *combatOverlay) displayFight() *fakeFightSection {
+	var newest *fakeFightSection
 	for index := range o.fights {
-		if o.fights[index].current {
-			return &o.fights[index]
+		fight := &o.fights[index]
+		if fight.current && (newest == nil || fight.started.After(newest.started)) {
+			newest = fight
 		}
+	}
+	if newest != nil {
+		return newest
 	}
 	// DisplaySections orders completed history newest first. Keeping its first
 	// entry visible avoids blanking the meter between fights.

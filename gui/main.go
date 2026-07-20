@@ -116,6 +116,7 @@ type fakeBreakdown struct {
 type fakeFightSection struct {
 	name, status, duration string
 	current                bool
+	started                time.Time
 	combatants             []fakeCombatant
 }
 
