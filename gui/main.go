@@ -23,6 +23,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
+	"github.com/uija/eqdps/internal/xp"
 )
 
 var palette = struct {
@@ -70,6 +71,15 @@ type shell struct {
 	dpsScale      widget.Float
 	dpsOpacity    widget.Float
 	prefsDirty    bool
+	xpSnapshot    xp.Snapshot
+	parserState   string
+	allFights     []fakeFightSection
+	fightFilter   string
+	filterOpen    bool
+	filterEditor  widget.Editor
+	filterApply   widget.Clickable
+	filterClear   widget.Clickable
+	filterCancel  widget.Clickable
 	fights        []fakeFightSection
 	menus         []menu
 	rail          []railItem
@@ -228,6 +238,7 @@ func newShell(window *app.Window) *shell {
 		combatUpdates: make(chan combatUpdate, 1),
 		overlayClosed: make(chan *combatOverlay, 1),
 		fights:        fakeFights,
+		allFights:     fakeFights,
 		treeClicks:    make(map[string]*widget.Clickable),
 		expanded: map[string]bool{
 			"fight:0:You":              true,
@@ -236,13 +247,14 @@ func newShell(window *app.Window) *shell {
 		},
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
-			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true}}},
+			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}}},
 			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true}, {name: "Plane of Sky", enabled: true}, {name: "Show DPS overlay", detail: "Toggle compact current-fight window", enabled: true, action: "overlay"}}},
 			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true, action: "preferences"}}},
 			{name: "Help", items: []menuItem{{name: "Wayland overlay setup…", enabled: true, action: "wayland-help"}, {name: "About eqdps", enabled: true}}},
 		},
 		rail: []railItem{{short: "DPS", name: "Combat Log"}, {short: "SKY", name: "Plane of Sky"}, {short: "SET", name: "Settings"}},
 	}
+	result.filterEditor.SingleLine = true
 	result.mainScale.Value = settingToSlider(settings.MainFontScale, .75, 1.5)
 	result.dpsScale.Value = settingToSlider(settings.DPSFontScale, .5, 1.5)
 	result.dpsOpacity.Value = settingToSlider(settings.DPSOpacity, .35, 1)
@@ -274,6 +286,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
 		layout.Expanded(s.layoutLoadingOverlay),
+		layout.Expanded(s.layoutFilterDialog),
 		layout.Expanded(s.layoutWaylandHelp),
 	)
 }
@@ -325,13 +338,24 @@ func (s *shell) update(gtx layout.Context) {
 			s.loading = false
 		}
 		if update.fights != nil {
-			s.fights = update.fights
+			s.allFights = update.fights
+			s.applyFightFilter()
 			s.pushOverlay(update.fights)
+		}
+		if update.xp != nil {
+			s.xpSnapshot = *update.xp
+		}
+		if update.state != "" {
+			s.parserState = update.state
 		}
 		if update.status != "" {
 			s.statusText = update.status
 		}
 	default:
+	}
+	if s.filterOpen {
+		s.updateFilterDialog(gtx)
+		return
 	}
 	for index := range s.menus {
 		if s.menus[index].click.Clicked(gtx) {
@@ -458,6 +482,11 @@ func (s *shell) activateItem(item menuItem) {
 		s.showWaylandHelp()
 	case "preferences":
 		s.workspace = 2
+	case "current":
+		s.showCurrentFight()
+	case "filter":
+		s.filterEditor.SetText(s.fightFilter)
+		s.filterOpen = true
 	case "exit":
 		s.window.Perform(system.ActionClose)
 	}
@@ -772,15 +801,16 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return label(gtx, s.theme, "XP ~42.1% · 18.4%/h", unit.Sp(15), palette.muted, text.Start)
+						return label(gtx, s.theme, xpStatusText(s.xpSnapshot, s.fightFilter), unit.Sp(15), palette.muted, text.Start)
 					})
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, "PoS: 2 ready", unit.Sp(15), palette.accent, text.Start)
+					return layout.Dimensions{}
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return label(gtx, s.theme, "●  LIVE", unit.Sp(15), palette.success, text.End)
+						stateText, stateColor := parserStatus(s.parserState, s.currentLog != "")
+						return label(gtx, s.theme, stateText, unit.Sp(15), stateColor, text.End)
 					})
 				}),
 			)
