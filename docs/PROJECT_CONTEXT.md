@@ -9,9 +9,9 @@ below. The code remains the source of truth if this document becomes stale.
 - Project: `eqdps`
 - Module: `github.com/uija/eqdps`
 - License: MIT
-- Language: Go 1.26.4 as declared in `go.mod`
+- Language: Go 1.26.4 as declared in the module files
 - TUI: `github.com/rivo/tview` over `tcell`
-- Entrypoint: root `main.go`
+- Entrypoint: `tui/main.go`
 
 The application tails an EverQuest log and shows concurrent per-mob combat
 records. It keeps completed mob history, supports historical replay, and has a
@@ -24,8 +24,11 @@ intentionally not duplicated under `docs/`.
 
 | Path | Responsibility |
 | --- | --- |
-| `main.go` | CLI, TUI construction, rendering, input handling, and presentation callbacks |
-| `main_test.go` | UI layout and history-menu helper tests |
+| `tui/main.go` | CLI, TUI construction, rendering, input handling, and presentation callbacks |
+| `tui/main_test.go` | UI layout and history-menu helper tests |
+| `tui/go.mod` | Terminal frontend module and tview/tcell dependency graph |
+| `go.mod` | Shared parser and application-engine module with no UI dependencies |
+| `go.work` | Local workspace connecting the shared and TUI modules |
 | `internal/eqlog/parser.go` | Unified log records plus damage, cast, XP, aggro, and death parsing |
 | `internal/engine/log.go` | UI-independent logfile replay, live tailing, and combat/XP record dispatch |
 | `internal/eqlog/parser_test.go` | Exact production log format regressions |
@@ -58,13 +61,14 @@ lines.
 
 Log replay, live tailing, and combat/XP record dispatch live in
 `internal/engine` and must remain free of `tview`, `tcell`, and any future GUI
-dependency. `main.go` owns the terminal widgets and presentation callbacks.
+dependency. `tui/main.go` owns the terminal widgets and presentation callbacks.
 
-A future graphical frontend should be added as a nested Go module (for example
-`gui/go.mod`) rather than adding its UI dependencies to the root `go.mod`. That
-keeps the existing root/TUI build graph free of Gio and its Linux native build
-requirements. A nested module whose path remains below `github.com/uija/eqdps`
-can consume the shared `internal` packages.
+The terminal frontend is a nested module so tview and tcell are absent from the
+shared root module. A future graphical frontend should use another nested module
+(for example `gui/go.mod`) rather than adding its dependencies to either current
+module. That keeps TUI builds free of Gio and its Linux native requirements. A
+nested module whose path remains below `github.com/uija/eqdps` can consume the
+shared `internal` packages.
 
 Plane of Sky quest tracking is independent of combat replay. Once enabled, it
 maintains `CHARACTER_SERVER_PoS.json` beside the selected logfile and resumes
@@ -404,8 +408,10 @@ replaces it atomically, and replay errors remain visible in the modal.
 
 ```bash
 go test ./...
+go test ./tui/...
 go vet ./...
-go build -o /tmp/eqdps-check .
+go vet ./tui/...
+go build -o /tmp/eqdps-check ./tui
 git diff --check
 ```
 

@@ -32,16 +32,12 @@ Plane of Sky (EverQuest Legends) tracker
 
 ## Install
 
-```bash
-go install github.com/uija/eqdps@latest
-```
-
-Or build from a local checkout:
+Build the terminal application from a local checkout:
 
 ```bash
 git clone https://github.com/uija/eqdps.git
 cd eqdps
-go build .
+go build -o eqdps ./tui
 ```
 
 ## Usage
@@ -55,7 +51,7 @@ eqdps /path/to/eqlog_character_server.txt
 From a local checkout:
 
 ```bash
-go run . /path/to/eqlog_character_server.txt
+go run ./tui /path/to/eqlog_character_server.txt
 ```
 
 By default, combat live mode starts at the current end of the log file and only
@@ -196,12 +192,13 @@ Run tests:
 
 ```bash
 go test ./...
+go test ./tui/...
 ```
 
-Build:
+Build the terminal application:
 
 ```bash
-go build .
+go build -o eqdps ./tui
 ```
 
 ## License
