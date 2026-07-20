@@ -324,8 +324,8 @@ go test ./gui/...
 
 ## Thank Yous
 
-Big thank you to my Guild **Side Gigg** off Rivervale. Also many many thanks to
-Karthar for providing test data, testing the application, giving feadback,
+Big thank you to my Guild **Side Gigg** on Rivervale. Also many many thanks to
+**Karthar** for providing test data, testing the application, giving feedback,
 providing KDE fixes and beeing awesome during the development.
 
 ## License
