@@ -33,6 +33,7 @@ func (s *shell) loadLog(path string, back time.Duration) {
 	s.xpSnapshot = xp.Snapshot{}
 	s.parserState = "loading"
 	s.loading = back != 0
+	s.loadingTitle = "Loading combat history…"
 	s.loadBytes, s.loadTotal, s.loadLines = 0, 0, 0
 	s.statusText = filepathBase(path) + " · loading " + historyStatus(back) + "…"
 	go func() {
@@ -63,8 +64,9 @@ func (s *shell) loadLog(path string, back time.Duration) {
 		}
 		xpSnapshot := xpSession.SnapshotAtLatestLog()
 		s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · " + historyStatus(back), loadDone: true, xp: &xpSnapshot, state: "live"})
-		err = engine.Follow(path, limit, cancel, func(line string, _ int64) {
+		err = engine.Follow(path, limit, cancel, func(line string, endOffset int64) {
 			engine.ProcessLine(line, tracker, xpSession, combat.DefaultIdleTimeout)
+			s.processSkyLine(path, line, endOffset)
 			xpSnapshot := xpSession.SnapshotLive(time.Now())
 			s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · live", xp: &xpSnapshot, state: "live"})
 		})

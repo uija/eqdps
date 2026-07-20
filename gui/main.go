@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"gioui.org/app"
@@ -62,6 +63,7 @@ type shell struct {
 	loadBytes     int64
 	loadTotal     int64
 	loadLines     int
+	loadingTitle  string
 	overlay       *combatOverlay
 	overlayClosed chan *combatOverlay
 	waylandHelp   bool
@@ -87,6 +89,19 @@ type shell struct {
 	skyHideEmpty  bool
 	skyHideClick  widget.Clickable
 	skyList       widget.List
+	skyTracker    *skyquest.PersistentTracker
+	skyMu         sync.RWMutex
+	skyUpdates    chan skyAsyncUpdate
+	skyCancel     chan struct{}
+	skySetupOpen  bool
+	skyDenied     bool
+	skyAllow      widget.Clickable
+	skyDeny       widget.Clickable
+	skyLoading    bool
+	skyLoadBytes  int64
+	skyLoadTotal  int64
+	skyLoadLines  int
+	skyLoadTitle  string
 	fights        []fakeFightSection
 	menus         []menu
 	rail          []railItem
@@ -250,6 +265,7 @@ func newShell(window *app.Window) *shell {
 		skyDatabase:   skyDatabase,
 		skyInventory:  make(map[string]int),
 		skyList:       widget.List{List: layout.List{Axis: layout.Vertical}},
+		skyUpdates:    make(chan skyAsyncUpdate, 1),
 		treeClicks:    make(map[string]*widget.Clickable),
 		expanded: map[string]bool{
 			"fight:0:You":              true,
@@ -302,11 +318,21 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
 		layout.Expanded(s.layoutLoadingOverlay),
+		layout.Expanded(s.layoutSkySetup),
 		layout.Expanded(s.layoutWaylandHelp),
 	)
 }
 
 func (s *shell) update(gtx layout.Context) {
+	if s.skyAllow.Clicked(gtx) {
+		s.skySetupOpen = false
+		s.startSkyInitialScan()
+	}
+	if s.skyDeny.Clicked(gtx) {
+		s.skySetupOpen = false
+		s.skyDenied = true
+		s.skyMessage = "Plane of Sky tracking is disabled for this run. It will ask again next launch."
+	}
 	if s.helpClose.Clicked(gtx) {
 		s.waylandHelp = false
 		if s.rememberHelp {
@@ -368,6 +394,11 @@ func (s *shell) update(gtx layout.Context) {
 		}
 	default:
 	}
+	select {
+	case update := <-s.skyUpdates:
+		s.applySkyAsyncUpdate(update)
+	default:
+	}
 	if s.filterClear.Clicked(gtx) {
 		s.fightFilter = ""
 		s.filterEditor.SetText("")
@@ -425,8 +456,12 @@ func (s *shell) update(gtx layout.Context) {
 }
 
 func (s *shell) layoutLoadingOverlay(gtx layout.Context) layout.Dimensions {
-	if !s.loading {
+	if !s.loading && !s.skyLoading {
 		return layout.Dimensions{}
+	}
+	loadBytes, loadTotal, loadLines, loadTitle := s.loadBytes, s.loadTotal, s.loadLines, s.loadingTitle
+	if s.skyLoading {
+		loadBytes, loadTotal, loadLines, loadTitle = s.skyLoadBytes, s.skyLoadTotal, s.skyLoadLines, s.skyLoadTitle
 	}
 	paint.Fill(gtx.Ops, color.NRGBA{A: 165})
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -436,14 +471,18 @@ func (s *shell) layoutLoadingOverlay(gtx layout.Context) layout.Dimensions {
 			fill(gtx, palette.panel)
 			return layout.UniformInset(unit.Dp(22)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				progress := float32(0)
-				if s.loadTotal > 0 {
-					progress = float32(s.loadBytes) / float32(s.loadTotal)
+				if loadTotal > 0 {
+					progress = float32(loadBytes) / float32(loadTotal)
 				}
 				percent := int(progress*100 + .5)
-				detail := fmt.Sprintf("%d%% · %d lines processed", percent, s.loadLines)
+				detail := fmt.Sprintf("%d%% · %d lines processed", percent, loadLines)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return labelWeight(gtx, s.theme, "Loading combat history…", unit.Sp(20), palette.text, text.Start, font.SemiBold)
+						title := loadTitle
+						if title == "" {
+							title = "Loading combat history…"
+						}
+						return labelWeight(gtx, s.theme, title, unit.Sp(20), palette.text, text.Start, font.SemiBold)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return inset(0, unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -568,8 +607,8 @@ func (s *shell) rememberChosenFile(choice fileChoice) {
 	}
 	// Enable history loading now that a current logfile exists.
 	s.menus[1].items[1].enabled = true
-	s.loadLog(choice.path, choice.back)
 	s.loadSkyState(choice.path)
+	s.loadLog(choice.path, choice.back)
 }
 
 func historyStatus(back time.Duration) string {

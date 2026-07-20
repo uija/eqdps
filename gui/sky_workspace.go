@@ -34,38 +34,8 @@ func (s *shell) loadSkyState(logPath string) {
 	s.skyInventory = tracker.Inventory()
 	s.skyIdentity = ""
 	s.skyMessage = "Select an EverQuest logfile to load character progress."
-	if logPath == "" {
-		s.rebuildSkyRows()
-		return
-	}
-	character, server, err := skyquest.CharacterIdentity(logPath)
-	if err != nil {
-		s.skyMessage = err.Error()
-		s.rebuildSkyRows()
-		return
-	}
-	s.skyIdentity = character + " / " + server
-	exists, err := skyquest.StateExists(logPath)
-	if err != nil {
-		s.skyMessage = err.Error()
-		s.rebuildSkyRows()
-		return
-	}
-	if !exists {
-		s.skyMessage = "No saved Plane of Sky tracker state yet; showing the embedded quest catalog."
-		s.rebuildSkyRows()
-		return
-	}
-	persistent, err := skyquest.LoadPersistentTracker(logPath, s.skyDatabase)
-	if err != nil {
-		s.skyMessage = err.Error()
-		s.rebuildSkyRows()
-		return
-	}
-	s.skyProgress = persistent.QuestProgress()
-	s.skyInventory = persistent.Inventory()
-	s.skyMessage = "Loaded saved tracker state without advancing its logfile checkpoint."
 	s.rebuildSkyRows()
+	s.startSkyForLog(logPath)
 }
 
 func (s *shell) rebuildSkyRows() {

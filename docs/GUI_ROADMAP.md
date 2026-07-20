@@ -93,7 +93,7 @@ TUI.
 
 ## 5. Plane of Sky Workspace
 
-**Status:** embedded database and saved-state read-only view available
+**Status:** database view, first-use scan, checkpoint catch-up, persistence, and live updates available
 
 - Display class and quest progress, owned items, requirements, and sources.
 - Show ready-to-turn-in and completed quests.
