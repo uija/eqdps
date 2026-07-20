@@ -42,20 +42,23 @@ var palette = struct {
 }
 
 type shell struct {
-	theme      *material.Theme
-	fightList  layout.List
-	workspace  int
-	activeMenu int
-	activeSub  int
-	treeClicks map[string]*widget.Clickable
-	expanded   map[string]bool
-	window     *app.Window
-	settings   guiSettings
-	currentLog string
-	statusText string
-	fileChosen chan fileChoice
-	menus      []menu
-	rail       []railItem
+	theme         *material.Theme
+	fightList     layout.List
+	workspace     int
+	activeMenu    int
+	activeSub     int
+	treeClicks    map[string]*widget.Clickable
+	expanded      map[string]bool
+	window        *app.Window
+	settings      guiSettings
+	currentLog    string
+	statusText    string
+	fileChosen    chan fileChoice
+	combatUpdates chan combatUpdate
+	logCancel     chan struct{}
+	fights        []fakeFightSection
+	menus         []menu
+	rail          []railItem
 }
 
 type menu struct {
@@ -195,17 +198,19 @@ func newShell(window *app.Window) *shell {
 	}
 	ranges := historyRangeItems("open")
 	recents := recentMenuItems(settings)
-	return &shell{
-		theme:      theme,
-		fightList:  layout.List{Axis: layout.Vertical},
-		activeMenu: -1,
-		activeSub:  -1,
-		window:     window,
-		settings:   settings,
-		currentLog: currentLog,
-		statusText: statusText,
-		fileChosen: make(chan fileChoice, 1),
-		treeClicks: make(map[string]*widget.Clickable),
+	result := &shell{
+		theme:         theme,
+		fightList:     layout.List{Axis: layout.Vertical},
+		activeMenu:    -1,
+		activeSub:     -1,
+		window:        window,
+		settings:      settings,
+		currentLog:    currentLog,
+		statusText:    statusText,
+		fileChosen:    make(chan fileChoice, 1),
+		combatUpdates: make(chan combatUpdate, 1),
+		fights:        fakeFights,
+		treeClicks:    make(map[string]*widget.Clickable),
 		expanded: map[string]bool{
 			"fight:0:You":              true,
 			"fight:0:You:detail:Melee": true,
@@ -220,6 +225,10 @@ func newShell(window *app.Window) *shell {
 		},
 		rail: []railItem{{short: "DPS", name: "Combat Log"}, {short: "SKY", name: "Plane of Sky"}, {short: "SET", name: "Settings"}},
 	}
+	if currentLog != "" {
+		result.loadLog(currentLog, 0)
+	}
+	return result
 }
 
 func (s *shell) layout(gtx layout.Context) layout.Dimensions {
@@ -247,6 +256,16 @@ func (s *shell) update(gtx layout.Context) {
 			s.statusText = filepath.Base(s.currentLog) + " · live only"
 		} else {
 			s.statusText = "No logfile selected"
+		}
+	default:
+	}
+	select {
+	case update := <-s.combatUpdates:
+		if update.fights != nil {
+			s.fights = update.fights
+		}
+		if update.status != "" {
+			s.statusText = update.status
 		}
 	default:
 	}
@@ -326,7 +345,7 @@ func (s *shell) activateItem(item menuItem) {
 	case "recent":
 		s.rememberChosenFile(fileChoice{path: item.path})
 	case "reload":
-		s.statusText = historyStatus(item.back)
+		s.loadLog(s.currentLog, item.back)
 	case "exit":
 		s.window.Perform(system.ActionClose)
 	}
@@ -345,6 +364,7 @@ func (s *shell) rememberChosenFile(choice fileChoice) {
 	}
 	// Enable history loading now that a current logfile exists.
 	s.menus[1].items[1].enabled = true
+	s.loadLog(choice.path, choice.back)
 }
 
 func historyStatus(back time.Duration) string {
@@ -427,8 +447,11 @@ func (s *shell) layoutDamageMeter(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Rigid(separator),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return s.fightList.Layout(gtx, len(fakeFights), func(gtx layout.Context, index int) layout.Dimensions {
-				fight := fakeFights[index]
+			if len(s.fights) == 0 {
+				return s.layoutPlaceholder(gtx, "No fights yet", "Following the logfile for new combat.")
+			}
+			return s.fightList.Layout(gtx, len(s.fights), func(gtx layout.Context, index int) layout.Dimensions {
+				fight := s.fights[index]
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return s.layoutFightHeader(gtx, fight) }),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return s.layoutCombatRows(gtx, index, fight.combatants) }),

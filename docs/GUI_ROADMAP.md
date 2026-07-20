@@ -31,10 +31,16 @@ and visual direction without requiring a logfile.
 
 ## 2. Live DPS
 
+**Status:** initial logfile opening, replay, and live-follow integration available
+
 - Accept a logfile path and connect to the shared engine.
 - Follow new log entries without blocking the window.
 - Display current fights, combatants, damage, DPS, hits, crits, and duration.
 - Show useful empty, loading, and error states.
+
+The current integration remembers the last logfile, restores it in live-only
+mode at startup, and offers initial/reload ranges for one, four, eight hours, or
+the full file. Replay progress presentation remains to be added.
 
 **Complete when:** the GUI can serve as a minimal live graphical DPS meter.
 
