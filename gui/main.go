@@ -61,6 +61,7 @@ type shell struct {
 	lastMainHeight    int
 	fileChosen        chan fileChoice
 	combatUpdates     chan combatUpdate
+	combatSendMu      sync.Mutex
 	logCancel         chan struct{}
 	loading           bool
 	loadBytes         int64

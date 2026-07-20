@@ -87,16 +87,43 @@ func (s *shell) sendCombatUpdate(update combatUpdate) {
 	if update.fights != nil {
 		s.pushOverlay(update.fights)
 	}
+	s.combatSendMu.Lock()
+	defer s.combatSendMu.Unlock()
 	select {
 	case s.combatUpdates <- update:
 	default:
 		select {
-		case <-s.combatUpdates:
+		case pending := <-s.combatUpdates:
+			update = mergeCombatUpdates(pending, update)
 		default:
 		}
 		s.combatUpdates <- update
 	}
-	s.window.Invalidate()
+	if s.window != nil {
+		s.window.Invalidate()
+	}
+}
+
+func mergeCombatUpdates(pending, next combatUpdate) combatUpdate {
+	// Completion is an edge-triggered state transition. It must survive a
+	// following live snapshot or the loading modal can remain open forever.
+	next.loadDone = next.loadDone || pending.loadDone
+	if next.fights == nil {
+		next.fights = pending.fights
+	}
+	if next.status == "" {
+		next.status = pending.status
+	}
+	if next.progress == nil && !next.loadDone {
+		next.progress = pending.progress
+	}
+	if next.xp == nil {
+		next.xp = pending.xp
+	}
+	if next.state == "" {
+		next.state = pending.state
+	}
+	return next
 }
 
 func snapshotFights(tracker *combat.FightTracker) []fakeFightSection {
