@@ -45,67 +45,72 @@ var palette = struct {
 }
 
 type shell struct {
-	theme          *material.Theme
-	fightList      widget.List
-	workspace      int
-	activeMenu     int
-	activeSub      int
-	treeClicks     map[string]*widget.Clickable
-	expanded       map[string]bool
-	window         *app.Window
-	settings       guiSettings
-	currentLog     string
-	statusText     string
-	fileChosen     chan fileChoice
-	combatUpdates  chan combatUpdate
-	logCancel      chan struct{}
-	loading        bool
-	loadBytes      int64
-	loadTotal      int64
-	loadLines      int
-	loadingTitle   string
-	overlay        *combatOverlay
-	overlayClosed  chan *combatOverlay
-	waylandHelp    bool
-	openAfterHelp  bool
-	rememberHelp   bool
-	helpClose      widget.Clickable
-	mainScale      widget.Float
-	dpsScale       widget.Float
-	dpsOpacity     widget.Float
-	prefsDirty     bool
-	xpSnapshot     xp.Snapshot
-	parserState    string
-	allFights      []fakeFightSection
-	fightFilter    string
-	filterEditor   widget.Editor
-	filterClear    widget.Clickable
-	skyDatabase    skyquest.Database
-	skyProgress    []skyquest.QuestProgress
-	skyInventory   map[string]int
-	skyRows        []skyRow
-	skyIdentity    string
-	skyMessage     string
-	skyHideEmpty   bool
-	skyHideClick   widget.Clickable
-	skyStatusClick widget.Clickable
-	skyList        widget.List
-	skyTracker     *skyquest.PersistentTracker
-	skyMu          sync.RWMutex
-	skyUpdates     chan skyAsyncUpdate
-	skyCancel      chan struct{}
-	skySetupOpen   bool
-	skyDenied      bool
-	skyAllow       widget.Clickable
-	skyDeny        widget.Clickable
-	skyLoading     bool
-	skyLoadBytes   int64
-	skyLoadTotal   int64
-	skyLoadLines   int
-	skyLoadTitle   string
-	fights         []fakeFightSection
-	menus          []menu
-	rail           []railItem
+	theme           *material.Theme
+	fightList       widget.List
+	workspace       int
+	activeMenu      int
+	activeSub       int
+	treeClicks      map[string]*widget.Clickable
+	expanded        map[string]bool
+	window          *app.Window
+	settings        guiSettings
+	currentLog      string
+	statusText      string
+	fileChosen      chan fileChoice
+	combatUpdates   chan combatUpdate
+	logCancel       chan struct{}
+	loading         bool
+	loadBytes       int64
+	loadTotal       int64
+	loadLines       int
+	loadingTitle    string
+	operationCancel widget.Clickable
+	overlay         *combatOverlay
+	overlayClosed   chan *combatOverlay
+	waylandHelp     bool
+	openAfterHelp   bool
+	rememberHelp    bool
+	helpClose       widget.Clickable
+	aboutOpen       bool
+	aboutClose      widget.Clickable
+	mainScale       widget.Float
+	dpsScale        widget.Float
+	dpsOpacity      widget.Float
+	prefsDirty      bool
+	xpSnapshot      xp.Snapshot
+	parserState     string
+	allFights       []fakeFightSection
+	fightFilter     string
+	filterEditor    widget.Editor
+	filterClear     widget.Clickable
+	skyDatabase     skyquest.Database
+	skyProgress     []skyquest.QuestProgress
+	skyInventory    map[string]int
+	skyRows         []skyRow
+	skyIdentity     string
+	skyMessage      string
+	skyHideEmpty    bool
+	skyHideClick    widget.Clickable
+	skyStatusClick  widget.Clickable
+	skyNoticeText   string
+	skyNoticeUntil  time.Time
+	skyList         widget.List
+	skyTracker      *skyquest.PersistentTracker
+	skyMu           sync.RWMutex
+	skyUpdates      chan skyAsyncUpdate
+	skyCancel       chan struct{}
+	skySetupOpen    bool
+	skyDenied       bool
+	skyAllow        widget.Clickable
+	skyDeny         widget.Clickable
+	skyLoading      bool
+	skyLoadBytes    int64
+	skyLoadTotal    int64
+	skyLoadLines    int
+	skyLoadTitle    string
+	fights          []fakeFightSection
+	menus           []menu
+	rail            []railItem
 }
 
 type menu struct {
@@ -161,46 +166,11 @@ type fakeFightSection struct {
 	combatants             []fakeCombatant
 }
 
-var fakeFight = []fakeCombatant{
-	{name: "You", damage: 4789, dps: 165, hits: 56, crits: 5, active: "00:29", accent: true, details: []fakeBreakdown{
-		{name: "Melee", damage: 3213, dps: 111, hits: 48, crits: 5, active: "00:29", children: []fakeBreakdown{
-			{name: "Slashes", damage: 2112, dps: 73, hits: 32, crits: 2, active: "00:29"},
-			{name: "Strikes", damage: 461, dps: 19, hits: 6, crits: 1, active: "00:24"},
-			{name: "Kicks", damage: 430, dps: 27, hits: 5, crits: 1, active: "00:16"},
-			{name: "Smites", damage: 210, dps: 11, hits: 5, crits: 1, active: "00:19"},
-		}},
-		{name: "Procs", damage: 1536, dps: 77, hits: 51, active: "00:20", children: []fakeBreakdown{
-			{name: "Smiting Strike", damage: 1050, dps: 55, hits: 35, active: "00:19"},
-			{name: "Banish Summoned", damage: 486, dps: 486, hits: 16, active: "00:01"},
-		}},
-		{name: "Damage Shield", damage: 40, dps: 4, hits: 1, active: "00:09", children: []fakeBreakdown{
-			{name: "thorns", damage: 40, dps: 4, hits: 1, active: "00:09"},
-		}},
-	}},
-	{name: "Gigglemage", damage: 3779, dps: 130, sdps: 126, hits: 57, crits: 1, active: "00:29"},
-	{name: "Griz", damage: 3138, dps: 116, sdps: 105, hits: 105, crits: 3, active: "00:27"},
-	{name: "Moth", damage: 2918, dps: 112, sdps: 97, hits: 97, crits: 21, active: "00:26"},
-	{name: "Zabektik", damage: 571, dps: 19, sdps: 19, hits: 16, active: "00:30"},
-	{name: "a rock golem", damage: 1492, dps: 50, hits: 17, active: "00:30"},
-}
-
-var fakeFights = []fakeFightSection{
-	{name: "a rock golem", status: "current fight", duration: "00:30", current: true, combatants: fakeFight},
-	{name: "Refugee Splitpaw", status: "slain by You", duration: "00:21", combatants: []fakeCombatant{
-		{name: "You", damage: 699, dps: 33, hits: 16, active: "00:21", accent: true},
-		{name: "Refugee Splitpaw", damage: 207, dps: 10, hits: 5, active: "00:20"},
-	}},
-	{name: "a gnoll elite", status: "slain by You", duration: "00:24", combatants: []fakeCombatant{
-		{name: "You", damage: 764, dps: 32, hits: 18, crits: 1, active: "00:24", accent: true},
-		{name: "a gnoll elite", damage: 121, dps: 7, hits: 9, active: "00:18"},
-	}},
-}
-
 func main() {
 	go func() {
 		window := new(app.Window)
 		window.Option(
-			app.Title("eqdps — Gio preview"),
+			app.Title("eqdps"),
 			app.Size(unit.Dp(1050), unit.Dp(700)),
 			app.MinSize(unit.Dp(720), unit.Dp(460)),
 		)
@@ -261,24 +231,18 @@ func newShell(window *app.Window) *shell {
 		fileChosen:    make(chan fileChoice, 1),
 		combatUpdates: make(chan combatUpdate, 1),
 		overlayClosed: make(chan *combatOverlay, 1),
-		fights:        fakeFights,
-		allFights:     fakeFights,
 		skyDatabase:   skyDatabase,
 		skyInventory:  make(map[string]int),
 		skyList:       widget.List{List: layout.List{Axis: layout.Vertical}},
 		skyUpdates:    make(chan skyAsyncUpdate, 1),
 		treeClicks:    make(map[string]*widget.Clickable),
-		expanded: map[string]bool{
-			"fight:0:You":              true,
-			"fight:0:You:detail:Melee": true,
-			"fight:0:You:detail:Procs": true,
-		},
+		expanded:      make(map[string]bool),
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
-			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}}},
+			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}, {name: "Reset session", enabled: currentLog != "", action: "reset"}}},
 			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true, action: "damage"}, {name: "Plane of Sky", enabled: true, action: "sky"}, {name: "Show DPS overlay", detail: "Toggle compact current-fight window", enabled: true, action: "overlay"}}},
 			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true, action: "preferences"}}},
-			{name: "Help", items: []menuItem{{name: "Wayland overlay setup…", enabled: true, action: "wayland-help"}, {name: "About eqdps", enabled: true}}},
+			{name: "Help", items: []menuItem{{name: "Wayland overlay setup…", enabled: true, action: "wayland-help"}, {name: "About eqdps", enabled: true, action: "about"}}},
 		},
 		rail: []railItem{{short: "DPS", name: "Combat Log"}, {short: "SKY", name: "Plane of Sky"}, {short: "SET", name: "Settings"}},
 	}
@@ -321,10 +285,14 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Expanded(s.layoutLoadingOverlay),
 		layout.Expanded(s.layoutSkySetup),
 		layout.Expanded(s.layoutWaylandHelp),
+		layout.Expanded(s.layoutAbout),
 	)
 }
 
 func (s *shell) update(gtx layout.Context) {
+	if s.operationCancel.Clicked(gtx) {
+		s.cancelCurrentOperation()
+	}
 	if s.skyAllow.Clicked(gtx) {
 		s.skySetupOpen = false
 		s.startSkyInitialScan()
@@ -348,6 +316,9 @@ func (s *shell) update(gtx layout.Context) {
 			s.openOverlay()
 			s.setOverlayVisible(true)
 		}
+	}
+	if s.aboutClose.Clicked(gtx) {
+		s.aboutOpen = false
 	}
 	select {
 	case closed := <-s.overlayClosed:
@@ -502,10 +473,41 @@ func (s *shell) layoutLoadingOverlay(gtx layout.Context) layout.Dimensions {
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return label(gtx, s.theme, detail, unit.Sp(15), palette.muted, text.Start)
 					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.SE.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return s.operationCancel.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								pointer.CursorPointer.Add(gtx.Ops)
+								return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return labelWeight(gtx, s.theme, "Cancel", unit.Sp(15), palette.accent, text.Middle, font.SemiBold)
+								})
+							})
+						})
+					}),
 				)
 			})
 		})
 	})
+}
+
+func (s *shell) cancelCurrentOperation() {
+	if s.skyLoading {
+		if s.skyCancel != nil {
+			close(s.skyCancel)
+			s.skyCancel = nil
+		}
+		s.skyLoading = false
+		s.skyMessage = "Plane of Sky scan cancelled."
+		return
+	}
+	if s.loading {
+		if s.logCancel != nil {
+			close(s.logCancel)
+			s.logCancel = nil
+		}
+		s.loading = false
+		s.parserState = ""
+		s.statusText = "Combat history loading cancelled"
+	}
 }
 
 func historyRangeItems(action string) []menuItem {
@@ -546,6 +548,8 @@ func (s *shell) activateItem(item menuItem) {
 		s.toggleOverlay()
 	case "wayland-help":
 		s.showWaylandHelp()
+	case "about":
+		s.aboutOpen = true
 	case "preferences":
 		s.workspace = 2
 	case "damage":
@@ -556,9 +560,54 @@ func (s *shell) activateItem(item menuItem) {
 		s.showCurrentFight()
 	case "filter":
 		s.workspace = 0
+	case "reset":
+		if s.currentLog != "" {
+			s.fightFilter = ""
+			s.filterEditor.SetText("")
+			s.loadLog(s.currentLog, 0)
+			s.statusText = filepath.Base(s.currentLog) + " · session reset"
+		}
 	case "exit":
 		s.window.Perform(system.ActionClose)
 	}
+}
+
+func (s *shell) layoutAbout(gtx layout.Context) layout.Dimensions {
+	if !s.aboutOpen {
+		return layout.Dimensions{}
+	}
+	paint.Fill(gtx.Ops, color.NRGBA{A: 175})
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Min = image.Pt(gtx.Dp(unit.Dp(520)), gtx.Dp(unit.Dp(300)))
+		gtx.Constraints.Max = gtx.Constraints.Min
+		return outline(gtx, palette.line, func(gtx layout.Context) layout.Dimensions {
+			fill(gtx, palette.panel)
+			return layout.UniformInset(unit.Dp(24)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				const description = "A live combat meter and Plane of Sky quest tracker built primarily for EverQuest Legends.\n\nThe graphical and terminal frontends share the same combat, experience, and quest parsers.\n\nLicensed under the MIT License."
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return labelWeight(gtx, s.theme, "eqdps", unit.Sp(24), palette.text, text.Start, font.SemiBold)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return label(gtx, s.theme, description, unit.Sp(15), palette.text, text.Start)
+						})
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return s.aboutClose.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								pointer.CursorPointer.Add(gtx.Ops)
+								fill(gtx, palette.panelAlt)
+								return layout.UniformInset(unit.Dp(10)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return labelWeight(gtx, s.theme, "Close", unit.Sp(16), palette.accent, text.Middle, font.SemiBold)
+								})
+							})
+						})
+					}),
+				)
+			})
+		})
+	})
 }
 
 func (s *shell) layoutWaylandHelp(gtx layout.Context) layout.Dimensions {
@@ -612,6 +661,7 @@ func (s *shell) rememberChosenFile(choice fileChoice) {
 	}
 	// Enable history loading now that a current logfile exists.
 	s.menus[1].items[1].enabled = true
+	s.menus[1].items[3].enabled = true
 	s.loadSkyState(choice.path)
 	s.loadLog(choice.path, choice.back)
 }
@@ -645,7 +695,7 @@ func (s *shell) layoutMenuBar(gtx layout.Context) layout.Dimensions {
 		}
 		children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return label(gtx, s.theme, "GUI SHELL PREVIEW", unit.Sp(15), palette.muted, text.End)
+				return label(gtx, s.theme, "EVERQUEST LEGENDS", unit.Sp(15), palette.muted, text.End)
 			})
 		}))
 		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
@@ -878,13 +928,22 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					ready := s.skyReadyCount()
 					foreground := palette.muted
+					status := fmt.Sprintf("PoS: %d ready", ready)
 					if ready > 0 {
 						foreground = skyReadyColor
 					}
+					notice := !s.skyNoticeUntil.IsZero() && time.Now().Before(s.skyNoticeUntil)
+					if notice {
+						status = s.skyNoticeText
+						gtx.Execute(op.InvalidateCmd{At: s.skyNoticeUntil})
+					}
 					return s.skyStatusClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						pointer.CursorPointer.Add(gtx.Ops)
+						if notice {
+							fill(gtx, color.NRGBA{R: 31, G: 65, B: 39, A: 255})
+						}
 						return inset(unit.Dp(18), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return label(gtx, s.theme, fmt.Sprintf("PoS: %d ready", ready), unit.Sp(15), foreground, text.Start)
+							return label(gtx, s.theme, status, unit.Sp(15), foreground, text.Start)
 						})
 					})
 				}),

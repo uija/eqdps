@@ -54,7 +54,7 @@ From a local checkout:
 go run ./tui /path/to/eqlog_character_server.txt
 ```
 
-### Graphical preview
+### Graphical frontend
 
 The in-development Gio frontend is isolated from the terminal module and can
 be run from a checkout with:
@@ -65,6 +65,11 @@ go run ./gui
 
 Open the compact current-fight window through **View → Show DPS overlay**. Its
 visible/hidden state is remembered between launches.
+
+Combat history replays and large Plane of Sky catch-ups show cancellable
+progress. **Combat → Reset session** clears the current combat and XP session
+and resumes at the end of the selected logfile. A newly completed Plane of Sky
+item set is announced in the clickable status segment without blocking combat.
 
 #### DPS overlay on Wayland
 

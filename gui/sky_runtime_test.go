@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/uija/eqdps/internal/skyquest"
 )
@@ -49,5 +50,28 @@ func TestSkyAsyncUpdateIgnoresPreviousLogfile(t *testing.T) {
 func TestFormatSkyBytes(t *testing.T) {
 	if got := formatSkyBytes(2 * 1024 * 1024); got != "2.0 MiB" {
 		t.Fatalf("unexpected byte text: %q", got)
+	}
+}
+
+func TestNewReadyQuestCreatesTemporaryNotice(t *testing.T) {
+	before := map[string]struct{}{}
+	shell := shell{skyProgress: []skyquest.QuestProgress{{
+		Class: "Bard", Quest: skyquest.Quest{Name: "Test of Voice"}, Ready: true,
+	}}}
+	shell.notifyNewReadyQuests(before)
+	if shell.skyNoticeText != "PoS: 1 ready · New turn-in available" {
+		t.Fatalf("unexpected notice: %q", shell.skyNoticeText)
+	}
+	if !shell.skyNoticeUntil.After(time.Now()) {
+		t.Fatal("expected temporary notice expiration in the future")
+	}
+}
+
+func TestExistingReadyQuestDoesNotCreateAnotherNotice(t *testing.T) {
+	progress := skyquest.QuestProgress{Class: "Bard", Quest: skyquest.Quest{Name: "Test of Voice"}, Ready: true}
+	shell := shell{skyProgress: []skyquest.QuestProgress{progress}}
+	shell.notifyNewReadyQuests(shell.skyReadyQuestKeys())
+	if shell.skyNoticeText != "" {
+		t.Fatalf("unexpected repeat notice: %q", shell.skyNoticeText)
 	}
 }

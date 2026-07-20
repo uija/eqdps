@@ -30,4 +30,5 @@ go.work.sum
 # .idea/
 # .vscode/
 eqlog_*.txt
+*_PoS.json
 images/

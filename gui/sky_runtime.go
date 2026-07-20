@@ -6,6 +6,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gioui.org/font"
 	"gioui.org/io/pointer"
@@ -27,6 +28,7 @@ type skyAsyncUpdate struct {
 	message  string
 	err      error
 	done     bool
+	live     bool
 }
 
 func (s *shell) startSkyForLog(logPath string) {
@@ -143,7 +145,7 @@ func (s *shell) processSkyLine(logPath, line string, endOffset int64) {
 		s.sendSkyUpdate(skyAsyncUpdate{path: logPath, err: err})
 		return
 	}
-	s.sendSkyUpdate(skyAsyncUpdate{path: logPath, tracker: s.skyTracker})
+	s.sendSkyUpdate(skyAsyncUpdate{path: logPath, tracker: s.skyTracker, live: true})
 }
 
 func (s *shell) sendSkyUpdate(update skyAsyncUpdate) {
@@ -177,10 +179,42 @@ func (s *shell) applySkyAsyncUpdate(update skyAsyncUpdate) {
 		return
 	}
 	if update.tracker != nil {
+		before := s.skyReadyQuestKeys()
 		s.applySkySnapshot(update.tracker, update.message)
+		if update.live {
+			s.notifyNewReadyQuests(before)
+		}
 	} else if update.message != "" {
 		s.skyMessage = update.message
 	}
+}
+
+func (s *shell) skyReadyQuestKeys() map[string]struct{} {
+	ready := make(map[string]struct{})
+	for _, progress := range s.skyProgress {
+		if progress.Ready {
+			ready[progress.Class+"\x00"+progress.Quest.Name] = struct{}{}
+		}
+	}
+	return ready
+}
+
+func (s *shell) notifyNewReadyQuests(before map[string]struct{}) {
+	newReady := 0
+	for key := range s.skyReadyQuestKeys() {
+		if _, existed := before[key]; !existed {
+			newReady++
+		}
+	}
+	if newReady == 0 {
+		return
+	}
+	label := "New turn-in available"
+	if newReady > 1 {
+		label = fmt.Sprintf("%d new turn-ins available", newReady)
+	}
+	s.skyNoticeText = fmt.Sprintf("PoS: %d ready · %s", s.skyReadyCount(), label)
+	s.skyNoticeUntil = time.Now().Add(8 * time.Second)
 }
 
 func (s *shell) applySkySnapshot(tracker *skyquest.PersistentTracker, message string) {

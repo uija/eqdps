@@ -5,7 +5,7 @@ existing TUI remains functional and keeps its independent dependency graph.
 Both frontends consume the shared parser and application packages from the
 root module.
 
-## Running the Current Preview
+## Running the Graphical Frontend
 
 From the repository root:
 
@@ -13,25 +13,25 @@ From the repository root:
 go run ./gui
 ```
 
-The current preview opens and remembers EverQuest logfiles, replays selected
+The graphical frontend opens and remembers EverQuest logfiles, replays selected
 history ranges with progress, follows live combat, and renders shared parser
 results in the graphical combat tree.
 
 ## 1. Application Shell
 
-**Status:** initial preview available
+**Status:** complete
 
 - Create the isolated Gio module and executable.
 - Establish the dark visual theme.
 - Add a text menu bar, flat workspace rail, and bottom status bar.
-- Render a placeholder DPS table from fake data.
+- Render useful empty, loading, and error states before combat data exists.
 
 **Complete when:** the resizable shell demonstrates the intended navigation
 and visual direction without requiring a logfile.
 
 ## 2. Live DPS
 
-**Status:** initial logfile opening, replay, and live-follow integration available
+**Status:** functional live combat view available
 
 - Accept a logfile path and connect to the shared engine.
 - Follow new log entries without blocking the window.
@@ -82,11 +82,14 @@ may prevent reliable stacking or placement.
 
 ## 4. Combat Feature Parity
 
+**Status:** core parity available; desktop polish remains
+
 - Show concurrent active fights and completed history.
 - Add expandable melee, spell, proc, DoT, pet, and damage-shield details.
 - Add filtering and history replay ranges.
 - Reuse progress reporting and cancellation for large replays.
 - Expose every operation through visible menus or controls.
+- Reset the live combat and XP session without reopening the application.
 
 **Complete when:** normal combat analysis no longer requires returning to the
 TUI.
@@ -98,7 +101,8 @@ TUI.
 - Display class and quest progress, owned items, requirements, and sources.
 - Show ready-to-turn-in and completed quests.
 - Support hiding unstarted quests.
-- Reuse initial scan, persistence, checkpoint catch-up, and notifications.
+- Reuse initial scan, persistence, checkpoint catch-up, and nonblocking
+  ready-to-turn-in notifications.
 
 **Complete when:** the graphical tracker provides the same practical Plane of
 Sky workflow as the TUI.
