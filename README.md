@@ -56,6 +56,11 @@ go build -o eqdps ./tui
 The graphical frontend uses Gio and requires native window-system development
 libraries on Linux.
 
+Windows testers can download the manually generated GUI executable from the
+[v0.1.0 GitHub release](https://github.com/uija/eqdps/releases/tag/v0.1.0).
+This is an early testing release, so reports from different Windows systems are
+welcome.
+
 #### Fedora Build Dependencies
 
 Install Go and the libraries required to compile Gio:
@@ -166,8 +171,10 @@ Its visible or hidden state is remembered between launches. The overlay follows
 the mob most recently attacked directly by `You`, remains independent of main
 window visibility, and clears after the configured combat idle timeout.
 
-The small handle in the top-right corner moves the borderless overlay. Native
-always-on-top, opacity, and placement support varies by desktop environment.
+The small handle in the top-right corner moves the borderless overlay. On
+Windows, eqdps applies native always-on-top behavior and remembers overlay
+opacity, size, and position. On Linux, these behaviors vary by desktop
+environment.
 The overlay window always uses this stable title for compositor rules:
 
 ```text

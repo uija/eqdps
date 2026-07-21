@@ -17,13 +17,18 @@ The application tails an EverQuest log and shows concurrent per-mob combat
 records. It keeps completed mob history, supports historical replay, and has a
 plain-text mode for parser comparisons.
 
-## Active Next Task
+## Current Status
 
-The frontend separation and Linux GUI pass are complete on branch
-`refactor/frontend-separation`. The next session is the Windows 11 GUI pass.
-Read [`WINDOWS_HANDOFF.md`](WINDOWS_HANDOFF.md) before changing code; it records
-the current window architecture, real-system validation order, known Windows
-settings-replacement risk, native-opacity work, and artifact checklist.
+The frontend separation plus the initial Linux and Windows GUI passes are
+complete on branch `refactor/frontend-separation`. Native Windows overlay
+opacity and position restoration, repeated settings saves, Windows defaults,
+and embedded icons are implemented. The GUI ran stably during direct Windows
+11 testing, and a manually generated executable is available in the GitHub
+`v0.1.0` release for wider testing.
+
+Read [`WINDOWS_HANDOFF.md`](WINDOWS_HANDOFF.md) before changing native window
+code. Packaging, version metadata, automated releases, and broader volunteer
+feedback remain future work.
 
 The primary sample corpus is `eqlog_Wyrmberg_rivervale.txt`. It is large and is
 intentionally not duplicated under `docs/`.

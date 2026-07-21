@@ -1,8 +1,10 @@
-# Windows 11 GUI Handoff
+# Windows 11 GUI Status
 
-This is the starting point for the Windows 11 implementation and validation
-pass. The active branch is `refactor/frontend-separation`. Pull it before
-starting:
+The first Windows 11 implementation and validation pass is complete. The GUI
+ran stably during direct Windows testing, and a manually generated executable
+was published with the GitHub `v0.1.0` release for wider testing.
+
+To continue development from the active branch:
 
 ```powershell
 git switch refactor/frontend-separation
@@ -24,7 +26,9 @@ the `gui` module.
 - `gui/overlay.go` owns a separate Gio window and a separate text shaper. It
   updates independently when the main window is hidden or minimized.
 - The overlay requests `app.Decorated(false)` and `app.TopMost(true)`, has an
-  internal top-right drag handle, and remembers its size.
+  internal top-right drag handle, and remembers its size and Windows position.
+- Native Windows code applies the saved overlay opacity and position without a
+  C compiler dependency.
 - Overlay target selection follows the latest direct local-player target.
   Passive damage, ripostes, DoT ticks, unmatched procs, and rapid mirrored hits
   do not cause immediate focus changes.
@@ -33,7 +37,9 @@ the `gui` module.
 - `gui/sky_runtime.go` provides first-use Plane of Sky scanning, saved-offset
   catch-up, live updates, persistence, cancellation, and ready notifications.
 - `gui/settings.go` stores state below the directory returned by
-  `os.UserConfigDir()`; on Windows this is normally under `%AppData%`.
+  `os.UserConfigDir()`; on Windows this is normally under `%AppData%`. Its
+  replacement fallback supports repeated saves on Windows.
+- Windows application icons are embedded in the generated executable.
 
 The stable overlay title is:
 
@@ -41,9 +47,9 @@ The stable overlay title is:
 eqdps — Current Fight
 ```
 
-## First Windows Run
+## Windows Regression Checklist
 
-Validate the existing behavior before adding native code:
+Recheck the following when changing window or settings behavior:
 
 1. Start `go run ./gui` and open an EverQuest logfile.
 2. Confirm that the file chooser, recent-file menu, history ranges, and replay
@@ -61,38 +67,27 @@ Validate the existing behavior before adding native code:
 8. Exercise Plane of Sky consent, catch-up cancellation, saved state, the SKY
    table, and the clickable `PoS: N ready` status segment.
 
-## Known Windows Work
+## Implemented Windows Work
 
 ### Settings Replacement
 
-`gui/settings.go` currently finishes an atomic save with `os.Rename` over the
-existing `gui.json`. Windows does not replace an existing destination with
-`os.Rename`. Plane of Sky persistence already contains a Windows-aware replace
-pattern in `internal/skyquest/persistence.go`; apply or extract the same safe
-behavior for GUI settings and add a regression test before relying on repeated
-preference saves.
+`gui/settings.go` falls back to removing the destination before renaming when
+Windows refuses to replace an existing `gui.json`. Regression tests cover
+initial and repeated replacement.
 
 ### Native Overlay Opacity
 
-`nativeOpacityAvailable()` in `gui/preferences.go` currently returns `false` on
-every platform. The opacity value is stored but is not applied by eqdps. During
-the Windows pass:
-
-- enable the slider only when native support is actually available;
-- apply opacity to the overlay window, not the main window;
-- update a visible overlay immediately while the slider moves;
-- restore the saved value when reopening or restarting;
-- prefer a Go/Win32 implementation that does not introduce a C compiler
-  requirement for ordinary Windows builds.
-
-Gio does not expose portable top-level screen coordinates or a documented
-native window handle. Inspect the Windows backend and choose the smallest
-stable integration before designing position persistence around it.
+The Windows implementation captures the native handle from Gio's
+`app.Win32ViewEvent`, applies layered-window opacity to the overlay only, and
+updates a visible overlay as its preference changes. The value is restored on
+reopen and restart. It uses `golang.org/x/sys/windows`, with no C compiler
+requirement.
 
 ### Window Behavior
 
-Gio documents `TopMost` support on Windows, but it still needs real validation
-over the EverQuest client. Check:
+The borderless, topmost overlay, internal drag handle, saved position, opacity,
+and settings restoration worked during the initial Windows 11 validation.
+Continue checking:
 
 - whether `Decorated(false)` removes all standard decoration;
 - whether the internal `system.ActionMove` drag handle moves the window;
@@ -100,21 +95,21 @@ over the EverQuest client. Check:
 - focus behavior when the overlay opens and while EverQuest is active;
 - multi-monitor DPI and restored-size behavior.
 
-If native Windows position persistence is added, keep it platform-specific.
-Wayland positioning must remain compositor-managed.
+Windows position handling remains platform-specific. Wayland positioning is
+still compositor-managed.
 
 ### Windows Artifact
 
-After runtime behavior is stable, test a GUI-subsystem build that does not open
-a console window:
+Build a GUI-subsystem executable that does not open a console window:
 
 ```powershell
 go build -ldflags="-H=windowsgui" -o eqdps-gui.exe ./gui
 ```
 
-Application icon and version metadata can follow. Release automation is
-intentionally deferred until the Windows artifact and packaging choices are
-settled; Linux-only automation is not required first.
+Application icons are embedded through generated Windows resources. The
+`v0.1.0` executable was built and uploaded manually for volunteer testing.
+Version metadata, packaging, and release automation remain future work; a
+Linux-only release workflow is not required first.
 
 ## Verification Before Committing
 
@@ -134,4 +129,3 @@ git diff --check
 
 Also perform the real-window checks above. Unit tests cannot establish native
 topmost, opacity, focus, drag, resize, DPI, or console-subsystem behavior.
-

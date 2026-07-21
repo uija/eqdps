@@ -46,7 +46,7 @@ the full file with replay progress.
 
 ## 3. DPS Overlay
 
-**Status:** functional on Linux with compositor-specific setup; Windows validation pending
+**Status:** functional on Linux and Windows; Linux setup is compositor-specific
 
 Gio exposes native topmost behavior on Windows and macOS. Wayland compositors
 control floating, stacking, opacity, and placement themselves. For Hyprland
@@ -77,8 +77,8 @@ last dragged position; the rule therefore provides a stable chosen position.
   the configurable combat idle timeout.
 - Wayland stacking, opacity, and screen position remain compositor-managed.
   Hyprland and KDE are documented; GNOME has a per-window manual workflow.
-- Native Windows topmost behavior and opacity still require validation and
-  implementation during the Windows pass.
+- Native Windows topmost behavior, opacity, and position restoration are
+  implemented and passed the initial Windows 11 validation.
 
 **Complete when:** the overlay can remain legible over EverQuest while the game
 is being played. Wayland support remains best effort because compositor rules
@@ -116,8 +116,10 @@ Sky workflow as the TUI.
 - Logfile selection, recent files, saved preferences, and remembered window
   sizes are implemented.
 - Fedora build requirements and Linux compositor setup are documented.
-- Application icons and desktop metadata remain optional polish.
-- A Windows GUI build without a console window remains pending.
+- Application icons are embedded in Windows builds; broader desktop metadata
+  remains optional polish.
+- A console-free Windows GUI executable is available in the manually published
+  `v0.1.0` tester release.
 - GUI/TUI snapshot comparisons and a final real-log validation pass remain
   useful before release.
 - Release automation is intentionally deferred until Windows packaging is
@@ -126,8 +128,8 @@ Sky workflow as the TUI.
 **Complete when:** ordinary Windows users can install and operate the GUI
 without terminal knowledge.
 
-The concrete Windows validation order, known settings-save issue, native
-opacity work, and artifact checklist are maintained in
+The implemented Windows behavior, regression checklist, and remaining artifact
+work are maintained in
 [`WINDOWS_HANDOFF.md`](WINDOWS_HANDOFF.md).
 
 ## Development Order
