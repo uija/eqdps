@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">eqdps application icon</title>
+  <desc id="desc">A gold EQ damage-meter monogram on a dark rounded square.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#24272a"/>
+      <stop offset="1" stop-color="#121416"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="102" y1="112" x2="424" y2="408" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e0c270"/>
+      <stop offset="0.5" stop-color="#be9b4a"/>
+      <stop offset="1" stop-color="#8f6c28"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="104" fill="url(#background)"/>
+  <rect x="30" y="30" width="452" height="452" rx="91" fill="none" stroke="#393d41" stroke-width="4"/>
+
+  <!-- E shaped like three damage-meter rows. -->
+  <path
+    d="M96 124c0-11 9-20 20-20h142c11 0 20 9 20 20v18c0 11-9 20-20 20H154v65h78c11 0 20 9 20 20v18c0 11-9 20-20 20h-78v65h104c11 0 20 9 20 20v18c0 11-9 20-20 20H116c-11 0-20-9-20-20V124Z"
+    fill="url(#gold)"
+  />
+
+  <!-- Q doubles as a combat target. -->
+  <circle cx="330" cy="246" r="112" fill="#121416" stroke="url(#gold)" stroke-width="48"/>
+  <circle cx="330" cy="246" r="58" fill="none" stroke="#393d41" stroke-width="4"/>
+  <path d="M350 319 423 392" fill="none" stroke="url(#gold)" stroke-width="48" stroke-linecap="round"/>
+
+  <!-- Small DPS pulse gives the mark a combat-meter character. -->
+  <path d="M291 247h25l14-34 20 68 15-34h17" fill="none" stroke="#e1e2de" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
