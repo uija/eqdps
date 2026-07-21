@@ -19,6 +19,12 @@ recent history to compare parses or investigate combat detection.
 
 ![eqdps Plane of Sky tracker](img/Screenshot-2026-07-16_17-11-41.png)
 
+**Windowed DPS screen**
+![eqdps windowed interface](img/Screenshot-2026-07-21_08-37-51.png)
+
+**Windowed DPS overlay**
+![eqdps windowed interface](img/Screenshot-2026-07-21_08-39-26.png)
+
 ## Features
 
 - Live EverQuest log tailing
