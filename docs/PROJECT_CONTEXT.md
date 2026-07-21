@@ -17,6 +17,14 @@ The application tails an EverQuest log and shows concurrent per-mob combat
 records. It keeps completed mob history, supports historical replay, and has a
 plain-text mode for parser comparisons.
 
+## Active Next Task
+
+The frontend separation and Linux GUI pass are complete on branch
+`refactor/frontend-separation`. The next session is the Windows 11 GUI pass.
+Read [`WINDOWS_HANDOFF.md`](WINDOWS_HANDOFF.md) before changing code; it records
+the current window architecture, real-system validation order, known Windows
+settings-replacement risk, native-opacity work, and artifact checklist.
+
 The primary sample corpus is `eqlog_Wyrmberg_rivervale.txt`. It is large and is
 intentionally not duplicated under `docs/`.
 
@@ -44,6 +52,8 @@ intentionally not duplicated under `docs/`.
 | `internal/skyquest/persistence.go` | Character state, initial scan, and byte-offset checkpoints |
 | `tools/skyquestdb/main.go` | Regenerates the embedded database from EQL Wiki |
 | `README.md` | User-facing installation and usage |
+| `docs/GUI_ROADMAP.md` | Graphical frontend status and remaining release work |
+| `docs/WINDOWS_HANDOFF.md` | Windows 11 implementation and native-behavior checklist |
 | `docs/PARSER_RECHECK.md` | Full-corpus parser quality audit procedure |
 
 ## Runtime Data Flow

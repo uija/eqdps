@@ -311,6 +311,7 @@ duration and is hidden when it is within ten percent of DPS.
 Project documentation:
 
 - [GUI roadmap](docs/GUI_ROADMAP.md)
+- [Windows 11 GUI handoff](docs/WINDOWS_HANDOFF.md)
 - [Parser recheck guide](docs/PARSER_RECHECK.md)
 - [Project context and engineering handoff](docs/PROJECT_CONTEXT.md)
 

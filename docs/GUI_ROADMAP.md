@@ -126,6 +126,10 @@ Sky workflow as the TUI.
 **Complete when:** ordinary Windows users can install and operate the GUI
 without terminal knowledge.
 
+The concrete Windows validation order, known settings-save issue, native
+opacity work, and artifact checklist are maintained in
+[`WINDOWS_HANDOFF.md`](WINDOWS_HANDOFF.md).
+
 ## Development Order
 
 ```text
