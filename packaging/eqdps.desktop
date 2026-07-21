@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=eqdps
+Comment=EverQuest Legends combat meter and Plane of Sky quest tracker
+Exec=eqdps-gui
+Icon=eqdps
+Terminal=false
+Categories=Game;

@@ -49,37 +49,83 @@ git clone https://github.com/uija/eqdps.git
 cd eqdps
 ```
 
-### Terminal Frontend
+### Build with Make
 
-The terminal frontend has no graphical toolkit dependencies:
+The supported source-build workflow uses the repository Makefile. Build both
+Linux frontends into `dist/`:
 
 ```bash
-go build -o eqdps ./tui
+make
 ```
 
-### Graphical Frontend
+Build only one frontend when needed:
 
-The graphical frontend uses Gio and requires native window-system development
-libraries on Linux.
+```bash
+make gui
+make tui
+```
+
+The terminal frontend has no graphical toolkit dependencies. The graphical
+frontend uses Gio and requires native window-system development libraries on
+Linux.
+
+Install both Linux frontends, the application-menu entry, and the scalable icon
+system-wide:
+
+```bash
+sudo make install
+```
+
+For an installation below the current user's `~/.local` directory instead:
+
+```bash
+make install PREFIX=~/.local
+```
+
+Remove the files with the same installation prefix:
+
+```bash
+sudo make uninstall
+make uninstall PREFIX=~/.local
+```
+
+Other useful targets are `make test`, `make clean`, and `make windows`. The
+Windows target creates stripped amd64 GUI and TUI executables in `dist/` without
+changing the host Go environment or requiring MinGW or Clang.
+
+### Windows Test Release
 
 Windows testers can download the manually generated GUI executable from the
 [v0.1.0 GitHub release](https://github.com/uija/eqdps/releases/tag/v0.1.0).
 This is an early testing release, so reports from different Windows systems are
 welcome.
 
-#### Fedora Build Dependencies
+### Fedora Build Dependencies
 
 Install Go and the libraries required to compile Gio:
 
 ```bash
-sudo dnf install golang
+sudo dnf install golang make
 sudo dnf install gcc pkgconf-pkg-config libxkbcommon-devel wayland-devel vulkan-loader-devel libX11-devel libglvnd-devel libxkbcommon-x11-devel libXcursor-devel libXfixes-devel
 ```
 
-Then build the GUI from the repository root:
+The TUI-only target needs Go and Make but does not need the Gio libraries.
+
+### Manual Builds
+
+The equivalent direct Go commands remain available when Make is unavailable.
+Build the Linux frontends manually from the repository root:
 
 ```bash
 go build -o eqdps-gui ./gui
+go build -o eqdps ./tui
+```
+
+Cross-compile stripped Windows amd64 executables manually:
+
+```bash
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H=windowsgui" -o eqdps-gui-windows-amd64.exe ./gui
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o eqdps-tui-windows-amd64.exe ./tui
 ```
 
 ## Terminal Frontend
