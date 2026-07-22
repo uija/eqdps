@@ -118,6 +118,30 @@ sudo dnf install gcc pkgconf-pkg-config libxkbcommon-devel wayland-devel vulkan-
 
 The TUI-only target needs Go and Make but does not need the Gio libraries.
 
+### Ubuntu, Debian, and Mint Build Dependencies
+
+Install Go, Make, and the libraries required to compile Gio:
+
+```bash
+sudo apt install \
+    golang-go \
+    make \
+    gcc \
+    pkg-config \
+    libxkbcommon-dev \
+    libwayland-dev \
+    libvulkan-dev \
+    libx11-dev \
+    libx11-xcb-dev \
+    libglvnd-dev \
+    libxkbcommon-x11-dev \
+    libxcursor-dev \
+    libxfixes-dev \
+    build-essential
+```
+
+As on Fedora, the TUI-only target does not need the Gio development libraries.
+
 ### Manual Builds
 
 The equivalent direct Go commands remain available when Make is unavailable.
@@ -389,6 +413,25 @@ go test ./tui/...
 go test ./gui/...
 ```
 
+## Plane of Sky Data Attribution
+
+The embedded Plane of Sky quest dataset in
+`internal/skyquest/plane_of_sky_quests.json` is derived from the
+[Plane of Sky class-quest data](https://eqlwiki.com/Plane_of_Sky#Plane_of_Sky_Class_Quests)
+and related class and item pages maintained by the
+[EQL Wiki contributors](https://eqlwiki.com/). The imported information includes
+quest names, quest givers, required items, rewards, and item sources. It has
+been extracted into structured JSON, normalized, and supplemented with
+corrections observed in EverQuest Legends logs.
+
+EQL Wiki states in its
+[general disclaimer and copyright notice](https://eqlwiki.com/EQLWiki%3AGeneral_disclaimer)
+that its content is available under the
+[Creative Commons Attribution-ShareAlike 4.0 International license](https://creativecommons.org/licenses/by-sa/4.0/)
+unless otherwise noted. The EQL Wiki-derived dataset and adaptations of that
+data are therefore provided under CC BY-SA 4.0. The application source code
+remains licensed under MIT.
+
 ## Thank Yous
 
 Big thank you to my Guild **Side Gigg** on Rivervale. Also many many thanks to
@@ -397,4 +440,6 @@ providing KDE fixes and beeing awesome during the development.
 
 ## License
 
-MIT
+The application source code is licensed under the MIT License. The embedded
+EQL Wiki-derived Plane of Sky dataset is licensed under CC BY-SA 4.0 as
+described above.
