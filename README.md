@@ -11,6 +11,12 @@ recent history to compare parses or investigate combat detection.
 
 `Because I am lazy and wanted to play EverQuest Legends Open Beta, Codex did most of the work.`
 
+## Download
+
+You can download the latest precompiled versions of the GUI Version for Windows in the [Release section](https://github.com/uija/eqdps/releases/tag/v0.1.1).
+
+Linux users need to build theirself.
+
 ## Screenshots
 
 `eqdps` can run as a compact terminal application or as a graphical desktop
