@@ -11,19 +11,27 @@ recent history to compare parses or investigate combat detection.
 
 `Because I am lazy and wanted to play EverQuest Legends Open Beta, Codex did most of the work.`
 
-**Terminal DPS screen**
+## Screenshots
 
+`eqdps` can run as a compact terminal application or as a graphical desktop
+application. The screenshots below show the main combat views, the optional
+in-game DPS overlay, and the Plane of Sky quest tracker in both interfaces.
+
+### Terminal DPS screen
 ![eqdps terminal interface](img/Screenshot-2026-07-16_17-11-16.png)
 
-**Plane of Sky tracker**
-
+### Plane of Sky tracker
 ![eqdps Plane of Sky tracker](img/Screenshot-2026-07-16_17-11-41.png)
 
-**Windowed DPS screen**
-![eqdps windowed interface](img/Screenshot-2026-07-21_08-37-51.png)
+### Windowed DPS screen
+![eqdps windowed interface](img/Screenshot-2026-07-23_20-54-01.png)
 
-**Windowed DPS overlay**
+### Windowed DPS overlay
 ![eqdps windowed interface](img/Screenshot-2026-07-21_08-39-26.png)
+
+### Plane of Sky tracker
+![eqdps windowed interface](img/Screenshot-2026-07-23_20-55-31.png)
+
 
 ## Features
 
