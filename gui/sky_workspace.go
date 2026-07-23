@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"net/url"
+	"os/exec"
 	"strings"
 
 	"gioui.org/font"
@@ -11,6 +13,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/skyquest"
 )
@@ -19,6 +22,8 @@ type skyRow struct {
 	kind                     string
 	name, status, have, need string
 	detail                   string
+	reward                   string
+	rewardClick              *widget.Clickable
 	foreground               color.NRGBA
 }
 
@@ -87,7 +92,20 @@ func (s *shell) skyQuestRows(progress skyquest.QuestProgress, readySummary bool)
 	if readySummary {
 		name = progress.Class + " — " + name
 	}
-	rows := []skyRow{{kind: "quest", name: name, status: status, detail: progress.Quest.QuestGiver + " — Reward: " + strings.Join(progress.Quest.Rewards, " / "), foreground: foreground}}
+	reward := ""
+	if len(progress.Quest.Rewards) > 0 {
+		reward = progress.Quest.Rewards[0]
+	}
+
+	rows := []skyRow{{
+		kind:       "quest",
+		name:       name,
+		status:     status,
+		detail:     progress.Quest.QuestGiver + " — Reward: " + reward,
+		reward:     reward,
+		rewardClick: &widget.Clickable{},
+		foreground: foreground,
+	}}
 	for _, requirement := range progress.Quest.Requirements {
 		owned := s.skyInventory[requirement.Name]
 		mark, requirementColor := "–", skyMissingColor
@@ -200,7 +218,52 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 				})
 			}
 			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-				cell(values[0], 3.1, text.Start), cell(values[1], 1.25, text.End), cell(values[2], .8, text.End), cell(values[3], .8, text.End), cell(values[4], 3.4, text.Start),
+				cell(values[0], 3.1, text.Start),
+				cell(values[1], 1.25, text.End),
+				cell(values[2], .8, text.End),
+				cell(values[3], .8, text.End),
+
+				layout.Flexed(3.4, func(gtx layout.Context) layout.Dimensions {
+					if row.kind == "quest" && row.reward != "" {
+
+						for row.rewardClick != nil && row.rewardClick.Clicked(gtx) {
+							link := "https://eqlwiki.com/" + url.PathEscape(strings.ReplaceAll(row.reward, " ", "_"))
+							openURL(link)
+						}
+
+						return row.rewardClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							pointer.CursorPointer.Add(gtx.Ops)
+
+							style := material.Label(
+								s.theme,
+								unit.Sp(14)*s.theme.TextSize/16,
+								values[4],
+							)
+
+							style.Color = palette.accent
+							style.Alignment = text.Start
+							style.MaxLines = 1
+							style.Truncator = "…"
+
+							return style.Layout(gtx)
+						})
+					}
+
+					return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						style := material.Label(
+							s.theme,
+							unit.Sp(14)*s.theme.TextSize/16,
+							values[4],
+						)
+
+						style.Color = foreground
+						style.Alignment = text.Start
+						style.MaxLines = 1
+						style.Truncator = "…"
+
+						return style.Layout(gtx)
+					})
+				}),
 			)
 		})
 	})
@@ -233,4 +296,8 @@ func skyRequirementSource(requirement skyquest.Requirement) string {
 		return requirement.DropsFrom
 	}
 	return "Plane of Sky"
+}
+
+func openURL(url string) {
+	_ = exec.Command("xdg-open", url).Start()
 }
