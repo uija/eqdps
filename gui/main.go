@@ -176,11 +176,11 @@ type fakeBreakdown struct {
 }
 
 type fakeFightSection struct {
-	name, status, duration  string
-	current                 bool
-	started                 time.Time
-	lastYouIntentionalOrder uint64
-	combatants              []fakeCombatant
+	name, status, killedAt, duration string
+	current                          bool
+	started                          time.Time
+	lastYouIntentionalOrder          uint64
+	combatants                       []fakeCombatant
 }
 
 func main() {
@@ -844,7 +844,19 @@ func (s *shell) layoutFightHeader(gtx layout.Context, fight fakeFightSection) la
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return label(gtx, s.theme, fight.duration, unit.Sp(16), palette.accent, text.End)
+						return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								if fight.killedAt == "" {
+									return layout.Dimensions{}
+								}
+								return inset(unit.Dp(16), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return label(gtx, s.theme, fight.killedAt, unit.Sp(15), palette.muted, text.End)
+								})
+							}),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return label(gtx, s.theme, fight.duration, unit.Sp(16), palette.accent, text.End)
+							}),
+						)
 					})
 				}),
 			)

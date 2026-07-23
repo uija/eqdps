@@ -137,7 +137,7 @@ func snapshotFights(tracker *combat.FightTracker) []fakeFightSection {
 		} else if fight.Death.Killer != "" {
 			status = "slain by " + fight.Death.Killer
 		}
-		entry := fakeFightSection{name: fight.Mob, status: status, duration: formatRuntimeDuration(fight.ActiveDuration()), current: section.Current, started: fight.Meter.Started(), lastYouIntentionalOrder: fight.LastYouIntentionalOrder}
+		entry := fakeFightSection{name: fight.Mob, status: status, killedAt: formatKillTime(fight.Death), duration: formatRuntimeDuration(fight.ActiveDuration()), current: section.Current, started: fight.Meter.Started(), lastYouIntentionalOrder: fight.LastYouIntentionalOrder}
 		for _, player := range fight.Meter.Players() {
 			sdps, _ := player.EngagedDPS(fight.Meter.Ended())
 			combatant := fakeCombatant{name: player.Name, damage: player.Damage, dps: int(player.DPS() + .5), sdps: int(sdps + .5), hits: player.Hits, crits: player.Crits, active: formatRuntimeDuration(player.ActiveDuration()), accent: player.Name == "You"}
@@ -149,6 +149,13 @@ func snapshotFights(tracker *combat.FightTracker) []fakeFightSection {
 		result = append(result, entry)
 	}
 	return result
+}
+
+func formatKillTime(death combat.Death) string {
+	if death.Time.IsZero() || death.Victim == "You" {
+		return ""
+	}
+	return "Killed " + death.Time.Format("2006-01-02 15:04")
 }
 
 func sortedPlayerBreakdown(values map[string]*combat.BreakdownStats) []combat.BreakdownStats {
