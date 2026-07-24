@@ -117,6 +117,7 @@ type shell struct {
 	skyLoadTotal      int64
 	skyLoadLines      int
 	skyLoadTitle      string
+	eqldb             *eqldbGUI
 	fights            []fakeFightSection
 	menus             []menu
 	rail              []railItem
@@ -207,6 +208,9 @@ func run(window *app.Window) error {
 	for {
 		switch event := window.Event().(type) {
 		case app.DestroyEvent:
+			if ui.eqldb != nil {
+				ui.eqldb.Close()
+			}
 			ui.captureMainSize(ui.lastMainWidth, ui.lastMainHeight)
 			ui.captureOpenOverlaySettings()
 			_ = saveSettings(ui.settings)
@@ -276,7 +280,7 @@ func newShell(window *app.Window) *shell {
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}, {name: "Reset session", enabled: currentLog != "", action: "reset"}}},
 			{name: "View", items: []menuItem{{name: "Damage meter", enabled: true, action: "damage"}, {name: "Plane of Sky", enabled: true, action: "sky"}, {name: "Show DPS overlay", detail: "Toggle compact current-fight window", enabled: true, action: "overlay"}}},
-			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true, action: "preferences"}}},
+			{name: "Tools", items: []menuItem{{name: "Preferences…", enabled: true, action: "preferences"}, {name: "EQLDB connection…", enabled: true, action: "eqldb"}}},
 			{name: "Help", items: []menuItem{{name: "Wayland overlay setup…", enabled: true, action: "wayland-help"}, {name: "About eqdps", enabled: true, action: "about"}}},
 		},
 		rail: []railItem{{short: "DPS", name: "Combat Log"}, {short: "SKY", name: "Plane of Sky"}, {short: "SET", name: "Settings"}},
@@ -293,6 +297,7 @@ func newShell(window *app.Window) *shell {
 	} else {
 		result.loadSkyState(currentLog)
 	}
+	result.eqldb = newEQLDBGUI(window, currentLog)
 	if currentLog != "" {
 		result.loadLog(currentLog, 0)
 	}
@@ -324,10 +329,14 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Expanded(s.layoutSkySetup),
 		layout.Expanded(s.layoutWaylandHelp),
 		layout.Expanded(s.layoutAbout),
+		layout.Expanded(s.layoutEQLDB),
 	)
 }
 
 func (s *shell) update(gtx layout.Context) {
+	if s.eqldb != nil {
+		s.eqldb.Update(gtx, s)
+	}
 	if s.operationCancel.Clicked(gtx) {
 		s.cancelCurrentOperation()
 	}
@@ -605,6 +614,10 @@ func (s *shell) activateItem(item menuItem) {
 		s.aboutOpen = true
 	case "preferences":
 		s.workspace = 2
+	case "eqldb":
+		if s.eqldb != nil {
+			s.eqldb.OpenManagement()
+		}
 	case "damage":
 		s.workspace = 0
 	case "sky":
@@ -716,6 +729,9 @@ func (s *shell) rememberChosenFile(choice fileChoice) {
 	s.menus[1].items[1].enabled = true
 	s.menus[1].items[3].enabled = true
 	s.loadSkyState(choice.path)
+	if s.eqldb != nil {
+		s.eqldb.SetLog(choice.path)
+	}
 	s.loadLog(choice.path, choice.back)
 }
 
@@ -1004,7 +1020,14 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 		return inset(unit.Dp(14), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 				layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, s.theme, s.statusText, unit.Sp(15), palette.text, text.Start)
+					status, foreground := s.statusText, palette.text
+					if s.eqldb != nil {
+						if notice, noticeColor, ok := s.eqldb.Notice(time.Now()); ok {
+							status, foreground = notice, noticeColor
+							gtx.Execute(op.InvalidateCmd{At: s.eqldb.noticeUntil})
+						}
+					}
+					return label(gtx, s.theme, status, unit.Sp(15), foreground, text.Start)
 				}),
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {

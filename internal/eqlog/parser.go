@@ -14,24 +14,27 @@ const timestampLayout = "Mon Jan 02 15:04:05 2006"
 var (
 	lineRE = regexp.MustCompile(`^\[([^\]]+)\] (.*)$`)
 
-	damageRE      = regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`)
-	dotRE         = regexp.MustCompile(`^(.+?) (?:has|have) taken ([0-9]+) damage from (.+?) by ([^.]+)\.(?: \(([^)]+)\))?$`)
-	yourDotRE     = regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`)
-	yourShieldRE  = regexp.MustCompile(`^(.+?) is .+? by YOUR (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)\.(?: \(([^)]+)\))?$`)
-	shieldRE      = regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$")
-	youSlainRE    = regexp.MustCompile(`^You have slain (.+)!$`)
-	slainByRE     = regexp.MustCompile(`^(.+) has been slain by (.+)!$`)
-	experienceRE  = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
-	levelUpRE     = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
-	aggroClearRE  = regexp.MustCompile(`^Your enemies have forgotten you!$`)
-	castRE        = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
-	zoneRE        = regexp.MustCompile(`^You have entered (.+)\.$`)
-	lootRE        = regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)
-	lootResultRE  = regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)
-	destroyRE     = regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)
-	tradeOfferRE  = regexp.MustCompile(`^You offered ([0-9]+) (.+) to (.+)\.$`)
-	tradeDoneRE   = regexp.MustCompile(`^You complete the trade with (.+)\.$`)
-	tradeCancelRE = regexp.MustCompile(`^(You have|(.+) has) cancelled the trade\.$`)
+	damageRE       = regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`)
+	dotRE          = regexp.MustCompile(`^(.+?) (?:has|have) taken ([0-9]+) damage from (.+?) by ([^.]+)\.(?: \(([^)]+)\))?$`)
+	yourDotRE      = regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`)
+	yourShieldRE   = regexp.MustCompile(`^(.+?) is .+? by YOUR (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)\.(?: \(([^)]+)\))?$`)
+	shieldRE       = regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$")
+	youSlainRE     = regexp.MustCompile(`^You have slain (.+)!$`)
+	slainByRE      = regexp.MustCompile(`^(.+) has been slain by (.+)!$`)
+	experienceRE   = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
+	levelUpRE      = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
+	aggroClearRE   = regexp.MustCompile(`^Your enemies have forgotten you!$`)
+	castRE         = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
+	zoneRE         = regexp.MustCompile(`^You have entered (.+)\.$`)
+	lootRE         = regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)
+	lootResultRE   = regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)
+	destroyRE      = regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)
+	tradeOfferRE   = regexp.MustCompile(`^You offered ([0-9]+) (.+) to (.+)\.$`)
+	tradeDoneRE    = regexp.MustCompile(`^You complete the trade with (.+)\.$`)
+	tradeCancelRE  = regexp.MustCompile(`^(You have|(.+) has) cancelled the trade\.$`)
+	whoRE          = regexp.MustCompile(`^\s*(?:AFK\s+)?\[([0-9]+) ([A-Z]{3}(?:/[A-Z]{3}){0,2})\]\s+([^(]+?)\s+\(([^)]+)\)(?:\s+<([^>]+)>)?\s+ZONE:`)
+	anonymousWhoRE = regexp.MustCompile(`^\s*(?:AFK\s+)?\[ANONYMOUS\]\s+(.+?)\s*$`)
+	outputfileRE   = regexp.MustCompile(`^Outputfile Complete:\s+(.+-Inventory\.txt)\s*$`)
 )
 
 type ExperienceGain struct {
@@ -90,6 +93,21 @@ type TradeCancel struct {
 	NPC  string
 }
 
+type WhoResult struct {
+	Time      time.Time
+	Level     int
+	Classes   []string
+	Name      string
+	Race      string
+	Guild     string
+	Anonymous bool
+}
+
+type InventoryExport struct {
+	Time     time.Time
+	Filename string
+}
+
 type RecordKind uint8
 
 const (
@@ -106,6 +124,8 @@ const (
 	RecordTradeOffer
 	RecordTradeComplete
 	RecordTradeCancel
+	RecordWho
+	RecordInventoryExport
 )
 
 // Record is one timestamped EverQuest log entry. Unknown records retain their
@@ -124,10 +144,20 @@ type Record struct {
 	TradeOffer  TradeOffer
 	TradeDone   TradeComplete
 	TradeCancel TradeCancel
+	Who         WhoResult
+	Export      InventoryExport
 }
 
 func ParseRecord(line string) (Record, bool) {
 	return ParseRecordAfter(line, time.Time{})
+}
+
+func ParseWhoLine(line string) (WhoResult, bool) {
+	timestamp, message, ok := parseEnvelope(line)
+	if !ok {
+		return WhoResult{}, false
+	}
+	return parseWhoResult(timestamp, message)
 }
 
 // ParseRecordAfter parses the timestamp envelope and only classifies messages
@@ -166,8 +196,44 @@ func ParseRecordAfter(line string, cutoff time.Time) (Record, bool) {
 		record.Kind, record.TradeDone = RecordTradeComplete, completed
 	} else if cancelled, ok := parseTradeCancel(timestamp, message); ok {
 		record.Kind, record.TradeCancel = RecordTradeCancel, cancelled
+	} else if who, ok := parseWhoResult(timestamp, message); ok {
+		record.Kind, record.Who = RecordWho, who
+	} else if export, ok := parseInventoryExport(timestamp, message); ok {
+		record.Kind, record.Export = RecordInventoryExport, export
 	}
 	return record, true
+}
+
+func parseWhoResult(timestamp time.Time, message string) (WhoResult, bool) {
+	matches := whoRE.FindStringSubmatch(message)
+	if matches == nil {
+		anonymous := anonymousWhoRE.FindStringSubmatch(message)
+		if anonymous == nil {
+			return WhoResult{}, false
+		}
+		return WhoResult{Time: timestamp, Name: strings.TrimSpace(anonymous[1]), Anonymous: true}, true
+	}
+	level, err := strconv.Atoi(matches[1])
+	if err != nil || level < 1 {
+		return WhoResult{}, false
+	}
+	classes := strings.Split(matches[2], "/")
+	return WhoResult{
+		Time:    timestamp,
+		Level:   level,
+		Classes: classes,
+		Name:    strings.TrimSpace(matches[3]),
+		Race:    strings.TrimSpace(matches[4]),
+		Guild:   strings.TrimSpace(matches[5]),
+	}, true
+}
+
+func parseInventoryExport(timestamp time.Time, message string) (InventoryExport, bool) {
+	matches := outputfileRE.FindStringSubmatch(message)
+	if matches == nil {
+		return InventoryExport{}, false
+	}
+	return InventoryExport{Time: timestamp, Filename: strings.TrimSpace(matches[1])}, true
 }
 
 func parseTradeCancel(timestamp time.Time, message string) (TradeCancel, bool) {

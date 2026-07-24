@@ -27,6 +27,8 @@ var (
 	combatantRowColor = tcell.NewHexColor(0x202428)
 	infoBarColor      = tcell.NewHexColor(0x303030)
 	infoNoticeColor   = tcell.NewHexColor(0x285b38)
+	eqldbWarningColor = tcell.NewHexColor(0x66531f)
+	eqldbErrorColor   = tcell.NewHexColor(0x682f2f)
 	scrollTrackColor  = tcell.NewHexColor(0x303438)
 	scrollThumbColor  = tcell.NewHexColor(0x788088)
 )
@@ -182,6 +184,7 @@ func printText(tracker *combat.FightTracker, xpSession *xp.Session) {
 
 func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int, skyDatabase skyquest.Database, skyTracker *skyquest.PersistentTracker, skyNeedsSetup bool, skyCatchupTarget int64) error {
 	app := tview.NewApplication()
+	app.EnableMouse(true)
 	tracker := combat.NewFightTrackerWithHistory(historyLimit)
 	xpSession := xp.NewSession()
 	var mu sync.Mutex
@@ -232,8 +235,17 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		SetTextAlign(tview.AlignRight)
 	shortcuts := tview.NewTextView().
 		SetDynamicColors(true)
-	var skyNotice string
-	var skyNoticeUntil time.Time
+	var noticeMu sync.Mutex
+	var noticeText string
+	var noticeUntil time.Time
+	noticeColor := infoBarColor
+	setNotice := func(text string, color tcell.Color, duration time.Duration) {
+		noticeMu.Lock()
+		noticeText = text
+		noticeUntil = time.Now().Add(duration)
+		noticeColor = color
+		noticeMu.Unlock()
+	}
 	skyCatchupOpen := skyCatchupTarget > 0
 
 	render := func() {
@@ -250,16 +262,17 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		if activeSkyTracker != nil && !skyCatchupOpen {
 			readyCount = len(activeSkyTracker.ReadyQuests())
 		}
-		notice := skyNotice
-		noticeActive := notice != "" && now.Before(skyNoticeUntil)
-		if !noticeActive && skyNotice != "" {
-			skyNotice = ""
-		}
 		skyMu.Unlock()
-		barColor := infoBarColor
-		if noticeActive {
-			barColor = infoNoticeColor
+		noticeMu.Lock()
+		notice := noticeText
+		noticeActive := notice != "" && now.Before(noticeUntil)
+		barColor := noticeColor
+		if !noticeActive {
+			noticeText = ""
+			notice = ""
+			barColor = infoBarColor
 		}
+		noticeMu.Unlock()
 		for _, view := range []*tview.TextView{infoLeft, infoNotice, infoSky} {
 			view.SetBackgroundColor(barColor)
 		}
@@ -285,6 +298,26 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		}
 		return false
 	})
+
+	infoBar := tview.NewFlex().
+		AddItem(infoLeft, 0, 3, false).
+		AddItem(infoNotice, 0, 2, false).
+		AddItem(infoSky, 16, 0, false)
+	tableArea := tview.NewFlex().
+		AddItem(table, 0, 1, true).
+		AddItem(scrollBar, 1, 0, false)
+	layout := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(header, 1, 0, false).
+		AddItem(tableArea, 0, 1, true).
+		AddItem(infoBar, 1, 0, false).
+		AddItem(shortcuts, 1, 0, false)
+	pages := tview.NewPages().
+		AddPage("main", layout, true, true)
+	eqldbUI, eqldbInitErr := newEQLDBTUI(app, pages, table, logPath, setNotice)
+	if eqldbInitErr != nil {
+		setNotice("EQLDB integration unavailable: "+eqldbInitErr.Error(), eqldbErrorColor, 12*time.Second)
+	}
 
 	done := make(chan struct{})
 	skyCatchupDone := make(chan struct{})
@@ -313,15 +346,18 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			skyMu.Unlock()
 		}
 		if err := engine.Follow(logPath, followOffset, done, func(line string, endOffset int64) {
-			if isLiveLineAfterCatchup(endOffset, skyCatchupTarget) {
+			liveLine := isLiveLineAfterCatchup(endOffset, skyCatchupTarget)
+			var record eqlog.Record
+			var parsed bool
+			if liveLine {
 				mu.Lock()
 				engine.ProcessLine(line, tracker, xpSession, idleTimeout)
 				mu.Unlock()
+				record, parsed = eqlog.ParseRecord(line)
 			}
 			skyMu.Lock()
 			activeSkyTracker := skyTracker
 			if activeSkyTracker != nil {
-				record, parsed := eqlog.ParseRecord(line)
 				isLoot := parsed && record.Kind == eqlog.RecordLoot
 				var beforeReady map[string]bool
 				if isLoot {
@@ -336,12 +372,14 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				if isLoot {
 					newlyReady := newReadyQuests(beforeReady, activeSkyTracker.ReadyQuests())
 					if len(newlyReady) > 0 {
-						skyNotice = readyNoticeText(newlyReady)
-						skyNoticeUntil = time.Now().Add(8 * time.Second)
+						setNotice(readyNoticeText(newlyReady), infoNoticeColor, 8*time.Second)
 					}
 				}
 			}
 			skyMu.Unlock()
+			if liveLine && parsed && eqldbUI != nil {
+				eqldbUI.Observe(record)
+			}
 			app.QueueUpdateDraw(render)
 		}); err != nil {
 			errCh <- err
@@ -359,26 +397,16 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				mu.Lock()
 				tracker.EndIdle(now, idleTimeout)
 				mu.Unlock()
-				app.QueueUpdateDraw(render)
+				app.QueueUpdateDraw(func() {
+					if eqldbUI != nil {
+						eqldbUI.Tick(now)
+					}
+					render()
+				})
 			}
 		}
 	}()
 
-	infoBar := tview.NewFlex().
-		AddItem(infoLeft, 0, 3, false).
-		AddItem(infoNotice, 0, 2, false).
-		AddItem(infoSky, 16, 0, false)
-	tableArea := tview.NewFlex().
-		AddItem(table, 0, 1, true).
-		AddItem(scrollBar, 1, 0, false)
-	layout := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(header, 1, 0, false).
-		AddItem(tableArea, 0, 1, true).
-		AddItem(infoBar, 1, 0, false).
-		AddItem(shortcuts, 1, 0, false)
-	pages := tview.NewPages().
-		AddPage("main", layout, true, true)
 	skyTable := tview.NewTable().SetBorders(false).SetSelectable(true, false).SetFixed(1, 0)
 	skyHeader := tview.NewTextView().SetDynamicColors(true)
 	skyFooter := tview.NewTextView().SetDynamicColors(true).
@@ -740,6 +768,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if eqldbUI != nil && eqldbUI.ModalOpen() {
+			return event
+		}
 		if skyCatchupOpen {
 			if event.Key() == tcell.KeyEsc && skyCatchupCancel != nil {
 				close(skyCatchupCancel)
@@ -887,6 +918,11 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				showSkySetup()
 			}
 			return nil
+		case 'e', 'E':
+			if eqldbUI != nil {
+				eqldbUI.OpenManagement()
+			}
+			return nil
 		}
 		return event
 	})
@@ -902,6 +938,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	}
 	err := app.Run()
 	stop()
+	if eqldbUI != nil {
+		eqldbUI.Close()
+	}
 	if skyScanCancel != nil {
 		close(skyScanCancel)
 		skyScanCancel = nil
@@ -958,7 +997,7 @@ func titleText(logPath string, terminalWidth int) string {
 }
 
 func shortcutsText() string {
-	return "[gray]o[::-] history   [gray]p[::-] Sky quests   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]a[::-] toggle tree   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+	return "[gray]o[::-] history   [gray]p[::-] Sky quests   [gray]e[::-] EQLDB   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]a[::-] toggle tree   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
 }
 
 func xpInfoText(snapshot xp.Snapshot, fightFilter string) string {

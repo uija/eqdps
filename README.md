@@ -51,6 +51,7 @@ in-game DPS overlay, and the Plane of Sky quest tracker in both interfaces.
 - Expandable details grouped by melee, cast magic, proc, DoT, and shield
 - History replay and mob-name filtering
 - EverQuest Legends Plane of Sky quest inventory and completion tracking
+- Optional EQLDB inventory-export uploads from both frontends
 - Compact graphical DPS overlay
 - Plain-text output mode for parser comparisons
 
@@ -195,6 +196,7 @@ go run ./tui /path/to/eqlog_character_server.txt
 | --- | --- |
 | `o` | Open the history menu, including a full-log replay |
 | `p` | Open the Plane of Sky quest tracker |
+| `e` | Open EQLDB connection management |
 | `/` | Filter displayed fights by mob name |
 | `Enter` | Expand or collapse a mob, combatant, or detail category |
 | `a` | Fully expand or collapse the selected subtree |
@@ -231,6 +233,45 @@ Print text output instead of opening the TUI:
 ./eqdps --text --back=30 /path/to/log.txt
 ```
 
+### EQLDB Inventory Uploads
+
+Both frontends can connect to [EQLDB](https://eqldb.org/) and upload an
+EverQuest Legends inventory export when `/outputfile inventory` completes.
+Press `e` in the TUI or use **Tools → EQLDB connection** in the GUI to connect
+or manage the connection. Authentication happens in the browser through a
+short-lived device code; no EQLDB password is entered into eqdps.
+
+For automatic level, class, and race detection, use a game macro containing:
+
+```text
+/who CHARACTERNAME
+/outputfile inventory
+```
+
+The matching `/who` result must be no more than one minute older than the
+export. Without one, the active frontend asks for the metadata before
+uploading. Every race reported by `/who`, including an unknown race or active
+illusion, is sent to EQLDB for server-side classification.
+
+EverQuest writes the logfile below `Logs/` and the inventory beside that
+directory:
+
+```text
+EverQuest Legends/
+├── Logs/
+│   └── eqlog_CHARACTER_SERVER.txt
+└── CHARACTER_SERVER-Inventory.txt
+```
+
+Repeated export messages within two seconds are combined into one upload.
+After an upload begins, a shared 15-second cooldown prevents accidental
+duplicate uploads, including when more than one eqdps process is running.
+
+The token and introduction state are shared by both frontends in
+`eqdps/eqldb.json` below the operating system's user configuration directory.
+The token grants only `inventory:upload`; it can be revoked from the Connected
+apps section of the EQLDB account.
+
 ### Command-Line Flags
 
 | Flag | Default | Description |
@@ -260,6 +301,9 @@ at the end of the selected logfile. The default combat idle timeout is 15
 seconds and can be changed under **Tools → Preferences**. Main-window and DPS
 overlay sizes are restored; screen placement remains controlled by the window
 manager.
+
+Use **Tools → EQLDB connection** to connect or manage automatic inventory
+uploads. Detection notifications appear temporarily in the bottom status bar.
 
 ### DPS Overlay
 
@@ -418,6 +462,8 @@ Project documentation:
 - [Windows 11 GUI handoff](docs/WINDOWS_HANDOFF.md)
 - [Parser recheck guide](docs/PARSER_RECHECK.md)
 - [Project context and engineering handoff](docs/PROJECT_CONTEXT.md)
+- [EQLDB connected-application API](docs/CONNECTED_APPLICATION_API.md)
+- [`/who` classes and races](docs/WHO_METADATA.md)
 
 Run all shared, terminal, and graphical tests:
 

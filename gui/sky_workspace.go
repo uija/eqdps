@@ -14,6 +14,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/platform"
 	"github.com/uija/eqdps/internal/skyquest"
 )
 
@@ -226,7 +227,7 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 					if row.kind == "quest" && row.reward != "" {
 
 						for row.rewardClick != nil && row.rewardClick.Clicked(gtx) {
-							if err := openExternalURL(skyRewardURL(row.reward)); err != nil {
+							if err := platform.OpenURL(skyRewardURL(row.reward)); err != nil {
 								s.statusText = "Could not open reward link: " + err.Error()
 							}
 						}

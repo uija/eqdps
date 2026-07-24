@@ -10,6 +10,7 @@ import (
 
 	"github.com/uija/eqdps/internal/combat"
 	"github.com/uija/eqdps/internal/engine"
+	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/xp"
 )
 
@@ -68,6 +69,11 @@ func (s *shell) loadLog(path string, back time.Duration) {
 		err = engine.FollowWithPoll(path, limit, cancel, func(line string, endOffset int64) {
 			idleTimeout := time.Duration(s.combatIdleNanos.Load())
 			engine.ProcessLine(line, tracker, xpSession, idleTimeout)
+			if s.eqldb != nil {
+				if record, ok := eqlog.ParseRecord(line); ok {
+					s.eqldb.Observe(record)
+				}
+			}
 			s.processSkyLine(path, line, endOffset)
 			xpSnapshot := xpSession.SnapshotLive(time.Now())
 			s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · live", xp: &xpSnapshot, state: "live"})

@@ -394,6 +394,37 @@ A modal reports byte-based percentage and scanned-line progress every 5,000
 lines. `Esc` cancels without replacing the current tracker; successful replay
 replaces it atomically, and replay errors remain visible in the modal.
 
+## EQLDB Connected Application
+
+Both frontends can connect to EQLDB with the public-client device flow and
+upload completed EverQuest Legends inventory exports. Shared code lives in:
+
+- `internal/eqlog` for `/who` and `Outputfile Complete` records;
+- `internal/inventorysync` for character matching, one-minute metadata
+  correlation, and resolving the export above `Logs/`;
+- `internal/eqldb` for device authentication, multipart uploads, shared
+  configuration, and the cross-process upload lease;
+- `internal/platform` for OS-specific browser opening.
+
+Only newly followed lines trigger uploads; history replay never does. Export
+bursts are combined for two seconds and uploads have a shared 15-second
+cooldown. The TUI uses `e` and the GUI uses **Tools → EQLDB connection** for
+connection management. Both ask for level, race, and classes when no recent
+matching `/who` result exists.
+
+Authentication state is stored in `eqdps/eqldb.json` below
+`os.UserConfigDir()`, independently of the frontend. The access token is written
+with owner-only permissions where the operating system supports Unix modes.
+The GUI currently includes a clearly marked temporary simulator under its
+connected-management dialog. It appends a current `/who` result and
+`Outputfile Complete` entry to the followed log so the integration can be
+tested while EverQuest Legends is offline. Remove it after the GUI upload path
+has been verified.
+
+The connected-application client uses the production endpoint
+`https://eqldb.org`. Tests replace the client base URL with an isolated local
+HTTP test server.
+
 ## Known Limitations
 
 - `followLog` opens the file once and does not detect log rotation, replacement,
@@ -407,8 +438,9 @@ replaces it atomically, and replay errors remain visible in the modal.
 - Simultaneous living mobs with exactly the same log name share one active
   record because EverQuest provides no spawn identifier. Death buffering can
   separate the successor only once a death supplies a boundary.
-- The local character's actual name is not configured; first-person log forms
-  are represented as `You` and `YOU`.
+- Combat does not configure the local character's actual name; first-person log
+  forms are represented as `You` and `YOU`. Connected inventory uploads derive
+  the name from `eqlog_CHARACTER_SERVER.txt`.
 - Large replays remain CPU-intensive even though their progress UI stays
   responsive and cancellation is available.
 - Timestamps carry no timezone information. Both CLI cutoffs and log timestamps

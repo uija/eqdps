@@ -1,6 +1,7 @@
 package eqlog
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -468,5 +469,75 @@ func TestParseCancelledTradeLines(t *testing.T) {
 		if !ok || record.Kind != RecordTradeCancel || record.TradeCancel.NPC != test.npc {
 			t.Fatalf("unexpected cancelled trade record for %q: %#v", test.line, record)
 		}
+	}
+}
+
+func TestParseWhoResult(t *testing.T) {
+	tests := []struct {
+		name    string
+		line    string
+		level   int
+		classes []string
+		player  string
+		race    string
+		guild   string
+	}{
+		{
+			name:    "three classes and guild",
+			line:    "[Mon Jul 06 17:13:24 2026] [50 PAL/DRU/MNK] Wyrmberg (Dwarf) <Side Gigg> ZONE: Qeynos Hills (qeytoqrg)  ",
+			level:   50,
+			classes: []string{"PAL", "DRU", "MNK"},
+			player:  "Wyrmberg",
+			race:    "Dwarf",
+			guild:   "Side Gigg",
+		},
+		{
+			name:    "two classes without guild",
+			line:    "[Thu Jul 02 13:40:34 2026] [9 CLR/NEC] Shadox (Dark Elf)  ZONE: Neriak - Third Gate (neriakc)  ",
+			level:   9,
+			classes: []string{"CLR", "NEC"},
+			player:  "Shadox",
+			race:    "Dark Elf",
+		},
+		{
+			name:    "afk and visible illusion",
+			line:    "[Sun Jul 05 21:04:56 2026]  AFK [50 PAL/SHD/BER] Mnxy (Ancient Wolf) <The Driving Crooners> ZONE: East Commonlands (ecommons)  ",
+			level:   50,
+			classes: []string{"PAL", "SHD", "BER"},
+			player:  "Mnxy",
+			race:    "Ancient Wolf",
+			guild:   "The Driving Crooners",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			record, ok := ParseRecord(test.line)
+			if !ok || record.Kind != RecordWho {
+				t.Fatalf("expected /who record, got %#v", record)
+			}
+			if record.Who.Level != test.level || record.Who.Name != test.player || record.Who.Race != test.race || record.Who.Guild != test.guild {
+				t.Fatalf("unexpected /who result: %#v", record.Who)
+			}
+			if strings.Join(record.Who.Classes, "/") != strings.Join(test.classes, "/") {
+				t.Fatalf("unexpected classes: %v", record.Who.Classes)
+			}
+		})
+	}
+}
+
+func TestParseAnonymousWhoResult(t *testing.T) {
+	record, ok := ParseRecord("[Mon Jul 06 15:59:52 2026] [ANONYMOUS] Thekaos ")
+	if !ok || record.Kind != RecordWho || record.Who.Name != "Thekaos" || !record.Who.Anonymous {
+		t.Fatalf("unexpected anonymous record: %#v", record)
+	}
+}
+
+func TestParseInventoryExport(t *testing.T) {
+	record, ok := ParseRecord("[Wed Jul 22 05:21:27 2026] Outputfile Complete: Wyrmberg_rivervale-Inventory.txt")
+	if !ok || record.Kind != RecordInventoryExport {
+		t.Fatalf("expected inventory export, got %#v", record)
+	}
+	if record.Export.Filename != "Wyrmberg_rivervale-Inventory.txt" {
+		t.Fatalf("unexpected export: %#v", record.Export)
 	}
 }
