@@ -13,7 +13,7 @@ recent history to compare parses or investigate combat detection.
 
 ## Download
 
-You can download the latest precompiled versions of the GUI Version for Windows in the [Release section](https://github.com/uija/eqdps/releases/tag/v0.1.2).
+You can download the latest precompiled versions of the GUI Version for Windows in the [Release section](https://github.com/uija/eqdps/releases/tag/v0.1.3).
 
 Linux users need to build theirself.
 
