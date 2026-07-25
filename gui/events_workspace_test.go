@@ -1,10 +1,17 @@
 package main
 
 import (
+	"image"
 	"reflect"
 	"strings"
 	"testing"
 
+	"gioui.org/f32"
+	"gioui.org/io/input"
+	"gioui.org/io/pointer"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/widget"
 	"github.com/uija/eqdps/internal/audio"
 	"github.com/uija/eqdps/internal/catalog"
 	"github.com/uija/eqdps/internal/event"
@@ -79,16 +86,70 @@ func TestSpellSelectorFiltersByClass(t *testing.T) {
 	}
 }
 
-func TestInlinePickerAppearsBesideSelectedField(t *testing.T) {
+func TestOpenPickerDoesNotAddEditorRows(t *testing.T) {
 	ui := eventsGUI{editingKind: event.TriggerSpell, picker: "class"}
-	items := ui.editorItems()
-	if got := strings.Join(items, ","); !strings.Contains(got, "class,picker,spell") {
-		t.Fatalf("class picker is not inline with class selector: %q", got)
+	want := "title,class,spell,notification,persistence,sound"
+	if got := strings.Join(ui.editorItems(), ","); got != want {
+		t.Fatalf("editor items with class picker = %q, want %q", got, want)
 	}
 	ui.picker = "sound"
-	items = ui.editorItems()
-	if got := strings.Join(items, ","); !strings.Contains(got, "sound,picker") {
-		t.Fatalf("sound picker is not inline with sound selector: %q", got)
+	if got := strings.Join(ui.editorItems(), ","); got != want {
+		t.Fatalf("editor items with sound picker = %q, want %q", got, want)
+	}
+}
+
+func TestSelectorBackdropClosesWithoutChangingSelection(t *testing.T) {
+	ui := eventsGUI{
+		picker:          "spell",
+		iconSetOpen:     true,
+		classSelected:   2,
+		spellSelected:   3,
+		soundSelected:   1,
+		iconSetSelected: 1,
+	}
+	ui.selectorBackdrop.Click()
+	ui.dismissOpenSelector(layout.Context{})
+
+	if ui.picker != "" || ui.iconSetOpen {
+		t.Fatalf("selector remained open: picker=%q iconSetOpen=%v", ui.picker, ui.iconSetOpen)
+	}
+	if ui.classSelected != 2 || ui.spellSelected != 3 || ui.soundSelected != 1 || ui.iconSetSelected != 1 {
+		t.Fatalf(
+			"closing backdrop changed a selection: class=%d spell=%d sound=%d icons=%d",
+			ui.classSelected,
+			ui.spellSelected,
+			ui.soundSelected,
+			ui.iconSetSelected,
+		)
+	}
+}
+
+func TestSelectorBackdropConsumesOutsideClick(t *testing.T) {
+	var (
+		router     input.Router
+		underlying widget.Clickable
+		ui         eventsGUI
+	)
+	gtx := layout.Context{
+		Ops:         new(op.Ops),
+		Source:      router.Source(),
+		Constraints: layout.Exact(image.Pt(200, 200)),
+	}
+	ui.deferSelectorBackdrop(gtx)
+	underlying.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	})
+	router.Frame(gtx.Ops)
+	router.Queue(
+		pointer.Event{Source: pointer.Touch, Kind: pointer.Press, Position: f32.Pt(20, 20)},
+		pointer.Event{Source: pointer.Touch, Kind: pointer.Release, Position: f32.Pt(20, 20)},
+	)
+
+	if underlying.Clicked(gtx) {
+		t.Fatal("outside click reached the form beneath the selector backdrop")
+	}
+	if !ui.selectorBackdrop.Clicked(gtx) {
+		t.Fatal("selector backdrop did not receive outside click")
 	}
 }
 

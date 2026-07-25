@@ -57,6 +57,42 @@ func TestSpellIconSetupRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSpellIconSetRoundTripAndDiscovery(t *testing.T) {
+	store, err := OpenAt(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"default_modern", "default"} {
+		directory := filepath.Join(store.IconDir(), name)
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(directory, "spell_4.png"), []byte("png"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sets, err := store.SpellIconSets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sets) != 2 || sets[0] != "default" || sets[1] != "default_modern" {
+		t.Fatalf("spell icon sets = %#v", sets)
+	}
+	if err := store.SaveSpellIconSet("default_modern"); err != nil {
+		t.Fatal(err)
+	}
+	selected, err := store.SpellIconSet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selected != "default_modern" {
+		t.Fatalf("selected spell icon set = %q", selected)
+	}
+	if err := store.SaveSpellIconSet("../outside"); err == nil {
+		t.Fatal("unsafe spell icon set name was accepted")
+	}
+}
+
 func TestAudioVolumeDefaultsAndRoundTrips(t *testing.T) {
 	store, err := OpenAt(t.TempDir())
 	if err != nil {

@@ -38,6 +38,8 @@ type Runtime struct {
 	onError    func(error)
 	startOnce  sync.Once
 	volumeBits atomic.Uint64
+	iconSetMu  sync.RWMutex
+	iconSet    string
 }
 
 func Open(onError func(error)) (*Runtime, *eventstore.Store, error) {
@@ -53,6 +55,20 @@ func Open(onError func(error)) (*Runtime, *eventstore.Store, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	iconSet, err := store.SpellIconSet()
+	if err != nil {
+		return nil, nil, err
+	}
+	iconSets, err := store.SpellIconSets()
+	if err != nil {
+		return nil, nil, err
+	}
+	if !contains(iconSets, iconSet) {
+		iconSet = ""
+		if len(iconSets) > 0 {
+			iconSet = iconSets[0]
+		}
+	}
 	spells, err := catalog.Load()
 	if err != nil {
 		return nil, nil, err
@@ -64,6 +80,7 @@ func Open(onError func(error)) (*Runtime, *eventstore.Store, error) {
 		return nil, nil, err
 	}
 	runtime.SetAudioVolume(volume)
+	runtime.SetSpellIconSet(iconSet)
 	return runtime, store, nil
 }
 
@@ -124,6 +141,18 @@ func (r *Runtime) AudioVolume() float64 {
 	return math.Float64frombits(r.volumeBits.Load())
 }
 
+func (r *Runtime) SetSpellIconSet(name string) {
+	r.iconSetMu.Lock()
+	r.iconSet = name
+	r.iconSetMu.Unlock()
+}
+
+func (r *Runtime) SpellIconSet() string {
+	r.iconSetMu.RLock()
+	defer r.iconSetMu.RUnlock()
+	return r.iconSet
+}
+
 func (r *Runtime) runNotifications(ctx context.Context) {
 	for {
 		select {
@@ -133,9 +162,13 @@ func (r *Runtime) runNotifications(ctx context.Context) {
 			icon := ""
 			if delivery.Event.TriggerType == event.TriggerSpell {
 				if iconID, ok := r.iconIDs[delivery.Event.SpellName]; ok {
-					candidate := spellicon.IconPath(r.iconDir, iconID)
+					candidate := spellicon.SetIconPath(r.iconDir, r.SpellIconSet(), iconID)
 					if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {
 						icon = candidate
+					} else if legacy := spellicon.IconPath(r.iconDir, iconID); candidate != legacy {
+						if info, err := os.Stat(legacy); err == nil && info.Mode().IsRegular() {
+							icon = legacy
+						}
 					}
 				}
 			}
@@ -176,4 +209,13 @@ func (r *Runtime) report(err error) {
 	if r.onError != nil {
 		r.onError(err)
 	}
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }

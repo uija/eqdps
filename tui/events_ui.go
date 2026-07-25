@@ -38,6 +38,8 @@ type eventsTUI struct {
 	open        bool
 	modalOpen   bool
 	iconSetup   eventstore.IconSetup
+	iconSets    []string
+	iconSet     string
 	audioVolume float64
 }
 
@@ -84,13 +86,16 @@ func newEventsTUI(
 		iconSetup:   iconSetup,
 		audioVolume: volume,
 	}
+	if err := ui.reloadIconSets(); err != nil {
+		return nil, err
+	}
 	ui.runtime.SetAudioVolume(volume)
 	ui.table.SetBorder(true).SetTitle(" Configured Events ")
 	ui.table.SetInputCapture(ui.captureTableInput)
 	help := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
-		SetText("[gray]a[::-] active   [gray]Enter[::-] edit   [gray]d[::-] delete   [gray]s/t/r[::-] add spell/text/regexp   [gray]v[::-] volume   [gray]i[::-] spell icons   [gray]q/Esc[::-] DPS")
+		SetText("[gray]a[::-] active   [gray]Enter[::-] edit   [gray]d[::-] delete   [gray]s/t/r[::-] add spell/text/regexp   [gray]v[::-] settings   [gray]i[::-] extract icons   [gray]q/Esc[::-] DPS")
 	ui.layout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(ui.table, 0, 1, true).
@@ -143,6 +148,9 @@ func (ui *eventsTUI) Open() {
 	} else {
 		ui.audioVolume = volume
 		ui.runtime.SetAudioVolume(volume)
+	}
+	if err := ui.reloadIconSets(); err != nil {
+		ui.setError(err.Error())
 	}
 	ui.render()
 	ui.open = true
@@ -211,20 +219,31 @@ func (ui *eventsTUI) captureTableInput(key *tcell.EventKey) *tcell.EventKey {
 	case 'i', 'I':
 		ui.showIconPrompt(true)
 	case 'v', 'V':
-		ui.showVolume()
+		ui.showSettings()
 	default:
 		return key
 	}
 	return nil
 }
 
-func (ui *eventsTUI) showVolume() {
+func (ui *eventsTUI) showSettings() {
 	volume := tview.NewInputField().
-		SetLabel("Volume (0–100%) ").
 		SetText(strconv.Itoa(int(ui.audioVolume*100 + .5))).
 		SetFieldWidth(4).
 		SetAcceptanceFunc(tview.InputFieldInteger)
-	const volumeHint = "[gray]Arrow keys adjust by 5%.[::-]"
+	iconOptions := append([]string(nil), ui.iconSets...)
+	iconSelection := eventStringIndex(iconOptions, ui.iconSet)
+	if iconSelection < 0 {
+		iconSelection = 0
+	}
+	if len(iconOptions) == 0 {
+		iconOptions = []string{"Not extracted"}
+	}
+	iconSet := tview.NewDropDown().SetOptions(iconOptions, nil).SetCurrentOption(iconSelection)
+	if len(ui.iconSets) == 0 {
+		iconSet.SetDisabled(true)
+	}
+	const volumeHint = "[gray]Arrow keys adjust volume by 5%.[::-]"
 	message := tview.NewTextView().SetDynamicColors(true).SetText(volumeHint)
 	save := tview.NewButton("Save")
 	cancel := tview.NewButton("Cancel")
@@ -240,18 +259,37 @@ func (ui *eventsTUI) showVolume() {
 			message.SetText("[red]" + tview.Escape(err.Error()) + "[::-]")
 			return
 		}
+		selectedIconSet := ui.iconSet
+		if len(ui.iconSets) > 0 {
+			index, _ := iconSet.GetCurrentOption()
+			if index < 0 || index >= len(ui.iconSets) {
+				message.SetText("[red]Select a spell icon set.[::-]")
+				return
+			}
+			selectedIconSet = ui.iconSets[index]
+			if err := ui.store.SaveSpellIconSet(selectedIconSet); err != nil {
+				message.SetText("[red]" + tview.Escape(err.Error()) + "[::-]")
+				return
+			}
+		}
 		ui.audioVolume = value
 		ui.runtime.SetAudioVolume(value)
-		ui.status.SetText(fmt.Sprintf("[green]Sound volume set to %d%%[::-]", percent))
+		ui.iconSet = selectedIconSet
+		ui.runtime.SetSpellIconSet(selectedIconSet)
+		ui.status.SetText("[green]Event settings saved[::-]")
 		ui.closeModal()
 	})
 	body := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nil, 1, 0, false).
-		AddItem(volume, 1, 0, true).
+		AddItem(eventFieldRow("Volume (0–100%)", volume), 1, 0, true).
+		AddItem(eventFieldRow("Spell icons", iconSet), 1, 0, false).
 		AddItem(message, 1, 0, false).
 		AddItem(eventButtonRow(save, cancel), 1, 0, false).
 		AddItem(nil, 1, 0, false)
 	body.SetInputCapture(func(key *tcell.EventKey) *tcell.EventKey {
+		if ui.app.GetFocus() != volume {
+			return key
+		}
 		percent, handled := adjustVolumeWithArrow(key.Key(), volume.GetText(), ui.audioVolume)
 		if !handled {
 			return key
@@ -260,7 +298,42 @@ func (ui *eventsTUI) showVolume() {
 		message.SetText(volumeHint)
 		return nil
 	})
-	ui.openFormModal(" Sound Volume ", body, 54, 8, []tview.Primitive{volume, save, cancel}, volume)
+	focus := []tview.Primitive{volume}
+	if len(ui.iconSets) > 0 {
+		focus = append(focus, iconSet)
+	}
+	focus = append(focus, save, cancel)
+	ui.openFormModal(" Event Settings ", body, 64, 9, focus, volume)
+}
+
+func (ui *eventsTUI) reloadIconSets() error {
+	sets, err := ui.store.SpellIconSets()
+	if err != nil {
+		return err
+	}
+	selected, err := ui.store.SpellIconSet()
+	if err != nil {
+		return err
+	}
+	if !eventContains(sets, selected) {
+		selected = ""
+		if len(sets) > 0 {
+			selected = sets[0]
+		}
+	}
+	ui.iconSets = sets
+	ui.iconSet = selected
+	ui.runtime.SetSpellIconSet(selected)
+	return nil
+}
+
+func eventStringIndex(values []string, wanted string) int {
+	for index, value := range values {
+		if value == wanted {
+			return index
+		}
+	}
+	return -1
 }
 
 func adjustVolumeWithArrow(key tcell.Key, text string, fallback float64) (int, bool) {
@@ -619,18 +692,35 @@ func (ui *eventsTUI) showIconPrompt(manual bool) {
 	message := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
 		SetWordWrap(true).
-		SetText("Extract EverQuest spell icons for spell notifications?")
+		SetText("Extract all distinct EverQuest spell icon sets for notifications?")
 	yes := tview.NewButton("Extract")
-	no := tview.NewButton("No")
+	noLabel := "Don't ask again"
+	if manual {
+		noLabel = "Close"
+	}
+	no := tview.NewButton(noLabel)
 	yes.SetSelectedFunc(func() {
 		yes.SetDisabled(true)
 		no.SetDisabled(true)
 		message.SetTextColor(tcell.ColorYellow).SetText("Extracting spell icons…")
 		go func() {
-			err := spellicon.Extract(source, ui.store.IconDir(), ui.spells)
+			names, err := spellicon.ExtractAll(source, ui.store.IconDir(), ui.spells)
 			ui.app.QueueUpdateDraw(func() {
+				if err == nil && len(names) == 0 {
+					err = fmt.Errorf("no distinct spell icon sets found")
+				}
+				if err == nil {
+					selected := ui.iconSet
+					if !eventContains(names, selected) {
+						selected = names[0]
+					}
+					err = ui.store.SaveSpellIconSet(selected)
+				}
 				if err == nil {
 					err = ui.store.SaveSpellIconSetup(eventstore.IconSetupEnabled)
+				}
+				if err == nil {
+					err = ui.reloadIconSets()
 				}
 				if err != nil {
 					yes.SetDisabled(false)
@@ -639,12 +729,16 @@ func (ui *eventsTUI) showIconPrompt(manual bool) {
 					return
 				}
 				ui.iconSetup = eventstore.IconSetupEnabled
-				ui.status.SetText("[green]Spell icons extracted[::-]")
+				ui.status.SetText(fmt.Sprintf("[green]Extracted %d spell icon sets[::-]", len(names)))
 				ui.closeModal()
 			})
 		}()
 	})
 	no.SetSelectedFunc(func() {
+		if manual {
+			ui.closeModal()
+			return
+		}
 		if err := ui.store.SaveSpellIconSetup(eventstore.IconSetupDeclined); err != nil {
 			message.SetTextColor(tcell.ColorRed).SetText(err.Error())
 			return

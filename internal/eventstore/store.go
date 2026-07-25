@@ -94,6 +94,7 @@ func (s *Store) Save(events []event.Event) error {
 
 type settings struct {
 	IconSetup   IconSetup `json:"spell_icon_setup,omitempty"`
+	IconSet     string    `json:"spell_icon_set,omitempty"`
 	AudioVolume *float64  `json:"audio_volume,omitempty"`
 }
 
@@ -126,6 +127,65 @@ func (s *Store) SaveSpellIconSetup(state IconSetup) error {
 		}
 		return writeAtomic(s.settingsFile, append(data, '\n'))
 	})
+}
+
+func (s *Store) SpellIconSet() (string, error) {
+	configured, err := s.loadSettings()
+	if err != nil {
+		return "", err
+	}
+	if configured.IconSet != "" && !validIconSetName(configured.IconSet) {
+		return "", fmt.Errorf("invalid spell icon set %q", configured.IconSet)
+	}
+	return configured.IconSet, nil
+}
+
+func (s *Store) SaveSpellIconSet(name string) error {
+	if !validIconSetName(name) {
+		return fmt.Errorf("invalid spell icon set %q", name)
+	}
+	return s.withLock(func() error {
+		configured, err := s.loadSettings()
+		if err != nil {
+			return err
+		}
+		configured.IconSet = name
+		data, err := json.MarshalIndent(configured, "", "  ")
+		if err != nil {
+			return fmt.Errorf("encode event settings: %w", err)
+		}
+		return writeAtomic(s.settingsFile, append(data, '\n'))
+	})
+}
+
+func (s *Store) SpellIconSets() ([]string, error) {
+	entries, err := os.ReadDir(s.iconDir)
+	if err != nil {
+		return nil, fmt.Errorf("read spell icon directory: %w", err)
+	}
+	var sets []string
+	for _, entry := range entries {
+		if !entry.IsDir() || !validIconSetName(entry.Name()) {
+			continue
+		}
+		files, err := os.ReadDir(filepath.Join(s.iconDir, entry.Name()))
+		if err != nil {
+			return nil, fmt.Errorf("read spell icon set %q: %w", entry.Name(), err)
+		}
+		for _, file := range files {
+			name := strings.ToLower(file.Name())
+			if file.Type().IsRegular() && strings.HasPrefix(name, "spell_") && strings.HasSuffix(name, ".png") {
+				sets = append(sets, entry.Name())
+				break
+			}
+		}
+	}
+	sort.Strings(sets)
+	return sets, nil
+}
+
+func validIconSetName(name string) bool {
+	return name != "" && name != "." && name != ".." && filepath.Base(name) == name
 }
 
 func (s *Store) AudioVolume() (float64, error) {

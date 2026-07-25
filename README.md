@@ -62,7 +62,7 @@ in-game DPS overlay, and the Plane of Sky quest tracker in both interfaces.
 - History replay and mob-name filtering
 - EverQuest Legends Plane of Sky quest inventory and completion tracking
 - Configurable spell-fade, text, exact-text, and regular-expression events
-- Cross-platform desktop notifications with optional EverQuest spell icons
+- Cross-platform desktop notifications with selectable EverQuest spell-icon sets
 - Embedded and user-provided notification sounds with shared volume control
 - Optional EQLDB inventory-export uploads from both frontends
 - Compact graphical DPS overlay with font, opacity, and idle-timeout preferences
@@ -126,7 +126,7 @@ The TUI Events page uses these scoped keys:
 | `s` | Add a spell-fade event |
 | `t` | Add a text event |
 | `r` | Add a regular-expression event |
-| `v` | Set notification-sound volume (arrow keys adjust by 5%) |
+| `v` | Open Event settings for sound volume and spell-icon style |
 | `i` | Run spell-icon setup manually |
 | `q` / `Esc` | Return to the DPS screen |
 
@@ -134,16 +134,20 @@ Only genuinely new logfile lines trigger events. History replay, Plane of Sky
 initial scans, and checkpoint catch-up never play sounds or display desktop
 notifications.
 
-The GUI provides the same event editors and a 0–100% master volume slider.
-Both frontends use one event configuration and master volume. Copy MP3 or WAV
-files into the event `audio/` directory described under
+The GUI provides the same event editors, a 0–100% master volume slider, and a
+spell-icon style selector. The TUI exposes both options through `v`; while its
+volume field is focused, the arrow keys adjust it by 5%. Both frontends use one
+event configuration, volume, and selected icon style. Copy MP3 or WAV files
+into the event `audio/` directory described under
 [Configuration and Data](#configuration-and-data), then reopen Events to make
 them available in the sound selector.
 
-When Events is first opened with a logfile selected, eqdps can extract the
-spell icons from the associated EverQuest installation for use in spell
-notifications. Declining suppresses future automatic prompts; setup remains
-available manually.
+When Events is first opened with a logfile selected, eqdps can extract every
+distinct spell-icon set from the associated EverQuest installation. Effective
+duplicates from inherited or copied UI folders are extracted only once. Each
+set is stored below a subdirectory named after the first UI folder containing
+it, such as `default` or `default_modern`. Declining suppresses future automatic
+prompts; extraction remains available manually.
 
 ## History and Replay
 
@@ -229,9 +233,9 @@ The directory contains:
 | Path | Purpose |
 | --- | --- |
 | `events.json` | Event definitions shared by both frontends |
-| `events-settings.json` | Master sound volume and spell-icon setup |
+| `events-settings.json` | Master sound volume, icon setup, and selected icon set |
 | `audio/` | User-provided MP3 and WAV notification sounds |
-| `spell-icons/` | Extracted EverQuest spell icons |
+| `spell-icons/<UI name>/` | Extracted spell icons grouped by distinct UI set |
 | `eqldb.json` | Shared EQLDB connection and introduction state |
 | `gui.json` | GUI preferences, recent logs, and window state |
 

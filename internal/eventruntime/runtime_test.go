@@ -2,6 +2,8 @@ package eventruntime
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -12,10 +14,14 @@ import (
 
 type fakeNotifier struct {
 	delivered chan string
+	icons     chan string
 }
 
-func (f fakeNotifier) Send(_ context.Context, title, message, _ string, _ bool) error {
+func (f fakeNotifier) Send(_ context.Context, title, message, icon string, _ bool) error {
 	f.delivered <- title + ": " + message
+	if f.icons != nil {
+		f.icons <- icon
+	}
 	return nil
 }
 
@@ -71,6 +77,48 @@ func TestRuntimeDeliversNotificationsAndSoundsIndependently(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("sound was not delivered")
+	}
+}
+
+func TestRuntimeUsesSelectedSpellIconSet(t *testing.T) {
+	iconDir := t.TempDir()
+	iconPath := filepath.Join(iconDir, "default_modern", "spell_4.png")
+	if err := os.MkdirAll(filepath.Dir(iconPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(iconPath, []byte("png"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	notifications := make(chan string, 1)
+	icons := make(chan string, 1)
+	runtime, err := newRuntime(
+		[]event.Event{{
+			ID: "spell", Title: "Buff", Active: true, TriggerType: event.TriggerSpell,
+			Pattern: "Your speed returns to normal.", SpellName: "Alacrity", Notification: "Faded",
+		}},
+		t.TempDir(), iconDir, []catalog.Spell{{Name: "Alacrity", IconID: 4}},
+		fakeNotifier{delivered: notifications, icons: icons},
+		func(string) (soundPlayer, error) {
+			return fakePlayer{played: make(chan string, 1)}, nil
+		},
+		func(err error) { t.Errorf("runtime error: %v", err) },
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.SetSpellIconSet("default_modern")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	runtime.Start(ctx)
+	runtime.ObserveLiveLine("[Fri Jul 24 20:15:01 2026] Your speed returns to normal.")
+
+	select {
+	case got := <-icons:
+		if got != iconPath {
+			t.Fatalf("notification icon = %q, want %q", got, iconPath)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("notification was not delivered")
 	}
 }
 

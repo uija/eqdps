@@ -10,8 +10,9 @@ The integration described here is implemented on the
 - one live-line-only dispatch boundary used by both frontends;
 - replay and Plane of Sky catch-up suppression regressions;
 - the TUI Events page and contextual spell-icon prompt;
-- the Gio Events workspace and bounded inline selectors;
+- the Gio Events workspace and bounded floating selectors;
 - a shared persisted master notification-sound volume control;
+- extraction and shared selection of distinct EverQuest UI spell-icon sets;
 - cross-platform notification delivery through `beeep`;
 - migrated `logtest` and `spellcatalog` developer utilities;
 - CGO-disabled Windows amd64 GUI and TUI build verification.
@@ -105,7 +106,7 @@ Start with the same columns as the prototype:
 | --- | --- | --- | --- | --- |
 
 Provide actions for adding spell, text, and regular-expression events. Reuse
-the bounded inline selector pattern developed for EQLDB inventory metadata for
+the bounded floating selector pattern developed for EQLDB inventory metadata for
 class, spell, and sound choices. Editors must remain usable with small windows
 and increased font scaling.
 

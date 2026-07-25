@@ -2,6 +2,7 @@ package spellicon
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"image"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/uija/eqdps/internal/catalog"
@@ -25,6 +27,11 @@ const (
 type Source struct {
 	GameDir  string
 	SheetDir string
+}
+
+type iconSet struct {
+	name   string
+	sheets map[int]string
 }
 
 func Detect(logFile string, spells []catalog.Spell) (Source, bool) {
@@ -49,15 +56,40 @@ func Detect(logFile string, spells []catalog.Spell) (Source, bool) {
 			return Source{}, false
 		}
 	}
-	for _, sheet := range requiredSheets(spells) {
-		if !isRegularFile(sheetPath(sheetDir, sheet)) {
-			return Source{}, false
-		}
+	source := Source{GameDir: gameDir, SheetDir: sheetDir}
+	if sets, err := discoverIconSets(source, spells); err != nil || len(sets) == 0 {
+		return Source{}, false
 	}
-	return Source{GameDir: gameDir, SheetDir: sheetDir}, true
+	return source, true
 }
 
 func Extract(source Source, targetDir string, spells []catalog.Spell) error {
+	sets, err := discoverIconSets(source, spells)
+	if err != nil {
+		return err
+	}
+	if len(sets) == 0 {
+		return fmt.Errorf("no compatible spell icon sets found")
+	}
+	return extractSet(sets[0], targetDir, spells)
+}
+
+func ExtractAll(source Source, targetDir string, spells []catalog.Spell) ([]string, error) {
+	sets, err := discoverIconSets(source, spells)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(sets))
+	for _, set := range sets {
+		if err := extractSet(set, filepath.Join(targetDir, set.name), spells); err != nil {
+			return nil, fmt.Errorf("extract icon set %q: %w", set.name, err)
+		}
+		names = append(names, set.name)
+	}
+	return names, nil
+}
+
+func extractSet(set iconSet, targetDir string, spells []catalog.Spell) error {
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		return fmt.Errorf("create spell icon directory: %w", err)
 	}
@@ -69,7 +101,7 @@ func Extract(source Source, targetDir string, spells []catalog.Spell) error {
 	}
 
 	for sheet, iconIDs := range idsBySheet {
-		file, err := os.Open(sheetPath(source.SheetDir, sheet))
+		file, err := os.Open(set.sheets[sheet])
 		if err != nil {
 			return fmt.Errorf("open spell icon sheet %d: %w", sheet, err)
 		}
@@ -107,6 +139,131 @@ func IconPath(iconDir string, iconID int) string {
 	return filepath.Join(iconDir, fmt.Sprintf("spell_%d.png", iconID))
 }
 
+func SetIconPath(iconDir, setName string, iconID int) string {
+	if setName == "" {
+		return IconPath(iconDir, iconID)
+	}
+	return IconPath(filepath.Join(iconDir, filepath.Base(setName)), iconID)
+}
+
+func discoverIconSets(source Source, spells []catalog.Spell) ([]iconSet, error) {
+	uiDir := filepath.Join(source.GameDir, "uifiles")
+	entries, err := os.ReadDir(uiDir)
+	if err != nil {
+		return nil, fmt.Errorf("read EverQuest UI directory: %w", err)
+	}
+	required := requiredSheets(spells)
+	defaultFiles, err := directoryFiles(source.SheetDir)
+	if err != nil {
+		return nil, fmt.Errorf("read default UI icon set: %w", err)
+	}
+	defaultSheets := make(map[int]string, len(required))
+	for _, sheet := range required {
+		path, ok := defaultFiles[strings.ToLower(sheetFilename(sheet))]
+		if !ok {
+			return nil, fmt.Errorf("default UI is missing spell icon sheet %d", sheet)
+		}
+		defaultSheets[sheet] = path
+	}
+
+	candidates := []string{source.SheetDir}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		path := filepath.Join(uiDir, entry.Name())
+		if samePath(path, source.SheetDir) {
+			continue
+		}
+		files, readErr := directoryFiles(path)
+		if readErr != nil || !containsSpellSheet(files) {
+			continue
+		}
+		candidates = append(candidates, path)
+	}
+
+	seen := make(map[string]bool)
+	sets := make([]iconSet, 0, len(candidates))
+	for _, directory := range candidates {
+		files, err := directoryFiles(directory)
+		if err != nil {
+			return nil, fmt.Errorf("read UI icon set %q: %w", filepath.Base(directory), err)
+		}
+		sheets := make(map[int]string, len(required))
+		for _, sheet := range required {
+			path, ok := files[strings.ToLower(sheetFilename(sheet))]
+			if !ok {
+				path = defaultSheets[sheet]
+			}
+			sheets[sheet] = path
+		}
+		fingerprint, err := iconSetFingerprint(required, sheets)
+		if err != nil {
+			return nil, fmt.Errorf("fingerprint UI icon set %q: %w", filepath.Base(directory), err)
+		}
+		if seen[fingerprint] {
+			continue
+		}
+		seen[fingerprint] = true
+		sets = append(sets, iconSet{name: filepath.Base(directory), sheets: sheets})
+	}
+	return sets, nil
+}
+
+func directoryFiles(directory string) (map[string]string, error) {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+	files := make(map[string]string, len(entries))
+	for _, entry := range entries {
+		if entry.Type().IsRegular() {
+			files[strings.ToLower(entry.Name())] = filepath.Join(directory, entry.Name())
+		}
+	}
+	return files, nil
+}
+
+func containsSpellSheet(files map[string]string) bool {
+	for name := range files {
+		if strings.HasPrefix(name, "spells") && strings.HasSuffix(name, ".tga") {
+			number := strings.TrimSuffix(strings.TrimPrefix(name, "spells"), ".tga")
+			if len(number) == 2 {
+				if _, err := strconv.Atoi(number); err == nil {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func iconSetFingerprint(required []int, sheets map[int]string) (string, error) {
+	hash := sha256.New()
+	for _, sheet := range required {
+		if err := binary.Write(hash, binary.LittleEndian, int32(sheet)); err != nil {
+			return "", err
+		}
+		file, err := os.Open(sheets[sheet])
+		if err != nil {
+			return "", err
+		}
+		_, copyErr := io.Copy(hash, file)
+		closeErr := file.Close()
+		if copyErr != nil {
+			return "", copyErr
+		}
+		if closeErr != nil {
+			return "", closeErr
+		}
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+func samePath(one, two string) bool {
+	return strings.EqualFold(filepath.Clean(one), filepath.Clean(two))
+}
+
 func requiredSheets(spells []catalog.Spell) []int {
 	seen := make(map[int]bool)
 	for _, spell := range spells {
@@ -121,7 +278,11 @@ func requiredSheets(spells []catalog.Spell) []int {
 }
 
 func sheetPath(sheetDir string, sheet int) string {
-	return filepath.Join(sheetDir, fmt.Sprintf("Spells%02d.tga", sheet))
+	return filepath.Join(sheetDir, sheetFilename(sheet))
+}
+
+func sheetFilename(sheet int) string {
+	return fmt.Sprintf("Spells%02d.tga", sheet)
 }
 
 func isRegularFile(path string) bool {

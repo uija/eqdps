@@ -77,7 +77,7 @@ func TestEventsEscapeClosesModalBeforePage(t *testing.T) {
 	}
 }
 
-func TestVolumeArrowKeysAdjustByFiveAndAreHandled(t *testing.T) {
+func TestEventSettingsVolumeArrowKeysAdjustByFiveAndAreHandled(t *testing.T) {
 	tests := []struct {
 		name string
 		key  tcell.Key

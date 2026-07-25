@@ -165,10 +165,13 @@ Hotkeys:
 | `q` or `Esc` | Quit |
 
 The Events page scopes `a`, `Enter`, `d`, `s`, `t`, `r`, and `v` to event
-editing and notification-sound volume, so combat reset remains `r` on the DPS
-screen. Both frontends share the persisted master sound volume. Event matching
-is called only after the TUI's Sky catch-up boundary. Replay, Sky scanning, and
-catch-up never dispatch events.
+editing and settings, so combat reset remains `r` on the DPS screen. Both
+frontends share the persisted master sound volume and selected spell-icon set.
+Extraction discovers all effective UI skins, applies default-UI inheritance,
+deduplicates identical sheet sets, and stores each distinct result below a
+subdirectory named after its first source UI folder. Event matching is called
+only after the TUI's Sky catch-up boundary. Replay, Sky scanning, and catch-up
+never dispatch events.
 
 When the history overlay is open, it owns input. `Enter` selects its button and
 `Esc` closes only the overlay. The filter input also owns input; `Enter` applies

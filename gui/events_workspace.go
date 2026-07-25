@@ -11,6 +11,7 @@ import (
 	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -83,11 +84,25 @@ type eventsGUI struct {
 	iconSource    spellicon.Source
 	iconAutomatic bool
 	iconBusy      bool
-	iconResults   chan error
+	iconResults   chan iconExtractionResult
+
+	iconSets         []string
+	iconSet          string
+	iconSetSelected  int
+	iconSetClick     widget.Clickable
+	iconSetChoices   []widget.Clickable
+	iconSetList      widget.List
+	iconSetOpen      bool
+	selectorBackdrop widget.Clickable
 
 	volume      widget.Float
 	audioVolume float32
 	volumeDirty bool
+}
+
+type iconExtractionResult struct {
+	names []string
+	err   error
 }
 
 func newEventsGUI(window appWindow, store *eventstore.Store, runtime *eventruntime.Runtime, logPath string) (*eventsGUI, error) {
@@ -125,8 +140,12 @@ func newEventsGUI(window appWindow, store *eventstore.Store, runtime *eventrunti
 		editorList:  widget.List{List: layout.List{Axis: layout.Vertical}},
 		pickerList:  widget.List{List: layout.List{Axis: layout.Vertical}},
 		iconSetup:   iconSetup,
-		iconResults: make(chan error, 1),
+		iconResults: make(chan iconExtractionResult, 1),
+		iconSetList: widget.List{List: layout.List{Axis: layout.Vertical}},
 		audioVolume: float32(volume),
+	}
+	if err := ui.reloadIconSets(); err != nil {
+		return nil, err
 	}
 	ui.volume.Value = float32(volume)
 	ui.runtime.SetAudioVolume(volume)
@@ -185,8 +204,12 @@ func (ui *eventsGUI) Enter() {
 		ui.runtime.SetAudioVolume(volume)
 		ui.volumeDirty = false
 	}
+	if err := ui.reloadIconSets(); err != nil {
+		ui.error = err.Error()
+	}
 	ui.screen = "list"
 	ui.picker = ""
+	ui.iconSetOpen = false
 	if shouldPromptGUIEventIcons(ui.iconSetup, ui.logPath) {
 		if source, ok := spellicon.Detect(ui.logPath, ui.spells); ok {
 			ui.iconSource = source
@@ -202,16 +225,30 @@ func shouldPromptGUIEventIcons(state eventstore.IconSetup, logPath string) bool 
 
 func (ui *eventsGUI) Update(gtx layout.Context) {
 	select {
-	case err := <-ui.iconResults:
+	case result := <-ui.iconResults:
 		ui.iconBusy = false
+		err := result.err
+		if err == nil && len(result.names) == 0 {
+			err = fmt.Errorf("no distinct spell icon sets found")
+		}
+		if err == nil {
+			selected := ui.iconSet
+			if !guiEventContains(result.names, selected) {
+				selected = result.names[0]
+			}
+			err = ui.store.SaveSpellIconSet(selected)
+		}
 		if err == nil {
 			err = ui.store.SaveSpellIconSetup(eventstore.IconSetupEnabled)
+		}
+		if err == nil {
+			err = ui.reloadIconSets()
 		}
 		if err != nil {
 			ui.error = "Spell-icon extraction failed: " + err.Error()
 		} else {
 			ui.iconSetup = eventstore.IconSetupEnabled
-			ui.notice = "Spell icons extracted."
+			ui.notice = fmt.Sprintf("Extracted %d spell icon sets.", len(result.names))
 			ui.screen = "list"
 		}
 	default:
@@ -230,16 +267,30 @@ func (ui *eventsGUI) Update(gtx layout.Context) {
 }
 
 func (ui *eventsGUI) updateList(gtx layout.Context) {
+	ui.dismissOpenSelector(gtx)
+	if ui.iconSetClick.Clicked(gtx) && len(ui.iconSets) > 0 {
+		ui.iconSetOpen = !ui.iconSetOpen
+	}
+	for index := range ui.iconSetChoices {
+		if ui.iconSetChoices[index].Clicked(gtx) {
+			ui.selectIconSet(index)
+			ui.iconSetOpen = false
+		}
+	}
 	if ui.addSpellClick.Clicked(gtx) {
+		ui.iconSetOpen = false
 		ui.openEditor(event.TriggerSpell, nil)
 	}
 	if ui.addTextClick.Clicked(gtx) {
+		ui.iconSetOpen = false
 		ui.openEditor(event.TriggerText, nil)
 	}
 	if ui.addRegexClick.Clicked(gtx) {
+		ui.iconSetOpen = false
 		ui.openEditor(event.TriggerRegexp, nil)
 	}
 	if ui.iconClick.Clicked(gtx) {
+		ui.iconSetOpen = false
 		source, ok := spellicon.Detect(ui.logPath, ui.spells)
 		if !ok {
 			ui.error = "Could not locate EverQuest spell-icon files from the selected logfile."
@@ -261,6 +312,43 @@ func (ui *eventsGUI) updateList(gtx layout.Context) {
 			ui.openEditor(configured.TriggerType, &configured)
 		}
 	}
+}
+
+func (ui *eventsGUI) reloadIconSets() error {
+	sets, err := ui.store.SpellIconSets()
+	if err != nil {
+		return err
+	}
+	selected, err := ui.store.SpellIconSet()
+	if err != nil {
+		return err
+	}
+	index := guiEventStringIndex(sets, selected)
+	if index < 0 && len(sets) > 0 {
+		index = 0
+		selected = sets[0]
+	}
+	ui.iconSets = sets
+	ui.iconSet = selected
+	ui.iconSetSelected = max(index, 0)
+	ui.iconSetChoices = make([]widget.Clickable, len(sets))
+	ui.runtime.SetSpellIconSet(selected)
+	return nil
+}
+
+func (ui *eventsGUI) selectIconSet(index int) {
+	if index < 0 || index >= len(ui.iconSets) {
+		return
+	}
+	selected := ui.iconSets[index]
+	if err := ui.store.SaveSpellIconSet(selected); err != nil {
+		ui.error = err.Error()
+		return
+	}
+	ui.iconSet = selected
+	ui.iconSetSelected = index
+	ui.runtime.SetSpellIconSet(selected)
+	ui.error = ""
 }
 
 func (ui *eventsGUI) openEditor(kind event.TriggerType, existing *event.Event) {
@@ -309,6 +397,7 @@ func (ui *eventsGUI) openEditor(kind event.TriggerType, existing *event.Event) {
 }
 
 func (ui *eventsGUI) updateEditor(gtx layout.Context) {
+	ui.dismissOpenSelector(gtx)
 	if ui.cancelClick.Clicked(gtx) {
 		ui.screen = "list"
 		ui.picker = ""
@@ -361,6 +450,13 @@ func (ui *eventsGUI) openPicker(kind string, selected int) {
 	ui.picker = kind
 	ui.choices = make([]widget.Clickable, len(ui.pickerOptions()))
 	ui.pickerList.ScrollTo(max(selected-2, 0))
+}
+
+func (ui *eventsGUI) dismissOpenSelector(gtx layout.Context) {
+	if ui.selectorBackdrop.Clicked(gtx) {
+		ui.picker = ""
+		ui.iconSetOpen = false
+	}
 }
 
 func (ui *eventsGUI) pickerOptions() []string {
@@ -523,8 +619,8 @@ func (ui *eventsGUI) updateIcons(gtx layout.Context) {
 		ui.error = ""
 		source := ui.iconSource
 		go func() {
-			err := spellicon.Extract(source, ui.store.IconDir(), ui.spells)
-			ui.iconResults <- err
+			names, err := spellicon.ExtractAll(source, ui.store.IconDir(), ui.spells)
+			ui.iconResults <- iconExtractionResult{names: names, err: err}
 			ui.window.Invalidate()
 		}()
 	}
@@ -564,6 +660,9 @@ func (ui *eventsGUI) Layout(gtx layout.Context, theme *material.Theme) layout.Di
 }
 
 func (ui *eventsGUI) layoutList(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	if ui.iconSetOpen {
+		ui.deferSelectorBackdrop(gtx)
+	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
@@ -575,7 +674,7 @@ func (ui *eventsGUI) layoutList(gtx layout.Context, theme *material.Theme) layou
 						guiEventAction{"Add spell", &ui.addSpellClick},
 						guiEventAction{"Add text", &ui.addTextClick},
 						guiEventAction{"Add regexp", &ui.addRegexClick},
-						guiEventAction{"Spell icons", &ui.iconClick},
+						guiEventAction{"Extract icons", &ui.iconClick},
 					)
 				}),
 			)
@@ -583,6 +682,11 @@ func (ui *eventsGUI) layoutList(gtx layout.Context, theme *material.Theme) layou
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return inset(0, unit.Dp(14)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return ui.layoutVolume(gtx, theme)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return ui.layoutIconSetSelector(gtx, theme)
 			})
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -623,6 +727,8 @@ func (ui *eventsGUI) layoutVolume(gtx layout.Context, theme *material.Theme) lay
 	}
 	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			width := min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(105)))
+			gtx.Constraints.Min.X, gtx.Constraints.Max.X = width, width
 			return label(gtx, theme, "Sound volume", unit.Sp(15), palette.text, text.Start)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -642,6 +748,82 @@ func (ui *eventsGUI) layoutVolume(gtx layout.Context, theme *material.Theme) lay
 			})
 		}),
 	)
+}
+
+func (ui *eventsGUI) layoutIconSetSelector(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	value := "Not extracted"
+	if ui.iconSet != "" {
+		value = ui.iconSet
+	}
+	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			width := min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(105)))
+			gtx.Constraints.Min.X, gtx.Constraints.Max.X = width, width
+			return label(gtx, theme, "Spell icons", unit.Sp(15), palette.text, text.Start)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return (layout.Inset{Left: unit.Dp(14)}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				width := min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(260)))
+				gtx.Constraints.Min.X, gtx.Constraints.Max.X = width, width
+				if len(ui.iconSets) == 0 {
+					gtx = gtx.Disabled()
+				}
+				dimensions := guiEventSelector(theme, &ui.iconSetClick, value, ui.iconSetOpen)(gtx)
+				if ui.iconSetOpen {
+					ui.deferPicker(gtx, dimensions.Size, func(gtx layout.Context) layout.Dimensions {
+						return ui.layoutIconSetOptions(gtx, theme)
+					})
+				}
+				return dimensions
+			})
+		}),
+	)
+}
+
+func (ui *eventsGUI) layoutIconSetOptions(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	rowHeight := gtx.Dp(unit.Dp(40))
+	height := min(rowHeight*len(ui.iconSets), gtx.Dp(unit.Dp(160)))
+	gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = height, height
+	return outline(gtx, palette.accent, func(gtx layout.Context) layout.Dimensions {
+		fill(gtx, palette.window)
+		list := material.List(theme, &ui.iconSetList)
+		list.AnchorStrategy = material.Occupy
+		return list.Layout(gtx, len(ui.iconSets), func(gtx layout.Context, index int) layout.Dimensions {
+			gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = rowHeight, rowHeight
+			return ui.iconSetChoices[index].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				pointer.CursorPointer.Add(gtx.Ops)
+				background, foreground := palette.panel, palette.text
+				if index == ui.iconSetSelected {
+					background, foreground = color.NRGBA{R: 70, G: 60, B: 34, A: 255}, palette.accent
+				} else if ui.iconSetChoices[index].Hovered() {
+					background = palette.panelAlt
+				}
+				fill(gtx, background)
+				return layout.UniformInset(unit.Dp(9)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return label(gtx, theme, ui.iconSets[index], unit.Sp(15), foreground, text.Start)
+				})
+			})
+		})
+	})
+}
+
+func (ui *eventsGUI) deferPicker(gtx layout.Context, anchor image.Point, picker layout.Widget) {
+	macro := op.Record(gtx.Ops)
+	offset := op.Offset(image.Pt(0, anchor.Y)).Push(gtx.Ops)
+	popup := gtx
+	popup.Constraints.Min = image.Pt(anchor.X, 0)
+	popup.Constraints.Max = image.Pt(anchor.X, gtx.Dp(unit.Dp(230)))
+	picker(popup)
+	offset.Pop()
+	op.Defer(gtx.Ops, macro.Stop())
+}
+
+func (ui *eventsGUI) deferSelectorBackdrop(gtx layout.Context) {
+	macro := op.Record(gtx.Ops)
+	ui.selectorBackdrop.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	})
+	op.Defer(gtx.Ops, macro.Stop())
 }
 
 func (ui *eventsGUI) applyAudioVolume() {
@@ -731,6 +913,9 @@ func (ui *eventsGUI) layoutEventRow(gtx layout.Context, theme *material.Theme, i
 }
 
 func (ui *eventsGUI) layoutEditor(gtx layout.Context, theme *material.Theme) layout.Dimensions {
+	if ui.picker != "" {
+		ui.deferSelectorBackdrop(gtx)
+	}
 	title := "Add event"
 	if ui.editingID != "" {
 		title = "Edit event"
@@ -763,14 +948,7 @@ func (ui *eventsGUI) layoutEditor(gtx layout.Context, theme *material.Theme) lay
 func (ui *eventsGUI) editorItems() []string {
 	items := []string{"title"}
 	if ui.editingKind == event.TriggerSpell {
-		items = append(items, "class")
-		if ui.picker == "class" {
-			items = append(items, "picker")
-		}
-		items = append(items, "spell")
-		if ui.picker == "spell" {
-			items = append(items, "picker")
-		}
+		items = append(items, "class", "spell")
 	} else {
 		items = append(items, "pattern")
 		if ui.editingKind == event.TriggerText {
@@ -778,9 +956,6 @@ func (ui *eventsGUI) editorItems() []string {
 		}
 	}
 	items = append(items, "notification", "persistence", "sound")
-	if ui.picker == "sound" {
-		items = append(items, "picker")
-	}
 	if ui.error != "" {
 		items = append(items, "error")
 	}
@@ -812,17 +987,15 @@ func (ui *eventsGUI) layoutEditorItem(gtx layout.Context, theme *material.Theme,
 		if ui.classSelected > 0 && ui.classSelected-1 < len(ui.classes) {
 			value = ui.classes[ui.classSelected-1]
 		}
-		return guiEventEditorRow(gtx, theme, "Class", guiEventSelector(theme, &ui.classClick, value, ui.picker == "class"))
+		return guiEventEditorRow(gtx, theme, "Class", ui.editorSelector(theme, &ui.classClick, value, "class"))
 	case "spell":
 		value := "[No spells]"
 		if len(ui.visibleSpells) > 0 && ui.spellSelected < len(ui.visibleSpells) {
 			value = ui.visibleSpells[ui.spellSelected].Name
 		}
-		return guiEventEditorRow(gtx, theme, "Spell", guiEventSelector(theme, &ui.spellClick, value, ui.picker == "spell"))
+		return guiEventEditorRow(gtx, theme, "Spell", ui.editorSelector(theme, &ui.spellClick, value, "spell"))
 	case "sound":
-		return guiEventEditorRow(gtx, theme, "Sound", guiEventSelector(theme, &ui.soundClick, ui.sounds[ui.soundSelected].Label, ui.picker == "sound"))
-	case "picker":
-		return ui.layoutPicker(gtx, theme)
+		return guiEventEditorRow(gtx, theme, "Sound", ui.editorSelector(theme, &ui.soundClick, ui.sounds[ui.soundSelected].Label, "sound"))
 	case "error":
 		return guiEventMessage(gtx, theme, ui.error, color.NRGBA{R: 220, G: 150, B: 150, A: 255})
 	default:
@@ -830,32 +1003,43 @@ func (ui *eventsGUI) layoutEditorItem(gtx layout.Context, theme *material.Theme,
 	}
 }
 
+func (ui *eventsGUI) editorSelector(theme *material.Theme, click *widget.Clickable, value, kind string) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		dimensions := guiEventSelector(theme, click, value, ui.picker == kind)(gtx)
+		if ui.picker == kind {
+			ui.deferPicker(gtx, dimensions.Size, func(gtx layout.Context) layout.Dimensions {
+				return ui.layoutPicker(gtx, theme)
+			})
+		}
+		return dimensions
+	}
+}
+
 func (ui *eventsGUI) layoutPicker(gtx layout.Context, theme *material.Theme) layout.Dimensions {
 	options := ui.pickerOptions()
 	selected := ui.pickerSelected()
-	height := min(gtx.Dp(unit.Dp(230)), max(gtx.Constraints.Max.Y, gtx.Dp(unit.Dp(120))))
+	rowHeight := gtx.Dp(unit.Dp(42))
+	height := min(rowHeight*len(options), gtx.Dp(unit.Dp(230)))
+	height = max(height, min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y))
+	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = height, height
-	labelWidth := min(gtx.Dp(unit.Dp(150)), gtx.Constraints.Max.X/3)
-	return layout.Inset{Left: gtx.Metric.PxToDp(labelWidth)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return outline(gtx, palette.accent, func(gtx layout.Context) layout.Dimensions {
-			fill(gtx, palette.window)
-			list := material.List(theme, &ui.pickerList)
-			list.AnchorStrategy = material.Occupy
-			return list.Layout(gtx, len(options), func(gtx layout.Context, index int) layout.Dimensions {
-				rowHeight := gtx.Dp(unit.Dp(42))
-				gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = rowHeight, rowHeight
-				return ui.choices[index].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					pointer.CursorPointer.Add(gtx.Ops)
-					background, foreground := palette.panel, palette.text
-					if index == selected {
-						background, foreground = color.NRGBA{R: 70, G: 60, B: 34, A: 255}, palette.accent
-					} else if ui.choices[index].Hovered() {
-						background = palette.panelAlt
-					}
-					fill(gtx, background)
-					return layout.UniformInset(unit.Dp(9)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return label(gtx, theme, options[index], unit.Sp(15), foreground, text.Start)
-					})
+	return outline(gtx, palette.accent, func(gtx layout.Context) layout.Dimensions {
+		fill(gtx, palette.window)
+		list := material.List(theme, &ui.pickerList)
+		list.AnchorStrategy = material.Occupy
+		return list.Layout(gtx, len(options), func(gtx layout.Context, index int) layout.Dimensions {
+			gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = rowHeight, rowHeight
+			return ui.choices[index].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				pointer.CursorPointer.Add(gtx.Ops)
+				background, foreground := palette.panel, palette.text
+				if index == selected {
+					background, foreground = color.NRGBA{R: 70, G: 60, B: 34, A: 255}, palette.accent
+				} else if ui.choices[index].Hovered() {
+					background = palette.panelAlt
+				}
+				fill(gtx, background)
+				return layout.UniformInset(unit.Dp(9)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return label(gtx, theme, options[index], unit.Sp(15), foreground, text.Start)
 				})
 			})
 		})
@@ -901,7 +1085,7 @@ func (ui *eventsGUI) layoutIconsOverlay(gtx layout.Context, theme *material.Them
 }
 
 func (ui *eventsGUI) layoutIconsCard(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	body := "Copy spell icons from this EverQuest installation for use in spell notifications."
+	body := "Extract every distinct spell icon set from this EverQuest installation for use in notifications."
 	if ui.iconBusy {
 		body = "Extracting spell icons…"
 	}
@@ -1046,6 +1230,15 @@ func guiEventSoundIndex(sounds []audio.Sound, id string) int {
 	}
 	for index, sound := range sounds {
 		if sound.ID == id {
+			return index
+		}
+	}
+	return -1
+}
+
+func guiEventStringIndex(values []string, wanted string) int {
+	for index, value := range values {
+		if value == wanted {
 			return index
 		}
 	}
