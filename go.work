@@ -5,5 +5,4 @@ use (
 	./gui
 	./legacy/gui
 	./legacy/tui
-	./tui
 )
