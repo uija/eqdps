@@ -19,7 +19,7 @@ type HelpItem struct {
 
 type UIActionFunc func()
 type OnLogOpenFunc func(characterName string, serverName string, filesize int64)
-type OnLogRowFunc func(event *data.LogEvent)
+type OnLogRowFunc func(event *data.LogRowEvent)
 
 type Context struct {
 	currentMainView ui.Widget

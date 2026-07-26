@@ -33,7 +33,7 @@ func (m *Module) Shutdown() {
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64) {
 
 }
-func (m *Module) OnLogRow(event *data.LogEvent) {
+func (m *Module) OnLogRow(event *data.LogRowEvent) {
 
 }
 func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensions {

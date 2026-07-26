@@ -34,7 +34,7 @@ func (m *Module) Shutdown() {
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64) {
 
 }
-func (m *Module) OnLogRow(event *data.LogEvent) {
+func (m *Module) OnLogRow(event *data.LogRowEvent) {
 
 }
 
