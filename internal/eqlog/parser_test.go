@@ -422,6 +422,18 @@ func TestParseExperienceLine(t *testing.T) {
 	}
 }
 
+func TestParseKillRewardsUsedForDropCollection(t *testing.T) {
+	for _, line := range []string{
+		"[Sun Jul 05 20:56:00 2026] You gain party experience! (0.001%)",
+		"[Sun Jul 05 20:56:00 2026] You receive 1 platinum, 2 gold and 3 copper from the corpse.",
+	} {
+		record, ok := ParseRecord(line)
+		if !ok || record.Kind != RecordKillReward {
+			t.Fatalf("did not parse kill reward %q: %#v, %v", line, record, ok)
+		}
+	}
+}
+
 func TestParseLevelUpLine(t *testing.T) {
 	levelUp, ok := ParseLevelUpLine("[Mon Jul 13 15:34:31 2026] You have gained a level! Welcome to level 43!")
 	if !ok {

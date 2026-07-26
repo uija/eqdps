@@ -54,7 +54,36 @@ func (s *shell) layoutPreferences(gtx layout.Context) layout.Dimensions {
 				return label(gtx, s.theme, message, unit.Sp(14), palette.muted, text.Start)
 			})
 		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				before := s.dropCollection.Value
+				dimensions := material.CheckBox(s.theme, &s.dropCollection, "Contribute kill and loot observations to EQLDB").Layout(gtx)
+				if before != s.dropCollection.Value {
+					s.setDropCollectionEnabled(s.dropCollection.Value)
+				}
+				return dimensions
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return label(gtx, s.theme, "Collected observations upload automatically while EQLDB is connected.", unit.Sp(14), palette.muted, text.Start)
+			})
+		}),
 	)
+}
+
+func (s *shell) setDropCollectionEnabled(enabled bool) {
+	s.dropCollectorMu.Lock()
+	defer s.dropCollectorMu.Unlock()
+	if s.dropCollector == nil {
+		s.dropCollection.Value = false
+		s.statusText = "Open a logfile before enabling drop collection"
+		return
+	}
+	if err := s.dropCollector.SetEnabled(enabled); err != nil {
+		s.dropCollection.Value = !enabled
+		s.statusText = "Drop collection preference could not be saved"
+	}
 }
 
 func (s *shell) layoutPreferenceSlider(gtx layout.Context, title string, state *widget.Float, minimum, maximum float32, enabled, percentage bool) layout.Dimensions {

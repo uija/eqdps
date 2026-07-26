@@ -15,7 +15,9 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/uija/eqdps/internal/combat"
+	"github.com/uija/eqdps/internal/dropcollector"
 	"github.com/uija/eqdps/internal/engine"
+	"github.com/uija/eqdps/internal/eqldbsync"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/eventruntime"
 	"github.com/uija/eqdps/internal/skyquest"
@@ -255,6 +257,18 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		noticeMu.Unlock()
 	}
 	eventErrors := make(chan error, 8)
+	dropCollector, dropCollectorErr := dropcollector.Open(logPath)
+	if dropCollectorErr == nil {
+		if info, statErr := os.Stat(logPath); statErr == nil {
+			dropCollectorErr = dropCollector.Sync(info.Size())
+		} else {
+			dropCollectorErr = statErr
+		}
+	}
+	if dropCollectorErr != nil {
+		setNotice("Drop collection unavailable: "+dropCollectorErr.Error(), eqldbErrorColor, 12*time.Second)
+		dropCollector = nil
+	}
 	eventsRuntime, eventsStore, eventsInitErr := eventruntime.Open(func(err error) {
 		select {
 		case eventErrors <- err:
@@ -349,6 +363,23 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	if eventsRuntime != nil {
 		eventsRuntime.Start(eventContext)
 	}
+	eqldbRunner, eqldbRunnerErr := eqldbsync.Default(func(err error) {
+		app.QueueUpdateDraw(func() {
+			if eqldbUI != nil {
+				eqldbUI.handleSyncError(err)
+			}
+			setNotice("EQLDB event upload: "+err.Error(), eqldbErrorColor, 10*time.Second)
+			render()
+		})
+	})
+	if eqldbRunnerErr != nil {
+		setNotice("EQLDB event uploads unavailable: "+eqldbRunnerErr.Error(), eqldbErrorColor, 12*time.Second)
+	} else {
+		if eqldbUI != nil {
+			eqldbUI.syncNow = eqldbRunner.Trigger
+		}
+		go eqldbRunner.Run(eventContext)
+	}
 	skyCatchupDone := make(chan struct{})
 	if skyCatchupTarget == 0 {
 		close(skyCatchupDone)
@@ -420,10 +451,17 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				}
 			}
 			skyMu.Unlock()
+			if dropCollector != nil {
+				if err := dropCollector.ProcessLine(line, endOffset); err != nil {
+					setNotice("Drop collection: "+err.Error(), eqldbErrorColor, 8*time.Second)
+				}
+			}
 			if liveLine && parsed && eqldbUI != nil {
 				eqldbUI.Observe(record)
 			}
-			dispatchEventLineAfterCatchup(line, endOffset, skyCatchupTarget, eventsRuntime)
+			if parsed {
+				dispatchEventLineAfterCatchup(line, endOffset, skyCatchupTarget, eventsRuntime)
+			}
 			app.QueueUpdateDraw(render)
 		}); err != nil {
 			errCh <- err
@@ -811,6 +849,50 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 		app.SetFocus(input)
 	}
 
+	settingsOpen := false
+	closeSettings := func() {
+		pages.RemovePage("settings")
+		settingsOpen = false
+		app.SetFocus(table)
+	}
+	openSettings := func() {
+		if settingsOpen {
+			return
+		}
+		settingsOpen = true
+		enabled := dropCollector != nil && dropCollector.Enabled()
+		status := "disabled"
+		if enabled {
+			status = "enabled"
+		}
+		modal := tview.NewModal().
+			SetText("EQLDB kill and loot collection is " + status + ".\n\nCollected observations upload automatically while EQLDB is connected.").
+			AddButtons([]string{"Enable", "Disable", "Cancel"}).
+			SetDoneFunc(func(_ int, label string) {
+				if label == "Cancel" {
+					closeSettings()
+					return
+				}
+				if dropCollector == nil {
+					setNotice("Drop collection is unavailable", eqldbErrorColor, 8*time.Second)
+					closeSettings()
+					return
+				}
+				wantEnabled := label == "Enable"
+				if err := dropCollector.SetEnabled(wantEnabled); err != nil {
+					setNotice("Drop collection preference: "+err.Error(), eqldbErrorColor, 8*time.Second)
+				} else if wantEnabled {
+					setNotice("EQLDB kill and loot collection enabled", infoNoticeColor, 6*time.Second)
+				} else {
+					setNotice("EQLDB kill and loot collection disabled", infoBarColor, 6*time.Second)
+				}
+				closeSettings()
+				render()
+			})
+		pages.AddPage("settings", modal, true, true)
+		app.SetFocus(modal)
+	}
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if eqldbUI != nil && eqldbUI.ModalOpen() {
 			return event
@@ -819,6 +901,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 			if eventsUI.HandleGlobal(event) {
 				return nil
 			}
+			return event
+		}
+		if settingsOpen {
 			return event
 		}
 		if skyCatchupOpen {
@@ -978,6 +1063,9 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 				eqldbUI.OpenManagement()
 			}
 			return nil
+		case 's', 'S':
+			openSettings()
+			return nil
 		}
 		return event
 	})
@@ -995,6 +1083,11 @@ func runApp(logPath string, idleTimeout, back time.Duration, since time.Time, hi
 	stop()
 	if eqldbUI != nil {
 		eqldbUI.Close()
+	}
+	if dropCollector != nil {
+		if closeErr := dropCollector.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 	}
 	if skyScanCancel != nil {
 		close(skyScanCancel)
@@ -1052,7 +1145,7 @@ func titleText(logPath string, terminalWidth int) string {
 }
 
 func shortcutsText() string {
-	return "[gray]o[::-] history   [gray]p[::-] Sky   [gray]n[::-] Events   [gray]e[::-] EQLDB   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]a[::-] tree   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
+	return "[gray]o[::-] history   [gray]p[::-] Sky   [gray]n[::-] Events   [gray]e[::-] EQLDB   [gray]s[::-] settings   [gray]/[::-] filter   [gray]Enter[::-] details   [gray]a[::-] tree   [gray]r[::-] reset   [gray]q/Esc[::-] quit"
 }
 
 func xpInfoText(snapshot xp.Snapshot, fightFilter string) string {

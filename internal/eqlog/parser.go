@@ -22,6 +22,8 @@ var (
 	youSlainRE     = regexp.MustCompile(`^You have slain (.+)!$`)
 	slainByRE      = regexp.MustCompile(`^(.+) has been slain by (.+)!$`)
 	experienceRE   = regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)
+	killXPRewardRE = regexp.MustCompile(`^You gain (?:party )?experience!(?: \([0-9]+(?:\.[0-9]+)?%\))?$`)
+	corpseCoinRE   = regexp.MustCompile(`^You receive .+ from the corpse\.$`)
 	levelUpRE      = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
 	aggroClearRE   = regexp.MustCompile(`^Your enemies have forgotten you!$`)
 	castRE         = regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`)
@@ -40,6 +42,11 @@ var (
 type ExperienceGain struct {
 	Time    time.Time
 	Percent float64
+}
+
+type KillReward struct {
+	Time time.Time
+	Kind string
 }
 
 type LevelUp struct {
@@ -126,6 +133,7 @@ const (
 	RecordTradeCancel
 	RecordWho
 	RecordInventoryExport
+	RecordKillReward
 )
 
 // Record is one timestamped EverQuest log entry. Unknown records retain their
@@ -146,6 +154,7 @@ type Record struct {
 	TradeCancel TradeCancel
 	Who         WhoResult
 	Export      InventoryExport
+	KillReward  KillReward
 }
 
 func ParseRecord(line string) (Record, bool) {
@@ -178,6 +187,8 @@ func ParseRecordAfter(line string, cutoff time.Time) (Record, bool) {
 		record.Kind, record.Damage = RecordDamage, damage
 	} else if gain, ok := parseExperience(timestamp, message); ok {
 		record.Kind, record.Experience = RecordExperience, gain
+	} else if reward, ok := parseKillReward(timestamp, message); ok {
+		record.Kind, record.KillReward = RecordKillReward, reward
 	} else if levelUp, ok := parseLevelUp(timestamp, message); ok {
 		record.Kind, record.LevelUp = RecordLevelUp, levelUp
 	} else if aggroClearRE.MatchString(message) {
@@ -202,6 +213,17 @@ func ParseRecordAfter(line string, cutoff time.Time) (Record, bool) {
 		record.Kind, record.Export = RecordInventoryExport, export
 	}
 	return record, true
+}
+
+func parseKillReward(timestamp time.Time, message string) (KillReward, bool) {
+	switch {
+	case killXPRewardRE.MatchString(message):
+		return KillReward{Time: timestamp, Kind: "experience"}, true
+	case corpseCoinRE.MatchString(message):
+		return KillReward{Time: timestamp, Kind: "coin"}, true
+	default:
+		return KillReward{}, false
+	}
 }
 
 func parseWhoResult(timestamp time.Time, message string) (WhoResult, bool) {

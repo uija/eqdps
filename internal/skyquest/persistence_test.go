@@ -7,7 +7,22 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/uija/eqdps/internal/eqldbqueue"
 )
+
+func TestMain(m *testing.M) {
+	config, err := os.MkdirTemp("", "eqdps-skyquest-test-*")
+	if err != nil {
+		panic(err)
+	}
+	if err := os.Setenv("XDG_CONFIG_HOME", config); err != nil {
+		panic(err)
+	}
+	code := m.Run()
+	_ = os.RemoveAll(config)
+	os.Exit(code)
+}
 
 func TestCharacterIdentity(t *testing.T) {
 	character, server, err := CharacterIdentity(`/logs/eqlog_Wyrmberg_rivervale.txt`)
@@ -83,6 +98,92 @@ func TestPersistentTrackerScansOnceAndResumesFromExactByteOffset(t *testing.T) {
 	}
 	if state.Checkpoint.LastZone != "East Freeport" || state.Holdings["Wind Rune Caza"] != 1 {
 		t.Fatalf("unexpected persisted state: %#v", state)
+	}
+}
+
+func TestPersistentTrackerQueuesRuneAndQuestEvents(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", config)
+	logPath := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
+	content := "" +
+		"[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n" +
+		"[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n" +
+		"[Thu Jul 16 10:40:02 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--\n" +
+		"[Thu Jul 16 10:40:03 2026] You offered 1 Light Woolen Mask to Cilin Spellsinger.\n" +
+		"[Thu Jul 16 10:40:04 2026] You offered 1 Wind Rune Caza to Cilin Spellsinger.\n" +
+		"[Thu Jul 16 10:40:05 2026] You complete the trade with Cilin Spellsinger.\n" +
+		"[Thu Jul 16 10:40:06 2026] You successfully destroyed 1 Wind Rune Caza.\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := OpenPersistentTracker(logPath, testDatabase()); err != nil {
+		t.Fatal(err)
+	}
+	queue, err := eqldbqueue.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := queue.Batch(eqldbqueue.PlaneOfSky, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 3 {
+		t.Fatalf("got %d queued Sky events, want rune receive, quest turn-in, and rune delete", len(entries))
+	}
+	var events []SyncEvent
+	for _, entry := range entries {
+		var event SyncEvent
+		if err := json.Unmarshal(entry.Payload, &event); err != nil {
+			t.Fatal(err)
+		}
+		events = append(events, event)
+	}
+	if events[0].Type != "wind-rune-receive" || events[1].Type != "quest-turn-in" ||
+		events[1].Quest != "bard-test-of-tone" || events[2].Type != "wind-rune-delete" {
+		t.Fatalf("unexpected queued Sky events: %#v", events)
+	}
+}
+
+func TestExistingSkyStateBackfillsMissingUploadHistory(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", config)
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	content := "" +
+		"[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n" +
+		"[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	saved := CharacterState{
+		Version: stateVersion, Character: "Wyrmberg", Server: "rivervale",
+		Holdings: map[string]int{"Wind Rune Caza": 1}, Completed: map[string]bool{},
+		Pending: map[string]map[string]int{},
+		Checkpoint: LogCheckpoint{
+			LogFile: "eqlog_Wyrmberg_rivervale.txt", Offset: int64(len(content)), LastZone: PlaneOfSkyZone,
+		},
+	}
+	data, err := json.Marshal(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "Wyrmberg_rivervale_PoS.json"), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tracker, err := LoadPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tracker.Inventory()["Wind Rune Caza"] != 1 {
+		t.Fatalf("existing tracker state changed during upload backfill: %#v", tracker.Inventory())
+	}
+	queue, err := eqldbqueue.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := queue.Batch(eqldbqueue.PlaneOfSky, 10)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("existing state did not backfill its logfile event: %#v, %v", entries, err)
 	}
 }
 

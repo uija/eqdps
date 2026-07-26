@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -13,6 +14,16 @@ type State struct {
 	IntroductionShown bool   `json:"introduction_shown,omitempty"`
 	AccessToken       string `json:"access_token,omitempty"`
 	ConnectionID      string `json:"connection_id,omitempty"`
+	Scope             string `json:"scope,omitempty"`
+}
+
+func (s State) HasScope(scope string) bool {
+	for _, configured := range strings.Fields(s.Scope) {
+		if configured == scope {
+			return true
+		}
+	}
+	return false
 }
 
 type Store struct {
@@ -20,7 +31,11 @@ type Store struct {
 }
 
 func (s Store) AcquireUploadLease(now time.Time, duration time.Duration) (bool, time.Duration, error) {
-	lockPath := filepath.Join(filepath.Dir(s.Path), "eqldb-upload.lock")
+	return s.AcquireLease("upload", now, duration)
+}
+
+func (s Store) AcquireLease(name string, now time.Time, duration time.Duration) (bool, time.Duration, error) {
+	lockPath := filepath.Join(filepath.Dir(s.Path), "eqldb-"+name+".lock")
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0o700); err != nil {
 		return false, 0, fmt.Errorf("create EQLDB settings directory: %w", err)
 	}
@@ -57,6 +72,14 @@ func (s Store) AcquireUploadLease(now time.Time, duration time.Duration) (bool, 
 		}
 	}
 	return false, duration, nil
+}
+
+func (s Store) ReleaseLease(name string) error {
+	err := os.Remove(filepath.Join(filepath.Dir(s.Path), "eqldb-"+name+".lock"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 func DefaultStore() (Store, error) {

@@ -14,6 +14,7 @@ func TestStoreRoundTrip(t *testing.T) {
 		IntroductionShown: true,
 		AccessToken:       "private-token",
 		ConnectionID:      "connection-id",
+		Scope:             "inventory:upload observations:write",
 	}
 	if err := store.Save(want); err != nil {
 		t.Fatal(err)

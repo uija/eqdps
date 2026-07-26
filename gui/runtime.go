@@ -9,18 +9,21 @@ import (
 	"time"
 
 	"github.com/uija/eqdps/internal/combat"
+	"github.com/uija/eqdps/internal/dropcollector"
 	"github.com/uija/eqdps/internal/engine"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/xp"
 )
 
 type combatUpdate struct {
-	fights   []fakeFightSection
-	status   string
-	progress *engine.ReplayProgress
-	loadDone bool
-	xp       *xp.Snapshot
-	state    string
+	fights            []fakeFightSection
+	status            string
+	progress          *engine.ReplayProgress
+	loadDone          bool
+	xp                *xp.Snapshot
+	state             string
+	collector         *dropcollector.Collector
+	collectionEnabled bool
 }
 
 func (s *shell) loadLog(path string, back time.Duration) {
@@ -44,6 +47,24 @@ func (s *shell) loadLog(path string, back time.Duration) {
 			return
 		}
 		limit := info.Size()
+		absolutePath, absoluteErr := filepath.Abs(path)
+		s.dropCollectorMu.Lock()
+		collector := s.dropCollector
+		s.dropCollectorMu.Unlock()
+		var collectorErr error
+		if absoluteErr != nil {
+			collectorErr = absoluteErr
+		} else if collector == nil || collector.LogPath() != absolutePath {
+			collector, collectorErr = dropcollector.Open(path)
+		}
+		if collectorErr == nil {
+			collectorErr = collector.Sync(limit)
+		}
+		if collectorErr != nil {
+			s.sendCombatUpdate(combatUpdate{status: "Drop collection: " + collectorErr.Error()})
+		} else {
+			s.sendCombatUpdate(combatUpdate{collector: collector, collectionEnabled: collector.Enabled()})
+		}
 		if back != 0 {
 			progress := engine.ReplayProgress{Total: limit}
 			s.sendCombatUpdate(combatUpdate{progress: &progress})
@@ -69,13 +90,21 @@ func (s *shell) loadLog(path string, back time.Duration) {
 		err = engine.FollowWithPoll(path, limit, cancel, func(line string, endOffset int64) {
 			idleTimeout := time.Duration(s.combatIdleNanos.Load())
 			engine.ProcessLine(line, tracker, xpSession, idleTimeout)
+			record, parsed := eqlog.ParseRecord(line)
 			if s.eqldb != nil {
-				if record, ok := eqlog.ParseRecord(line); ok {
+				if parsed {
 					s.eqldb.Observe(record)
 				}
 			}
 			s.processSkyLine(path, line, endOffset)
-			engine.DispatchLiveLine(line, s.eventRuntime)
+			if collector != nil {
+				if err := collector.ProcessLine(line, endOffset); err != nil {
+					s.sendCombatUpdate(combatUpdate{status: "Drop collection: " + err.Error(), state: "live"})
+				}
+			}
+			if parsed {
+				engine.DispatchLiveLine(line, s.eventRuntime)
+			}
 			xpSnapshot := xpSession.SnapshotLive(time.Now())
 			s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · live", xp: &xpSnapshot, state: "live"})
 		}, func(now time.Time) {
@@ -129,6 +158,10 @@ func mergeCombatUpdates(pending, next combatUpdate) combatUpdate {
 	}
 	if next.state == "" {
 		next.state = pending.state
+	}
+	if next.collector == nil {
+		next.collector = pending.collector
+		next.collectionEnabled = pending.collectionEnabled
 	}
 	return next
 }

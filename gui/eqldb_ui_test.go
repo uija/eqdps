@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -8,6 +9,26 @@ import (
 	"github.com/uija/eqdps/internal/eqldb"
 	"github.com/uija/eqdps/internal/inventorysync"
 )
+
+func TestEQLDBGUISyncErrorRefreshesClearedConnection(t *testing.T) {
+	store := eqldb.Store{Path: filepath.Join(t.TempDir(), "eqldb.json")}
+	if err := store.Save(eqldb.State{IntroductionShown: true}); err != nil {
+		t.Fatal(err)
+	}
+	ui := &eqldbGUI{
+		store: store,
+		state: eqldb.State{IntroductionShown: true, AccessToken: "stale-token"},
+	}
+
+	ui.handleSyncError(&eqldb.APIError{Status: 401, Description: "token revoked"})
+
+	if ui.state.AccessToken != "" {
+		t.Fatalf("stale access token remained in UI state: %q", ui.state.AccessToken)
+	}
+	if ui.lastError != "token revoked" {
+		t.Fatalf("last error = %q", ui.lastError)
+	}
+}
 
 func TestEQLDBGUIMacroGuidanceUsesCharacter(t *testing.T) {
 	macro := eqldbGUIMacroText("Wyrmberg")
