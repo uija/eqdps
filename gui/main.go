@@ -119,6 +119,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 	s.update(gtx)
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = gtx.Constraints.Max
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(s.layoutMenu),
 				layout.Flexed(1, s.layoutMain),
