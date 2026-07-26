@@ -26,6 +26,8 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
+	"github.com/uija/eqdps/internal/dropcollector"
+	"github.com/uija/eqdps/internal/eqldbsync"
 	"github.com/uija/eqdps/internal/eventruntime"
 	"github.com/uija/eqdps/internal/eventstore"
 	"github.com/uija/eqdps/internal/skyquest"
@@ -86,6 +88,9 @@ type shell struct {
 	dpsScale          widget.Float
 	dpsOpacity        widget.Float
 	idleTimeoutSlider widget.Float
+	dropCollection    widget.Bool
+	dropCollector     *dropcollector.Collector
+	dropCollectorMu   sync.Mutex
 	combatIdleNanos   atomic.Int64
 	dpsFontMilli      atomic.Int64
 	prefsDirty        bool
@@ -126,6 +131,8 @@ type shell struct {
 	eventUI           *eventsGUI
 	eventsCancel      context.CancelFunc
 	eventErrors       chan error
+	eqldbSyncCancel   context.CancelFunc
+	eqldbSyncErrors   chan error
 	fights            []fakeFightSection
 	menus             []menu
 	rail              []railItem
@@ -219,9 +226,17 @@ func run(window *app.Window) error {
 			if ui.eventsCancel != nil {
 				ui.eventsCancel()
 			}
+			if ui.eqldbSyncCancel != nil {
+				ui.eqldbSyncCancel()
+			}
 			if ui.eqldb != nil {
 				ui.eqldb.Close()
 			}
+			ui.dropCollectorMu.Lock()
+			if ui.dropCollector != nil {
+				_ = ui.dropCollector.Close()
+			}
+			ui.dropCollectorMu.Unlock()
 			ui.captureMainSize(ui.lastMainWidth, ui.lastMainHeight)
 			ui.captureOpenOverlaySettings()
 			_ = saveSettings(ui.settings)
@@ -269,25 +284,26 @@ func newShell(window *app.Window) *shell {
 	ranges := historyRangeItems("open")
 	recents := recentMenuItems(settings)
 	result := &shell{
-		theme:         theme,
-		fightList:     widget.List{List: layout.List{Axis: layout.Vertical}},
-		activeMenu:    -1,
-		activeSub:     -1,
-		window:        window,
-		settings:      settings,
-		currentLog:    currentLog,
-		statusText:    statusText,
-		fileChosen:    make(chan fileChoice, 1),
-		combatUpdates: make(chan combatUpdate, 1),
-		overlayClosed: make(chan *combatOverlay, 1),
-		skyDatabase:   skyDatabase,
-		skyInventory:  make(map[string]int),
-		skyList:       widget.List{List: layout.List{Axis: layout.Vertical}},
-		skyUpdates:    make(chan skyAsyncUpdate, 1),
-		treeClicks:    make(map[string]*widget.Clickable),
-		treeChildren:  make(map[string][]string),
-		expanded:      make(map[string]bool),
-		eventErrors:   make(chan error, 8),
+		theme:           theme,
+		fightList:       widget.List{List: layout.List{Axis: layout.Vertical}},
+		activeMenu:      -1,
+		activeSub:       -1,
+		window:          window,
+		settings:        settings,
+		currentLog:      currentLog,
+		statusText:      statusText,
+		fileChosen:      make(chan fileChoice, 1),
+		combatUpdates:   make(chan combatUpdate, 1),
+		overlayClosed:   make(chan *combatOverlay, 1),
+		skyDatabase:     skyDatabase,
+		skyInventory:    make(map[string]int),
+		skyList:         widget.List{List: layout.List{Axis: layout.Vertical}},
+		skyUpdates:      make(chan skyAsyncUpdate, 1),
+		treeClicks:      make(map[string]*widget.Clickable),
+		treeChildren:    make(map[string][]string),
+		expanded:        make(map[string]bool),
+		eventErrors:     make(chan error, 8),
+		eqldbSyncErrors: make(chan error, 8),
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}, {name: "Reset session", enabled: currentLog != "", action: "reset"}}},
@@ -310,6 +326,23 @@ func newShell(window *app.Window) *shell {
 		result.loadSkyState(currentLog)
 	}
 	result.eqldb = newEQLDBGUI(window, currentLog)
+	eqldbRunner, eqldbRunnerErr := eqldbsync.Default(func(err error) {
+		select {
+		case result.eqldbSyncErrors <- err:
+		default:
+		}
+		window.Invalidate()
+	})
+	if eqldbRunnerErr != nil {
+		result.statusText = "EQLDB event uploads unavailable: " + eqldbRunnerErr.Error()
+	} else {
+		if result.eqldb != nil {
+			result.eqldb.syncNow = eqldbRunner.Trigger
+		}
+		syncContext, cancelSync := context.WithCancel(context.Background())
+		result.eqldbSyncCancel = cancelSync
+		go eqldbRunner.Run(syncContext)
+	}
 	eventsRuntime, eventsStore, eventsErr := eventruntime.Open(func(err error) {
 		select {
 		case result.eventErrors <- err:
@@ -457,6 +490,16 @@ func (s *shell) update(gtx layout.Context) {
 		if update.status != "" {
 			s.statusText = update.status
 		}
+		if update.collector != nil {
+			s.dropCollectorMu.Lock()
+			previous := s.dropCollector
+			s.dropCollector = update.collector
+			s.dropCollection.Value = update.collectionEnabled
+			s.dropCollectorMu.Unlock()
+			if previous != nil && previous != update.collector {
+				_ = previous.Close()
+			}
+		}
 	default:
 	}
 	select {
@@ -467,6 +510,14 @@ func (s *shell) update(gtx layout.Context) {
 	select {
 	case err := <-s.eventErrors:
 		s.statusText = "Events: " + err.Error()
+	default:
+	}
+	select {
+	case err := <-s.eqldbSyncErrors:
+		if s.eqldb != nil {
+			s.eqldb.handleSyncError(err)
+		}
+		s.statusText = "EQLDB event upload: " + err.Error()
 	default:
 	}
 	if s.filterClear.Clicked(gtx) {

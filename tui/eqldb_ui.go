@@ -55,6 +55,7 @@ type eqldbTUI struct {
 	state     eqldb.State
 	observer  *inventorysync.Observer
 	notify    func(string, tcell.Color, time.Duration)
+	syncNow   func()
 	context   context.Context
 	cancel    context.CancelFunc
 	modal     string
@@ -168,11 +169,12 @@ func (ui *eqldbTUI) OpenManagement() {
 	if ui.modal != "" {
 		return
 	}
+	ui.refreshStoredState()
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" EQLDB connection ")
 	form.SetButtonsAlign(tview.AlignCenter)
 	if ui.state.AccessToken == "" {
-		text := "EQLDB is not connected.\n\nConnect eqdps to upload inventory exports to your EQLDB account automatically.\n\n" +
+		text := "EQLDB is not connected.\n\nConnect eqdps to upload inventory exports, Plane of Sky updates, and opted-in kill/drop observations.\n\n" +
 			eqldbMacroExplanation
 		if ui.lastError != "" {
 			text += "\n\nLast error: " + ui.lastError
@@ -185,7 +187,7 @@ func (ui *eqldbTUI) OpenManagement() {
 		})
 		form.AddButton("Close", ui.closeModal)
 	} else {
-		text := "EQLDB is connected.\n\nNew inventory exports will be uploaded automatically.\n\n" +
+		text := "EQLDB is connected.\n\nInventory exports, Plane of Sky updates, and opted-in kill/drop observations upload automatically.\n\n" +
 			eqldbMacroExplanation +
 			"\n\nRevoke access from EQLDB's Connected apps page when needed."
 		if ui.lastError != "" {
@@ -196,6 +198,7 @@ func (ui *eqldbTUI) OpenManagement() {
 		form.AddButton("Forget on This Computer", func() {
 			ui.state.AccessToken = ""
 			ui.state.ConnectionID = ""
+			ui.state.Scope = ""
 			ui.lastError = ""
 			if err := ui.store.Save(ui.state); err != nil {
 				ui.lastError = err.Error()
@@ -207,6 +210,22 @@ func (ui *eqldbTUI) OpenManagement() {
 	}
 	form.SetCancelFunc(ui.closeModal)
 	ui.showModal("eqldb-manage", centeredPrimitive(form, 82, 22), form)
+}
+
+func (ui *eqldbTUI) handleSyncError(err error) {
+	if err != nil {
+		ui.lastError = err.Error()
+	}
+	ui.refreshStoredState()
+}
+
+func (ui *eqldbTUI) refreshStoredState() {
+	state, err := ui.store.Load()
+	if err != nil {
+		ui.lastError = err.Error()
+		return
+	}
+	ui.state = state
 }
 
 func (ui *eqldbTUI) showIntroduction(now time.Time) {
@@ -332,11 +351,15 @@ func (ui *eqldbTUI) startAuthentication() {
 			ui.state.IntroductionShown = true
 			ui.state.AccessToken = token.AccessToken
 			ui.state.ConnectionID = token.ConnectionID
+			ui.state.Scope = token.Scope
 			ui.lastError = ""
 			if saveErr := ui.store.Save(ui.state); saveErr != nil {
 				ui.lastError = saveErr.Error()
 				ui.showAuthenticationError(fmt.Errorf("connected, but could not save the access token: %w", saveErr))
 				return
+			}
+			if ui.syncNow != nil {
+				ui.syncNow()
 			}
 			ui.showConnected()
 		})
@@ -377,7 +400,7 @@ func (ui *eqldbTUI) showConnected() {
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" EQLDB connected ")
 	form.SetButtonsAlign(tview.AlignCenter)
-	form.AddTextView("", "eqdps is connected to EQLDB.\n\nNew inventory exports will be uploaded automatically.", 68, 6, true, false)
+	form.AddTextView("", "eqdps is connected to EQLDB.\n\nInventory exports and parser events will be uploaded automatically.", 68, 6, true, false)
 	form.AddButton("Close", ui.closeModal)
 	form.SetCancelFunc(ui.closeModal)
 	ui.replaceModal("eqldb-auth", centeredPrimitive(form, 78, 13), form)
@@ -583,6 +606,7 @@ func (ui *eqldbTUI) handleUploadError(err error) {
 		if apiErr.Status == http.StatusUnauthorized {
 			ui.state.AccessToken = ""
 			ui.state.ConnectionID = ""
+			ui.state.Scope = ""
 			if saveErr := ui.store.Save(ui.state); saveErr != nil {
 				ui.lastError += "; " + saveErr.Error()
 			}

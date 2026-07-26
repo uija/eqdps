@@ -62,10 +62,42 @@ func TestDeviceConnectionAndTokenPolling(t *testing.T) {
 	}
 }
 
+func TestLocalAPIOverrideKeepsConnectionBrowserOnLoopback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		writeJSON(t, response, map[string]any{
+			"device_code":               "device-code",
+			"user_code":                 "ABCD-EFGH",
+			"verification_uri":          "https://eqldb.org/connect/",
+			"verification_uri_complete": "https://eqldb.org/connect/?code=ABCD-EFGH",
+			"expires_in":                600,
+			"interval":                  5,
+		})
+	}))
+	defer server.Close()
+	client := &Client{BaseURL: server.URL, HTTP: server.Client()}
+	authorization, err := client.StartConnection(context.Background(), "test device")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := server.URL + "/connect/?code=ABCD-EFGH"
+	if authorization.VerificationURIComplete != want {
+		t.Fatalf("local verification URL = %q, want %q", authorization.VerificationURIComplete, want)
+	}
+}
+
 func TestDefaultClientUsesLocalDevelopmentServer(t *testing.T) {
+	t.Setenv(BaseURLEnv, "")
 	client := NewClient()
-	if client.BaseURL != "https://eqldb.org" {
-		t.Fatalf("unexpected production base URL: %q", client.BaseURL)
+	if client.BaseURL != "http://127.0.0.1" {
+		t.Fatalf("unexpected local development base URL: %q", client.BaseURL)
+	}
+}
+
+func TestClientAllowsExplicitLocalHTTPServer(t *testing.T) {
+	t.Setenv(BaseURLEnv, "http://127.0.0.1")
+	client := NewClient()
+	if client.BaseURL != "http://127.0.0.1" {
+		t.Fatalf("unexpected development base URL: %q", client.BaseURL)
 	}
 }
 
@@ -125,6 +157,46 @@ func TestUploadInventory(t *testing.T) {
 	}
 	if !received || result.Status != "completed" || result.Character != "Wyrmberg" {
 		t.Fatalf("unexpected result: %#v", result)
+	}
+}
+
+func TestSubmitParserEvents(t *testing.T) {
+	received := make(map[string]map[string]any)
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("Authorization") != "Bearer private-token" {
+			t.Fatalf("unexpected authorization header")
+		}
+		var body map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		received[request.URL.Path] = body
+		writeJSON(t, response, map[string]any{"success": true})
+	}))
+	defer server.Close()
+	client := &Client{BaseURL: server.URL, HTTP: server.Client()}
+	ctx := context.Background()
+	if err := client.SubmitPlaneOfSkyEvents(ctx, "private-token", "Wyrmberg", "rivervale", []PlaneOfSkyEvent{{
+		Type: "wind-rune-receive", Rune: "Wind Rune Caza", Amount: 1, Timestamp: "Thu Jul 09 09:12:53 2026",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.SubmitKillObservations(ctx, "private-token", []KillObservation{{
+		Timestamp: "Thu Jul 09 09:12:53 2026", Zone: "Plane of Sky", Mob: "a thunder spirit",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.SubmitDropObservations(ctx, "private-token", []DropObservation{{
+		Timestamp: "Thu Jul 09 09:12:56 2026", Zone: "Plane of Sky", Mob: "a thunder spirit", Item: "Wind Rune Caza", Amount: 1,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if received["/api/v1/plane-of-sky/events/"]["character"] != "Wyrmberg" {
+		t.Fatalf("unexpected Plane of Sky body: %#v", received["/api/v1/plane-of-sky/events/"])
+	}
+	if len(received["/api/v1/observations/kills/"]["events"].([]any)) != 1 ||
+		len(received["/api/v1/observations/drops/"]["events"].([]any)) != 1 {
+		t.Fatalf("unexpected observation requests: %#v", received)
 	}
 }
 

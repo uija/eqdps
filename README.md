@@ -65,6 +65,7 @@ in-game DPS overlay, and the Plane of Sky quest tracker in both interfaces.
 - Cross-platform desktop notifications with selectable EverQuest spell-icon sets
 - Embedded and user-provided notification sounds with shared volume control
 - Optional EQLDB inventory-export uploads from both frontends
+- Optional EQLDB contribution of player-related kills and personal loot for drop statistics
 - Compact graphical DPS overlay with font, opacity, and idle-timeout preferences
 - Plain-text output mode for parser comparisons
 
@@ -92,6 +93,7 @@ go run ./tui /path/to/eqlog_character_server.txt
 | `p` | Open the Plane of Sky quest tracker |
 | `n` | Open the Events page |
 | `e` | Open EQLDB connection management |
+| `s` | Open shared settings, including kill and loot collection |
 | `/` | Filter displayed fights by mob name |
 | `Enter` | Expand or collapse a mob, combatant, or detail category |
 | `a` | Fully expand or collapse the selected subtree |
@@ -214,8 +216,19 @@ Repeated export messages within two seconds are combined into one upload.
 After an upload begins, a shared 15-second cooldown prevents accidental
 duplicate uploads, including when more than one eqdps process is running.
 
-The token grants only `inventory:upload`; it can be revoked from the Connected
-apps section of the EQLDB account.
+The token grants `inventory:upload`, `plane-of-sky:write`, and
+`observations:write`; it can be revoked from the Connected apps section of the
+EQLDB account. Connections created before the event scopes were introduced
+must be removed and connected again before parser events can upload.
+
+Kill and personal-loot collection is a separate, explicit opt-in. Enable it
+under **SET** in the GUI or with `s` in the TUI. eqdps keeps a logfile byte
+checkpoint, catches up activity missed while the application was closed, and
+does not collect activity from before opt-in or while disabled. Combat history
+reloads do not duplicate observations. Pending observations are uploaded in
+batches while EQLDB is connected and remain queued after temporary failures.
+Plane of Sky rune receipts, direct rune deletions, and completed quest hand-ins
+are queued automatically whenever Plane of Sky tracking is enabled.
 
 ## Configuration and Data
 
@@ -237,6 +250,9 @@ The directory contains:
 | `audio/` | User-provided MP3 and WAV notification sounds |
 | `spell-icons/<UI name>/` | Extracted spell icons grouped by distinct UI set |
 | `eqldb.json` | Shared EQLDB connection and introduction state |
+| `drop-collection-settings.json` | Shared kill and loot collection opt-in |
+| `drop-collection/` | Per-logfile kill and loot collection checkpoints |
+| `eqldb-queue/` | Pending Plane of Sky, kill, and drop upload batches |
 | `gui.json` | GUI preferences, recent logs, and window state |
 
 Plane of Sky progress is character-specific and remains in

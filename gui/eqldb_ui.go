@@ -81,10 +81,11 @@ type eqldbGUIEvent struct {
 }
 
 type eqldbGUI struct {
-	window appWindow
-	store  eqldb.Store
-	client *eqldb.Client
-	state  eqldb.State
+	window  appWindow
+	store   eqldb.Store
+	client  *eqldb.Client
+	state   eqldb.State
+	syncNow func()
 
 	context context.Context
 	cancel  context.CancelFunc
@@ -258,8 +259,25 @@ func (ui *eqldbGUI) notify(message string, foreground color.NRGBA, duration time
 }
 
 func (ui *eqldbGUI) OpenManagement() {
+	ui.refreshStoredState()
 	ui.modal = "manage"
 	ui.classPicker = -1
+}
+
+func (ui *eqldbGUI) handleSyncError(err error) {
+	if err != nil {
+		ui.lastError = err.Error()
+	}
+	ui.refreshStoredState()
+}
+
+func (ui *eqldbGUI) refreshStoredState() {
+	state, err := ui.store.Load()
+	if err != nil {
+		ui.lastError = err.Error()
+		return
+	}
+	ui.state = state
 }
 
 func (ui *eqldbGUI) Update(gtx layout.Context, shell *shell) {
@@ -322,6 +340,7 @@ func (ui *eqldbGUI) Update(gtx layout.Context, shell *shell) {
 	if ui.forgetClick.Clicked(gtx) {
 		ui.state.AccessToken = ""
 		ui.state.ConnectionID = ""
+		ui.state.Scope = ""
 		ui.lastError = ""
 		if err := ui.store.Save(ui.state); err != nil {
 			ui.lastError = err.Error()
@@ -399,11 +418,15 @@ func (ui *eqldbGUI) processEvents() {
 				ui.state.IntroductionShown = true
 				ui.state.AccessToken = event.token.AccessToken
 				ui.state.ConnectionID = event.token.ConnectionID
+				ui.state.Scope = event.token.Scope
 				ui.lastError = ""
 				if err := ui.store.Save(ui.state); err != nil {
 					ui.lastError = err.Error()
 					ui.modal = "error"
 					continue
+				}
+				if ui.syncNow != nil {
+					ui.syncNow()
 				}
 				ui.modal = "connected"
 				ui.notify("EQLDB connected", palette.success, 8*time.Second)
@@ -651,6 +674,7 @@ func (ui *eqldbGUI) handleUploadError(err error) {
 		if apiErr.Status == http.StatusUnauthorized {
 			ui.state.AccessToken = ""
 			ui.state.ConnectionID = ""
+			ui.state.Scope = ""
 			if saveErr := ui.store.Save(ui.state); saveErr != nil {
 				ui.lastError += "; " + saveErr.Error()
 			}
@@ -712,7 +736,7 @@ func (ui *eqldbGUI) layoutModalContent(gtx layout.Context, theme *material.Theme
 		)
 	case "manage":
 		if ui.state.AccessToken == "" {
-			body := "EQLDB is not connected.\n\nConnect eqdps to upload inventory exports to your EQLDB account automatically.\n\n" +
+			body := "EQLDB is not connected.\n\nConnect eqdps to upload inventory exports, Plane of Sky updates, and opted-in kill/drop observations.\n\n" +
 				eqldbGUIMacroExplanation
 			if ui.lastError != "" {
 				body += "\n\nLast error: " + ui.lastError
@@ -720,7 +744,7 @@ func (ui *eqldbGUI) layoutModalContent(gtx layout.Context, theme *material.Theme
 			return ui.layoutTextDialog(gtx, theme, "EQLDB connection", body,
 				[]dialogButton{{"Connect", &ui.connectClick, true}, {"Close", &ui.closeClick, false}}, true)
 		}
-		body := "EQLDB is connected.\n\nNew inventory exports will be uploaded automatically.\n\n" +
+		body := "EQLDB is connected.\n\nInventory exports, Plane of Sky updates, and opted-in kill/drop observations upload automatically.\n\n" +
 			eqldbGUIMacroExplanation +
 			"\n\nRevoke access from EQLDB’s Connected apps page when needed."
 		if ui.lastError != "" {
@@ -746,7 +770,7 @@ func (ui *eqldbGUI) layoutModalContent(gtx layout.Context, theme *material.Theme
 		return ui.layoutTextDialog(gtx, theme, "Connect eqdps to EQLDB", body, buttons, false)
 	case "connected":
 		return ui.layoutTextDialog(gtx, theme, "EQLDB connected",
-			"eqdps is connected to EQLDB.\n\nNew inventory exports will be uploaded automatically.",
+			"eqdps is connected to EQLDB.\n\nInventory exports and parser events will be uploaded automatically.",
 			[]dialogButton{{"Close", &ui.closeClick, true}}, true)
 	case "error":
 		return ui.layoutTextDialog(gtx, theme, "EQLDB connection failed", ui.lastError,

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/uija/eqdps/internal/eqldbqueue"
 	"github.com/uija/eqdps/internal/eqlog"
 )
 
@@ -55,10 +56,22 @@ type LogCheckpoint struct {
 }
 
 type PersistentTracker struct {
-	mu        sync.Mutex
-	tracker   *Tracker
-	state     CharacterState
-	statePath string
+	mu                  sync.Mutex
+	tracker             *Tracker
+	state               CharacterState
+	statePath           string
+	queue               *eqldbqueue.Queue
+	queueBackfillOffset int64
+}
+
+type SyncEvent struct {
+	Character string    `json:"character"`
+	Server    string    `json:"server"`
+	Type      string    `json:"type"`
+	Rune      string    `json:"rune,omitempty"`
+	Amount    int       `json:"amount,omitempty"`
+	Quest     string    `json:"quest,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 func OpenPersistentTracker(logPath string, database Database) (*PersistentTracker, error) {
@@ -125,8 +138,18 @@ func loadPersistentTracker(logPath string, database Database) (*PersistentTracke
 	if state.Version != stateVersion || state.Character != character || state.Server != server || state.Checkpoint.LogFile != filepath.Base(absoluteLogPath) {
 		return nil, "", fmt.Errorf("%w: state identity does not match %s", ErrInvalidCheckpoint, filepath.Base(absoluteLogPath))
 	}
-
-	persistent := &PersistentTracker{tracker: NewTracker(database), state: state, statePath: statePath}
+	queue, err := eqldbqueue.Default()
+	if err != nil {
+		return nil, "", err
+	}
+	queueBackfillOffset, err := ensureUploadHistory(absoluteLogPath, database, character, server, queue)
+	if err != nil {
+		return nil, "", err
+	}
+	persistent := &PersistentTracker{
+		tracker: NewTracker(database), state: state, statePath: statePath, queue: queue,
+		queueBackfillOffset: queueBackfillOffset,
+	}
 	for item, quantity := range state.Holdings {
 		if _, known := persistent.tracker.known[item]; known && quantity > 0 {
 			persistent.tracker.owned[item] = quantity
@@ -222,7 +245,9 @@ func (p *PersistentTracker) syncLog(logPath string, maxBytes int64, onProgress f
 		}
 		line, readErr := reader.ReadString('\n')
 		if len(line) > 0 && strings.HasSuffix(line, "\n") {
-			p.processLineLocked(line, p.state.Checkpoint.Offset+int64(len(line)))
+			if _, err := p.processLineLocked(line, p.state.Checkpoint.Offset+int64(len(line))); err != nil {
+				return err
+			}
 			lines++
 			if onProgress != nil && lines%5000 == 0 {
 				onProgress(ScanProgress{Bytes: p.state.Checkpoint.Offset, Total: maxBytes, Lines: lines})
@@ -265,7 +290,10 @@ func (p *PersistentTracker) ProcessLine(line string, endOffset int64) error {
 	if endOffset <= p.state.Checkpoint.Offset {
 		return nil
 	}
-	changed := p.processLineLocked(line, endOffset)
+	changed, err := p.processLineLocked(line, endOffset)
+	if err != nil {
+		return err
+	}
 	if changed {
 		return p.saveLocked()
 	}
@@ -284,12 +312,12 @@ func scanCancelled(cancel <-chan struct{}) bool {
 	}
 }
 
-func (p *PersistentTracker) processLineLocked(line string, endOffset int64) bool {
+func (p *PersistentTracker) processLineLocked(line string, endOffset int64) (bool, error) {
 	record, ok := eqlog.ParseRecord(line)
 	changed := false
 	if ok {
 		beforeZone := p.tracker.zone
-		beforeCompleted := len(p.tracker.completed)
+		beforeCompleted := p.tracker.Completed()
 		beforeQuantity := 0
 		item := ""
 		switch record.Kind {
@@ -302,7 +330,10 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) bool
 			beforeQuantity = p.tracker.Owned(item)
 		}
 		p.tracker.ProcessRecord(record)
-		changed = beforeZone != p.tracker.zone || item != "" && beforeQuantity != p.tracker.Owned(item) || beforeCompleted != len(p.tracker.completed)
+		changed = beforeZone != p.tracker.zone || item != "" && beforeQuantity != p.tracker.Owned(item) || len(beforeCompleted) != len(p.tracker.completed)
+		if err := p.enqueueEventsLocked(record, beforeZone, beforeCompleted, endOffset); err != nil {
+			return false, err
+		}
 		if record.Time.After(p.state.Checkpoint.LastTimestamp) {
 			p.state.Checkpoint.LastTimestamp = record.Time
 		}
@@ -312,7 +343,172 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) bool
 	p.state.Holdings = p.tracker.Inventory()
 	p.state.Completed = p.tracker.Completed()
 	p.state.Pending = p.tracker.PendingOffers()
-	return changed
+	return changed, nil
+}
+
+func (p *PersistentTracker) enqueueEventsLocked(record eqlog.Record, zone string, completed map[string]bool, endOffset int64) error {
+	if endOffset <= p.queueBackfillOffset {
+		return nil
+	}
+	appendEvent := func(event SyncEvent) error {
+		sum := sha256.Sum256([]byte(p.state.Character + "\x00" + p.state.Server + "\x00" +
+			event.Type + "\x00" + event.Rune + "\x00" + event.Quest + "\x00" + fmt.Sprint(endOffset)))
+		return p.queue.Append(eqldbqueue.PlaneOfSky, hex.EncodeToString(sum[:]), event)
+	}
+	switch record.Kind {
+	case eqlog.RecordLoot:
+		rune, known := p.tracker.knownItem(record.Loot.Item)
+		if isPlaneOfSkyZone(zone) && known && strings.HasPrefix(rune, "Wind Rune ") &&
+			(record.Loot.Outcome == eqlog.LootRetained || record.Loot.Outcome == eqlog.LootStored) {
+			return appendEvent(SyncEvent{
+				Character: p.state.Character, Server: p.state.Server, Type: "wind-rune-receive",
+				Rune: rune, Amount: record.Loot.Quantity, Timestamp: record.Time,
+			})
+		}
+	case eqlog.RecordItemRemoval:
+		rune, known := p.tracker.knownItem(record.Removal.Item)
+		if known && strings.HasPrefix(rune, "Wind Rune ") {
+			return appendEvent(SyncEvent{
+				Character: p.state.Character, Server: p.state.Server, Type: "wind-rune-delete",
+				Rune: rune, Amount: record.Removal.Quantity, Timestamp: record.Time,
+			})
+		}
+	case eqlog.RecordTradeComplete:
+		for quest := range p.tracker.completed {
+			if !completed[quest] {
+				return appendEvent(SyncEvent{
+					Character: p.state.Character, Server: p.state.Server, Type: "quest-turn-in",
+					Quest: normalizeQuestID(quest), Timestamp: record.Time,
+				})
+			}
+		}
+	}
+	return nil
+}
+
+type uploadHistoryState struct {
+	Scanned map[string]bool `json:"scanned"`
+}
+
+func ensureUploadHistory(logPath string, database Database, character, server string, queue *eqldbqueue.Queue) (int64, error) {
+	config, err := os.UserConfigDir()
+	if err != nil {
+		return 0, fmt.Errorf("locate Plane of Sky upload history: %w", err)
+	}
+	statePath := filepath.Join(config, "eqdps", "eqldb-queue", "plane-of-sky-history.json")
+	history := uploadHistoryState{Scanned: make(map[string]bool)}
+	if data, readErr := os.ReadFile(statePath); readErr == nil {
+		if err := json.Unmarshal(data, &history); err != nil {
+			return 0, fmt.Errorf("decode Plane of Sky upload history: %w", err)
+		}
+		if history.Scanned == nil {
+			history.Scanned = make(map[string]bool)
+		}
+	} else if !errors.Is(readErr, os.ErrNotExist) {
+		return 0, fmt.Errorf("read Plane of Sky upload history: %w", readErr)
+	}
+	absolute, err := filepath.Abs(logPath)
+	if err != nil {
+		return 0, err
+	}
+	hash := sha256.Sum256([]byte(absolute))
+	key := hex.EncodeToString(hash[:])
+	if history.Scanned[key] {
+		return 0, nil
+	}
+	file, err := os.Open(absolute)
+	if err != nil {
+		return 0, fmt.Errorf("open logfile for Plane of Sky upload history: %w", err)
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return 0, fmt.Errorf("stat logfile for Plane of Sky upload history: %w", err)
+	}
+	target := info.Size()
+	backfill := &PersistentTracker{
+		tracker: NewTracker(database),
+		state: CharacterState{
+			Version: stateVersion, Character: character, Server: server,
+			Holdings: make(map[string]int), Completed: make(map[string]bool), Pending: make(map[string]map[string]int),
+		},
+		queue: queue,
+	}
+	reader := bufio.NewReader(io.LimitReader(file, target))
+	offset := int64(0)
+	for {
+		line, readErr := reader.ReadString('\n')
+		if strings.HasSuffix(line, "\n") {
+			offset += int64(len(line))
+			if relevantSkyUploadLine(line) {
+				if _, err := backfill.processLineLocked(line, offset); err != nil {
+					return 0, err
+				}
+			}
+		}
+		if readErr == nil {
+			continue
+		}
+		if errors.Is(readErr, io.EOF) {
+			break
+		}
+		return 0, fmt.Errorf("read logfile for Plane of Sky upload history: %w", readErr)
+	}
+	history.Scanned[key] = true
+	if err := saveUploadHistory(statePath, history); err != nil {
+		return 0, err
+	}
+	return target, nil
+}
+
+func relevantSkyUploadLine(line string) bool {
+	for _, marker := range []string{
+		"You have entered ", "You have looted ", "--You have looted ", "You looted ", "You successfully destroyed ",
+		"You offered ", "You complete the trade with ", " has cancelled the trade.", "You have cancelled the trade.",
+	} {
+		if strings.Contains(line, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func saveUploadHistory(path string, history uploadHistoryState) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create Plane of Sky upload-history directory: %w", err)
+	}
+	data, err := json.MarshalIndent(history, "", "  ")
+	if err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".sky-history-*.tmp")
+	if err != nil {
+		return err
+	}
+	name := temporary.Name()
+	defer os.Remove(name)
+	if err := temporary.Chmod(0o600); err != nil {
+		temporary.Close()
+		return err
+	}
+	if _, err := temporary.Write(append(data, '\n')); err != nil {
+		temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(name, path); err != nil {
+		if removeErr := os.Remove(path); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			return err
+		}
+		return os.Rename(name, path)
+	}
+	return nil
+}
+
+func normalizeQuestID(value string) string {
+	return strings.Join(strings.Fields(strings.ToLower(value)), "-")
 }
 
 func (p *PersistentTracker) Save() error {

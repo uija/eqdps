@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,7 +20,8 @@ import (
 
 const (
 	ClientID       = "eql-log-parser"
-	DefaultBaseURL = "https://eqldb.org"
+	DefaultBaseURL = "http://127.0.0.1"
+	BaseURLEnv     = "EQDPS_EQLDB_BASE_URL"
 	maxResponse    = 1024 * 1024
 )
 
@@ -57,6 +60,28 @@ type UploadResult struct {
 	Message    string `json:"message"`
 }
 
+type PlaneOfSkyEvent struct {
+	Type      string `json:"type"`
+	Rune      string `json:"rune,omitempty"`
+	Amount    int    `json:"amount,omitempty"`
+	Quest     string `json:"quest,omitempty"`
+	Timestamp string `json:"timestamp"`
+}
+
+type KillObservation struct {
+	Timestamp string `json:"timestamp"`
+	Zone      string `json:"zone"`
+	Mob       string `json:"mob"`
+}
+
+type DropObservation struct {
+	Timestamp string `json:"timestamp"`
+	Zone      string `json:"zone"`
+	Mob       string `json:"mob"`
+	Item      string `json:"item"`
+	Amount    int    `json:"amount"`
+}
+
 type APIError struct {
 	Status      int
 	Code        string
@@ -75,8 +100,12 @@ func (e *APIError) Error() string {
 }
 
 func NewClient() *Client {
+	baseURL := strings.TrimSpace(os.Getenv(BaseURLEnv))
+	if baseURL == "" {
+		baseURL = DefaultBaseURL
+	}
 	return &Client{
-		BaseURL: DefaultBaseURL,
+		BaseURL: baseURL,
 		HTTP:    &http.Client{Timeout: 30 * time.Second},
 	}
 }
@@ -107,11 +136,27 @@ func (c *Client) StartConnection(ctx context.Context, deviceName string) (Device
 	return DeviceAuthorization{
 		DeviceCode:              response.DeviceCode,
 		UserCode:                response.UserCode,
-		VerificationURI:         response.VerificationURI,
-		VerificationURIComplete: response.VerificationURIComplete,
+		VerificationURI:         verificationURL(c.BaseURL, response.VerificationURI),
+		VerificationURIComplete: verificationURL(c.BaseURL, response.VerificationURIComplete),
 		ExpiresAt:               time.Now().Add(time.Duration(response.ExpiresIn) * time.Second),
 		Interval:                interval,
 	}, nil
+}
+
+func verificationURL(baseURL, returned string) string {
+	base, baseErr := url.Parse(baseURL)
+	target, targetErr := url.Parse(returned)
+	if baseErr != nil || targetErr != nil || base.Host == "" || target.Host == "" {
+		return returned
+	}
+	host := base.Hostname()
+	ip := net.ParseIP(host)
+	if !strings.EqualFold(host, "localhost") && (ip == nil || !ip.IsLoopback()) {
+		return returned
+	}
+	target.Scheme = base.Scheme
+	target.Host = base.Host
+	return target.String()
 }
 
 func (c *Client) WaitForToken(ctx context.Context, authorization DeviceAuthorization) (Token, error) {
@@ -229,6 +274,67 @@ func (c *Client) UploadInventory(ctx context.Context, accessToken, inventoryPath
 		return UploadResult{}, fmt.Errorf("decode inventory response: %w", err)
 	}
 	return result, nil
+}
+
+func (c *Client) SubmitPlaneOfSkyEvents(ctx context.Context, accessToken, character, server string, events []PlaneOfSkyEvent) error {
+	if len(events) < 1 || len(events) > 2000 {
+		return fmt.Errorf("Plane of Sky event batch must contain 1 to 2000 events")
+	}
+	body := struct {
+		Character string            `json:"character"`
+		Server    string            `json:"server"`
+		Events    []PlaneOfSkyEvent `json:"events"`
+	}{Character: character, Server: server, Events: events}
+	return c.postAuthorizedJSON(ctx, "/api/v1/plane-of-sky/events/", accessToken, body)
+}
+
+func (c *Client) SubmitKillObservations(ctx context.Context, accessToken string, events []KillObservation) error {
+	if len(events) < 1 || len(events) > 2000 {
+		return fmt.Errorf("kill observation batch must contain 1 to 2000 events")
+	}
+	return c.postAuthorizedJSON(ctx, "/api/v1/observations/kills/", accessToken, struct {
+		Events []KillObservation `json:"events"`
+	}{Events: events})
+}
+
+func (c *Client) SubmitDropObservations(ctx context.Context, accessToken string, events []DropObservation) error {
+	if len(events) < 1 || len(events) > 2000 {
+		return fmt.Errorf("drop observation batch must contain 1 to 2000 events")
+	}
+	return c.postAuthorizedJSON(ctx, "/api/v1/observations/drops/", accessToken, struct {
+		Events []DropObservation `json:"events"`
+	}{Events: events})
+}
+
+func (c *Client) postAuthorizedJSON(ctx context.Context, path, accessToken string, body any) error {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint(path), bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+	request.Header.Set("Content-Type", "application/json")
+	response, err := c.httpClient().Do(request)
+	if err != nil {
+		return fmt.Errorf("contact EQLDB: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return decodeAPIError(response)
+	}
+	var result struct {
+		Success bool `json:"success"`
+	}
+	if err := decodeJSON(response.Body, &result); err != nil {
+		return fmt.Errorf("decode EQLDB response: %w", err)
+	}
+	if !result.Success {
+		return errors.New("EQLDB did not confirm the submitted events")
+	}
+	return nil
 }
 
 func (c *Client) postJSON(ctx context.Context, path string, requestBody, responseBody any) error {
