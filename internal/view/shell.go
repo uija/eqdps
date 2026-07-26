@@ -43,7 +43,7 @@ func NewShell(context *module.Context, closeWindow func()) *Shell {
 	result := &Shell{
 		style:   &style,
 		status:  "Ready",
-		help:    newHelpView(&style),
+		help:    newHelpView(&style, context),
 		context: context,
 	}
 

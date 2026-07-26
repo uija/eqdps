@@ -12,6 +12,10 @@ type MenuItem struct {
 	Name   string
 	Action UIActionFunc
 }
+type HelpItem struct {
+	Name   string
+	Layout ui.Widget
+}
 
 type UIActionFunc func()
 type OnLogOpenFunc func(characterName string, serverName string, filesize int64)
@@ -23,6 +27,7 @@ type Context struct {
 	onLogOpenFuncs  []OnLogOpenFunc
 	onLogRowFuncs   []OnLogRowFunc
 	onStatus        []ui.Widget
+	HelpItems       []HelpItem
 }
 
 func NewContext() *Context {
@@ -31,6 +36,7 @@ func NewContext() *Context {
 		onLogOpenFuncs: make([]OnLogOpenFunc, 0),
 		onLogRowFuncs:  make([]OnLogRowFunc, 0),
 		onStatus:       make([]ui.Widget, 0),
+		HelpItems:      make([]HelpItem, 0),
 	}
 }
 
@@ -48,6 +54,9 @@ func (c *Context) OnStatus(f ui.Widget) {
 }
 func (c *Context) SetMainView(f ui.Widget) {
 	c.currentMainView = f
+}
+func (c *Context) AddHelpItem(name string, layout ui.Widget) {
+	c.HelpItems = append(c.HelpItems, HelpItem{Name: name, Layout: layout})
 }
 
 func (c *Context) RegisterModule(m Module) error {
