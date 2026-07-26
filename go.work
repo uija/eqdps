@@ -2,6 +2,8 @@ go 1.26.4
 
 use (
 	.
+	./gui
 	./legacy/gui
 	./legacy/tui
+	./tui
 )
