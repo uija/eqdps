@@ -63,8 +63,8 @@ intentionally not duplicated under `docs/`.
 | `internal/skyquest/tracker.go` | Zone-aware quest holdings and ready-quest calculation |
 | `internal/skyquest/persistence.go` | Character state, initial scan, and byte-offset checkpoints |
 | `tools/skyquestdb/main.go` | Regenerates the embedded database from EQL Wiki |
-| `tools/logtest/main.go` | Appends synthetic text or spell-fade lines to an explicit test logfile |
-| `tools/spellcatalog/main.go` | Regenerates the embedded spell catalogue from EverQuest data files |
+| `legacy/tools/logtest/main.go` | Appends synthetic text or spell-fade lines to an explicit test logfile |
+| `legacy/tools/spellcatalog/main.go` | Regenerates the embedded spell catalogue from EverQuest data files |
 | `README.md` | User-facing installation and usage |
 | `docs/GUI_ROADMAP.md` | Graphical frontend status and remaining release work |
 | `docs/WINDOWS_HANDOFF.md` | Windows 11 implementation and native-behavior checklist |
