@@ -3,12 +3,14 @@ package view
 import (
 	"image"
 	"image/color"
+	"log"
 
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
+	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/ui/menu"
@@ -49,6 +51,7 @@ func NewShell(context *module.Context, closeWindow func()) *Shell {
 
 	result.menuBar = menu.NewBar(&style, "EVERQUEST LEGENDS")
 	fileMenu := result.menuBar.AddMenu("File")
+	fileMenu.AddItem("Open Log", result.OpenLogfile)
 	fileMenu.AddItem("Quit", closeWindow)
 	viewMenu := result.menuBar.AddMenu("View")
 	for _, entry := range context.ViewMenuItems {
@@ -57,6 +60,22 @@ func NewShell(context *module.Context, closeWindow func()) *Shell {
 	result.menuBar.AddAction("Help", result.help.Open)
 
 	return result
+}
+
+func (s *Shell) OpenLogfile() {
+	path, err := zenity.SelectFile(
+		zenity.Title("Open EverQuest logfile"),
+		zenity.FileFilters{
+			{
+				Name:     "Everquest logs",
+				Patterns: []string{"eqlog_*_.txt", "*.txt"},
+			},
+		},
+	)
+	if err != nil {
+		log.Printf("Unable to open file %v", err)
+	}
+	log.Printf("Path: %s", path)
 }
 
 // Layout renders the complete application view.
