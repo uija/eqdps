@@ -199,6 +199,33 @@ func StateExists(logPath string) (bool, error) {
 	return false, fmt.Errorf("stat Plane of Sky state: %w", err)
 }
 
+// ArchiveState moves existing Plane of Sky state out of the active path.
+func ArchiveState(logPath, suffix string) (string, error) {
+	path, err := StatePath(logPath)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	} else if err != nil {
+		return "", fmt.Errorf("stat Plane of Sky state: %w", err)
+	}
+	base := strings.TrimSuffix(path, filepath.Ext(path)) + suffix + filepath.Ext(path)
+	archive := base
+	for index := 1; ; index++ {
+		if _, err := os.Stat(archive); errors.Is(err, os.ErrNotExist) {
+			break
+		} else if err != nil {
+			return "", fmt.Errorf("check Plane of Sky archive path: %w", err)
+		}
+		archive = fmt.Sprintf("%s.%d", base, index)
+	}
+	if err := os.Rename(path, archive); err != nil {
+		return "", fmt.Errorf("archive Plane of Sky state: %w", err)
+	}
+	return archive, nil
+}
+
 func CharacterIdentity(logPath string) (string, string, error) {
 	matches := logNameRE.FindStringSubmatch(filepath.Base(logPath))
 	if matches == nil {
@@ -505,6 +532,34 @@ func saveUploadHistory(path string, history uploadHistoryState) error {
 		return os.Rename(name, path)
 	}
 	return nil
+}
+
+// ResetUploadHistory makes the current logfile eligible for a fresh launch-era
+// Plane of Sky queue scan without disturbing other characters.
+func ResetUploadHistory(logPath string) error {
+	config, err := os.UserConfigDir()
+	if err != nil {
+		return fmt.Errorf("locate Plane of Sky upload history: %w", err)
+	}
+	statePath := filepath.Join(config, "eqdps", "eqldb-queue", "plane-of-sky-history.json")
+	data, err := os.ReadFile(statePath)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read Plane of Sky upload history: %w", err)
+	}
+	history := uploadHistoryState{Scanned: make(map[string]bool)}
+	if err := json.Unmarshal(data, &history); err != nil {
+		return fmt.Errorf("decode Plane of Sky upload history: %w", err)
+	}
+	absolute, err := filepath.Abs(logPath)
+	if err != nil {
+		return err
+	}
+	hash := sha256.Sum256([]byte(absolute))
+	delete(history.Scanned, hex.EncodeToString(hash[:]))
+	return saveUploadHistory(statePath, history)
 }
 
 func normalizeQuestID(value string) string {

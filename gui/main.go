@@ -30,6 +30,7 @@ import (
 	"github.com/uija/eqdps/internal/eqldbsync"
 	"github.com/uija/eqdps/internal/eventruntime"
 	"github.com/uija/eqdps/internal/eventstore"
+	"github.com/uija/eqdps/internal/launchlog"
 	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
@@ -132,7 +133,16 @@ type shell struct {
 	eventsCancel      context.CancelFunc
 	eventErrors       chan error
 	eqldbSyncCancel   context.CancelFunc
+	eqldbSyncDone     <-chan struct{}
+	eqldbRunner       *eqldbsync.Runner
 	eqldbSyncErrors   chan error
+	betaPromptOpen    bool
+	betaWorking       bool
+	betaError         string
+	betaChoice        fileChoice
+	betaFix           widget.Clickable
+	betaIgnore        widget.Clickable
+	betaResults       chan betaCleanupResult
 	fights            []fakeFightSection
 	menus             []menu
 	rail              []railItem
@@ -271,12 +281,22 @@ func newShell(window *app.Window) *shell {
 	theme.TextSize = unit.Sp(16 * effectiveFontScale(settings.MainFontScale))
 	statusText := "No logfile selected"
 	currentLog := ""
+	var betaChoice fileChoice
 	if settingsErr != nil {
 		statusText = "Could not read saved GUI settings"
 	} else if settings.LastLogfile != "" {
 		if _, err := os.Stat(settings.LastLogfile); err == nil {
 			currentLog = settings.LastLogfile
 			statusText = "Reopened last logfile · live only"
+			check, checkErr := launchlog.Inspect(currentLog)
+			if checkErr != nil {
+				statusText = "Could not check logfile for beta data: " + checkErr.Error()
+				currentLog = ""
+			} else if check.NeedsAction {
+				betaChoice = fileChoice{path: currentLog}
+				currentLog = ""
+				statusText = "Beta data found in " + filepath.Base(betaChoice.path)
+			}
 		} else {
 			statusText = "Last logfile is no longer available"
 		}
@@ -304,6 +324,9 @@ func newShell(window *app.Window) *shell {
 		expanded:        make(map[string]bool),
 		eventErrors:     make(chan error, 8),
 		eqldbSyncErrors: make(chan error, 8),
+		betaPromptOpen:  betaChoice.path != "",
+		betaChoice:      betaChoice,
+		betaResults:     make(chan betaCleanupResult, 1),
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}, {name: "Reset session", enabled: currentLog != "", action: "reset"}}},
@@ -336,12 +359,13 @@ func newShell(window *app.Window) *shell {
 	if eqldbRunnerErr != nil {
 		result.statusText = "EQLDB event uploads unavailable: " + eqldbRunnerErr.Error()
 	} else {
+		result.eqldbRunner = eqldbRunner
 		if result.eqldb != nil {
 			result.eqldb.syncNow = eqldbRunner.Trigger
 		}
-		syncContext, cancelSync := context.WithCancel(context.Background())
-		result.eqldbSyncCancel = cancelSync
-		go eqldbRunner.Run(syncContext)
+		if !result.betaPromptOpen {
+			result.startEQLDBSync()
+		}
 	}
 	eventsRuntime, eventsStore, eventsErr := eventruntime.Open(func(err error) {
 		select {
@@ -400,6 +424,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
 		layout.Expanded(s.layoutLoadingOverlay),
+		layout.Expanded(s.layoutBetaCleanup),
 		layout.Expanded(s.layoutSkySetup),
 		layout.Expanded(s.layoutWaylandHelp),
 		layout.Expanded(s.layoutAbout),
@@ -417,6 +442,7 @@ func (s *shell) update(gtx layout.Context) {
 	if s.operationCancel.Clicked(gtx) {
 		s.cancelCurrentOperation()
 	}
+	s.updateBetaCleanup(gtx)
 	if s.skyAllow.Clicked(gtx) {
 		s.skySetupOpen = false
 		s.startSkyInitialScan()
@@ -458,7 +484,7 @@ func (s *shell) update(gtx layout.Context) {
 	select {
 	case choice := <-s.fileChosen:
 		if choice.err == nil {
-			s.rememberChosenFile(choice)
+			s.chooseLogfile(choice)
 		} else if s.currentLog != "" {
 			s.statusText = filepath.Base(s.currentLog) + " · live only"
 		} else {
@@ -706,7 +732,7 @@ func (s *shell) activateItem(item menuItem) {
 			s.window.Invalidate()
 		}(item.back)
 	case "recent":
-		s.rememberChosenFile(fileChoice{path: item.path})
+		s.chooseLogfile(fileChoice{path: item.path})
 	case "reload":
 		s.loadLog(s.currentLog, item.back)
 	case "overlay":

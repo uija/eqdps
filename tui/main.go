@@ -20,6 +20,7 @@ import (
 	"github.com/uija/eqdps/internal/eqldbsync"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/eventruntime"
+	"github.com/uija/eqdps/internal/launchlog"
 	"github.com/uija/eqdps/internal/skyquest"
 	"github.com/uija/eqdps/internal/xp"
 )
@@ -61,6 +62,10 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(2)
+	}
+	if err := prepareLaunchLog(logPath, *textMode); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 	skyDatabase, err := skyquest.LoadDatabase()
 	if err != nil {
@@ -115,6 +120,73 @@ func main() {
 	if err := runApp(logPath, *idleTimeout, backDuration(*backMinutes), since, *historyLimit, skyDatabase, skyTracker, !skyStateExists, skyCatchupTarget); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
+	}
+}
+
+func prepareLaunchLog(logPath string, textMode bool) error {
+	check, err := launchlog.Inspect(logPath)
+	if err != nil {
+		return err
+	}
+	if !check.NeedsAction {
+		return nil
+	}
+	if textMode {
+		fmt.Fprintf(os.Stderr,
+			"Warning: %s contains Beta data from before %s; launch the TUI without -text to archive it.\n",
+			filepath.Base(logPath), check.Cutoff.Format("2006-01-02"),
+		)
+		return nil
+	}
+
+	app := tview.NewApplication()
+	modal := tview.NewModal().
+		SetText(fmt.Sprintf(
+			"Beta logfile detected\n\n%s contains data from before the EverQuest Legends launch.\n\n"+
+				"Beta data can slow logfile loading and produce incorrect Plane of Sky progress. "+
+				"eqdps can archive the Beta logfile, keep entries from launch onward, and reset all Beta tracking and queued upload data.",
+			filepath.Base(logPath),
+		)).
+		AddButtons([]string{"Fix logfile", "Ignore"})
+	result := make(chan error, 1)
+	working := false
+	modal.SetDoneFunc(func(_ int, label string) {
+		if working {
+			return
+		}
+		if label == "Ignore" {
+			if err := launchlog.RememberIgnored(logPath); err != nil {
+				modal.SetText("Could not remember the decision:\n\n" + tview.Escape(err.Error()))
+				return
+			}
+			result <- nil
+			app.Stop()
+			return
+		}
+		working = true
+		modal.SetText("Archiving Beta logfile and resetting Beta tracking data…")
+		go func() {
+			archive, fixErr := launchlog.Fix(logPath)
+			app.QueueUpdateDraw(func() {
+				if fixErr != nil {
+					working = false
+					modal.SetText("Beta logfile cleanup failed:\n\n" + tview.Escape(fixErr.Error()) + "\n\nChoose Fix logfile to retry or Ignore to continue unchanged.")
+					return
+				}
+				fmt.Fprintf(os.Stderr, "Archived Beta logfile as %s\n", archive)
+				result <- nil
+				app.Stop()
+			})
+		}()
+	})
+	if err := app.SetRoot(modal, true).SetFocus(modal).Run(); err != nil {
+		return err
+	}
+	select {
+	case err := <-result:
+		return err
+	default:
+		return errors.New("Beta logfile decision was cancelled")
 	}
 }
 

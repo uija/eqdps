@@ -120,6 +120,31 @@ func Open(logPath string) (*Collector, error) {
 	return collector, nil
 }
 
+// ResetState removes the logfile checkpoint and pending beta-era observations
+// for one character logfile. The global opt-in setting is preserved.
+func ResetState(logPath string) error {
+	character, server, err := skyquest.CharacterIdentity(logPath)
+	if err != nil {
+		return err
+	}
+	absolute, err := filepath.Abs(logPath)
+	if err != nil {
+		return fmt.Errorf("resolve drop-collection logfile: %w", err)
+	}
+	config, err := os.UserConfigDir()
+	if err != nil {
+		return fmt.Errorf("locate drop-collection settings: %w", err)
+	}
+	key := safeName(character + "_" + server)
+	pathHash := sha256.Sum256([]byte(absolute))
+	stateKey := key + "-" + hex.EncodeToString(pathHash[:6])
+	path := filepath.Join(config, "eqdps", "drop-collection", stateKey+"-state.json")
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove beta drop-collection state: %w", err)
+	}
+	return nil
+}
+
 func (c *Collector) load() error {
 	var configured settings
 	if data, err := os.ReadFile(c.settingsPath); err == nil {

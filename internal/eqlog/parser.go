@@ -161,6 +161,13 @@ func ParseRecord(line string) (Record, bool) {
 	return ParseRecordAfter(line, time.Time{})
 }
 
+// ParseTimestamp returns the timestamp envelope without classifying the log
+// message. It is intended for code that only needs logfile chronology.
+func ParseTimestamp(line string) (time.Time, bool) {
+	timestamp, _, ok := parseEnvelope(line)
+	return timestamp, ok
+}
+
 func ParseWhoLine(line string) (WhoResult, bool) {
 	timestamp, message, ok := parseEnvelope(line)
 	if !ok {

@@ -216,6 +216,101 @@ func (q *Queue) RecentIDs(name string, tailBytes int64) (map[string]struct{}, er
 	return result, err
 }
 
+// DiscardBefore removes pending launch-data entries older than cutoff and
+// compacts the queues so their byte cursors restart at zero.
+func (q *Queue) DiscardBefore(cutoff time.Time) error {
+	return q.withLock(func() error {
+		state, err := q.loadState()
+		if err != nil {
+			return err
+		}
+		for _, name := range []string{PlaneOfSky, Kills, Drops} {
+			if err := q.discardBeforeLocked(name, state.Offsets[name], cutoff); err != nil {
+				return err
+			}
+			state.Offsets[name] = 0
+		}
+		return q.saveState(state)
+	})
+}
+
+func (q *Queue) discardBeforeLocked(name string, start int64, cutoff time.Time) error {
+	source, err := os.Open(q.Path(name))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("open %s queue for beta cleanup: %w", name, err)
+	}
+	defer source.Close()
+	info, err := source.Stat()
+	if err != nil {
+		return fmt.Errorf("stat %s queue for beta cleanup: %w", name, err)
+	}
+	if start < 0 || start > info.Size() {
+		return fmt.Errorf("%s queue cursor %d exceeds file size %d", name, start, info.Size())
+	}
+	if _, err := source.Seek(start, io.SeekStart); err != nil {
+		return fmt.Errorf("seek %s queue for beta cleanup: %w", name, err)
+	}
+	temporary, err := os.CreateTemp(q.directory, "."+name+"-cleanup-*.tmp")
+	if err != nil {
+		return fmt.Errorf("create %s cleanup file: %w", name, err)
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+	if err := temporary.Chmod(0o600); err != nil {
+		temporary.Close()
+		return err
+	}
+	scanner := bufio.NewScanner(source)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		var entry Entry
+		if err := json.Unmarshal(scanner.Bytes(), &entry); err != nil {
+			temporary.Close()
+			return fmt.Errorf("decode %s queue during beta cleanup: %w", name, err)
+		}
+		var payload struct {
+			Timestamp time.Time `json:"timestamp"`
+		}
+		if err := json.Unmarshal(entry.Payload, &payload); err != nil {
+			temporary.Close()
+			return fmt.Errorf("decode %s queue timestamp during beta cleanup: %w", name, err)
+		}
+		if payload.Timestamp.IsZero() {
+			temporary.Close()
+			return fmt.Errorf("%s queue entry %q has no timestamp", name, entry.ID)
+		}
+		if !payload.Timestamp.Before(cutoff) {
+			if _, err := temporary.Write(append(scanner.Bytes(), '\n')); err != nil {
+				temporary.Close()
+				return fmt.Errorf("write retained %s queue entry: %w", name, err)
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		temporary.Close()
+		return fmt.Errorf("scan %s queue during beta cleanup: %w", name, err)
+	}
+	if err := temporary.Sync(); err != nil {
+		temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryPath, q.Path(name)); err != nil {
+		if removeErr := os.Remove(q.Path(name)); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			return fmt.Errorf("replace %s queue after beta cleanup: %w", name, err)
+		}
+		if renameErr := os.Rename(temporaryPath, q.Path(name)); renameErr != nil {
+			return fmt.Errorf("replace %s queue after beta cleanup: %w", name, renameErr)
+		}
+	}
+	return nil
+}
+
 func (q *Queue) loadState() (cursorState, error) {
 	state := cursorState{Offsets: make(map[string]int64)}
 	data, err := os.ReadFile(q.statePath)
