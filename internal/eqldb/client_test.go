@@ -85,11 +85,11 @@ func TestLocalAPIOverrideKeepsConnectionBrowserOnLoopback(t *testing.T) {
 	}
 }
 
-func TestDefaultClientUsesLocalDevelopmentServer(t *testing.T) {
+func TestDefaultClientUsesProductionServer(t *testing.T) {
 	t.Setenv(BaseURLEnv, "")
 	client := NewClient()
-	if client.BaseURL != "http://127.0.0.1" {
-		t.Fatalf("unexpected local development base URL: %q", client.BaseURL)
+	if client.BaseURL != "https://eqldb.org" {
+		t.Fatalf("unexpected production base URL: %q", client.BaseURL)
 	}
 }
 

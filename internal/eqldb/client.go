@@ -20,7 +20,7 @@ import (
 
 const (
 	ClientID       = "eql-log-parser"
-	DefaultBaseURL = "http://127.0.0.1"
+	DefaultBaseURL = "https://eqldb.org"
 	BaseURLEnv     = "EQDPS_EQLDB_BASE_URL"
 	maxResponse    = 1024 * 1024
 )
