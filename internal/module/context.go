@@ -1,10 +1,14 @@
 package module
 
 import (
+	"log"
+	"regexp"
+
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
+	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -22,6 +26,7 @@ type OnLogOpenFunc func(characterName string, serverName string, filesize int64)
 type OnLogRowFunc func(event *data.LogRowEvent)
 
 type Context struct {
+	Parser          *eqlog.Parser
 	currentMainView ui.Widget
 	ViewMenuItems   []MenuItem
 	onLogOpenFuncs  []OnLogOpenFunc
@@ -30,8 +35,9 @@ type Context struct {
 	HelpItems       []HelpItem
 }
 
-func NewContext() *Context {
+func NewContext(parser *eqlog.Parser) *Context {
 	return &Context{
+		Parser:         parser,
 		ViewMenuItems:  make([]MenuItem, 0),
 		onLogOpenFuncs: make([]OnLogOpenFunc, 0),
 		onLogRowFuncs:  make([]OnLogRowFunc, 0),
@@ -39,7 +45,19 @@ func NewContext() *Context {
 		HelpItems:      make([]HelpItem, 0),
 	}
 }
-
+func (c *Context) ParserLogFileOpened(path string) {
+	// Extract Character and Servername
+	exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
+	if fields := exp.FindStringSubmatch(path); fields != nil {
+		log.Printf("Name: %s Server: %s", fields[2], fields[3])
+		for _, f := range c.onLogOpenFuncs {
+			f(fields[2], fields[3], 0)
+		}
+	}
+}
+func (c *Context) ParserNewLogEvent(row data.LogRowEvent) {
+	// extract
+}
 func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
 	c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})
 }

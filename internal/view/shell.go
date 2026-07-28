@@ -73,9 +73,11 @@ func (s *Shell) OpenLogfile() {
 		},
 	)
 	if err != nil {
+		// TODO: Show error
 		log.Printf("Unable to open file %v", err)
+		return
 	}
-	log.Printf("Path: %s", path)
+	s.context.ParserLogFileOpened(path)
 }
 
 // Layout renders the complete application view.

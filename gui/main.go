@@ -8,6 +8,7 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/op"
 	"gioui.org/unit"
+	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/module/dps"
 	"github.com/uija/eqdps/internal/module/sky"
@@ -15,8 +16,8 @@ import (
 )
 
 func main() {
-
-	context := module.NewContext()
+	parser := eqlog.NewParser()
+	context := module.NewContext(parser)
 	context.RegisterModule(&dps.Module{})
 	context.RegisterModule(&sky.Module{})
 
