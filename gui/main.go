@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -136,6 +137,7 @@ type shell struct {
 	eqldbSyncDone     <-chan struct{}
 	eqldbRunner       *eqldbsync.Runner
 	eqldbSyncErrors   chan error
+	overlayTestData   bool
 	betaPromptOpen    bool
 	betaWorking       bool
 	betaError         string
@@ -210,6 +212,8 @@ type fakeFightSection struct {
 }
 
 func main() {
+	overlayTestData := flag.Bool("test", false, "show sample rows in the DPS overlay while waiting for combat")
+	flag.Parse()
 	go func() {
 		settings, _ := loadSettings()
 		settings.normalize()
@@ -219,7 +223,7 @@ func main() {
 			app.Size(unit.Dp(settings.MainWidth), unit.Dp(settings.MainHeight)),
 			app.MinSize(unit.Dp(720), unit.Dp(460)),
 		)
-		if err := run(window); err != nil {
+		if err := run(window, *overlayTestData); err != nil {
 			log.Print(err)
 		}
 		os.Exit(0)
@@ -227,8 +231,8 @@ func main() {
 	app.Main()
 }
 
-func run(window *app.Window) error {
-	ui := newShell(window)
+func run(window *app.Window, overlayTestData bool) error {
+	ui := newShell(window, overlayTestData)
 	var ops op.Ops
 	for {
 		switch event := window.Event().(type) {
@@ -271,7 +275,7 @@ func (s *shell) captureOpenOverlaySettings() {
 	s.captureOverlaySettingsLocked(overlay)
 }
 
-func newShell(window *app.Window) *shell {
+func newShell(window *app.Window, overlayTestData bool) *shell {
 	theme := material.NewTheme()
 	theme.Palette.Fg = palette.text
 	theme.Palette.Bg = palette.window
@@ -324,6 +328,7 @@ func newShell(window *app.Window) *shell {
 		expanded:        make(map[string]bool),
 		eventErrors:     make(chan error, 8),
 		eqldbSyncErrors: make(chan error, 8),
+		overlayTestData: overlayTestData,
 		betaPromptOpen:  betaChoice.path != "",
 		betaChoice:      betaChoice,
 		betaResults:     make(chan betaCleanupResult, 1),

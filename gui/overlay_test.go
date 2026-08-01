@@ -146,3 +146,21 @@ func TestOverlayPrefersCurrentFightOverHistory(t *testing.T) {
 		t.Fatalf("expected current fight, got %#v", got)
 	}
 }
+
+func TestOverlaySampleFightHasEightRows(t *testing.T) {
+	fight := overlaySampleFight()
+	if len(fight.combatants) != 8 {
+		t.Fatalf("sample fight rows = %d, want 8", len(fight.combatants))
+	}
+}
+
+func TestOverlaySpacingUsesFontScale(t *testing.T) {
+	overlay := combatOverlay{fontScale: .5}
+	if got := overlay.scaledDp(28); got != 14 {
+		t.Fatalf("half-scale row height = %v, want 14", got)
+	}
+	overlay.fontScale = 1.5
+	if got := overlay.scaledDp(28); got != 42 {
+		t.Fatalf("large-scale row height = %v, want 42", got)
+	}
+}

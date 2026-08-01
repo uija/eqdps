@@ -32,6 +32,7 @@ type combatOverlay struct {
 	list             widget.List
 	decorations      widget.Decorations
 	fights           []fakeFightSection
+	fontScale        float32
 	idleTimeout      time.Duration
 	completedAt      time.Time
 	lastWidth        int
@@ -46,6 +47,7 @@ type combatOverlay struct {
 	savedX           int
 	savedY           int
 	hasSavedPosition bool
+	testFight        *fakeFightSection
 	focusOrder       uint64
 	focusCandidate   uint64
 	focusCandidateAt time.Time
@@ -80,6 +82,8 @@ func (s *shell) openOverlay() {
 	theme := material.NewTheme()
 	theme.Palette.Fg = palette.text
 	theme.Palette.Bg = palette.window
+	fontScale := float32(s.dpsFontMilli.Load()) / 1000
+	theme.TextSize = unit.Sp(16 * fontScale)
 	overlay := &combatOverlay{
 		window:           window,
 		theme:            theme,
@@ -91,6 +95,11 @@ func (s *shell) openOverlay() {
 		savedY:           s.settings.OverlayY,
 		nativeOpacity:    s.settings.DPSOpacity,
 		hasSavedPosition: s.settings.OverlayPlaced,
+		fontScale:        fontScale,
+	}
+	if s.overlayTestData {
+		fight := overlaySampleFight()
+		overlay.testFight = &fight
 	}
 	s.overlay = overlay
 	s.overlayMu.Unlock()
@@ -210,6 +219,7 @@ func (o *combatOverlay) update() {
 			hadCurrent := hasCurrentFight(o.fights)
 			o.fights = update.fights
 			o.theme.TextSize = unit.Sp(16 * update.fontScale)
+			o.fontScale = update.fontScale
 			o.idleTimeout = update.idleTimeout
 			o.observeFocus(time.Now())
 			hasCurrent := hasCurrentFight(o.fights)
@@ -328,6 +338,9 @@ func (o *combatOverlay) layout(gtx layout.Context) layout.Dimensions {
 		gtx.Execute(op.InvalidateCmd{At: o.focusCandidateAt})
 	}
 	fight := o.displayFightAt(now)
+	if fight == nil {
+		fight = o.testFight
+	}
 	if fight != nil && !hasCurrentFight(o.fights) && o.idleTimeout > 0 && !o.completedAt.IsZero() {
 		gtx.Execute(op.InvalidateCmd{At: o.completedAt.Add(o.idleTimeout)})
 	}
@@ -350,21 +363,24 @@ func (o *combatOverlay) layout(gtx layout.Context) layout.Dimensions {
 func (o *combatOverlay) layoutFight(gtx layout.Context, fight *fakeFightSection) layout.Dimensions {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(42))
+			gtx.Constraints.Min.Y = gtx.Dp(o.scaledDp(30))
 			gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 			fill(gtx, palette.panelAlt)
 			return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
-				return inset(unit.Dp(12), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				return inset(o.scaledDp(6), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					offset := op.Offset(image.Pt(0, gtx.Dp(o.scaledDp(2)))).Push(gtx.Ops)
+					dimensions := layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return labelWeight(gtx, o.theme, fight.name, unit.Sp(18), palette.text, text.Start, font.SemiBold)
+							return labelWeight(gtx, o.theme, fight.name, unit.Sp(16), palette.text, text.Start, font.SemiBold)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return (layout.Inset{Right: unit.Dp(40)}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return label(gtx, o.theme, fight.duration, unit.Sp(16), palette.accent, text.End)
+							return (layout.Inset{Right: o.scaledDp(32)}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return label(gtx, o.theme, fight.duration, unit.Sp(15), palette.accent, text.End)
 							})
 						}),
 					)
+					offset.Pop()
+					return dimensions
 				})
 			})
 		}),
@@ -381,15 +397,15 @@ func (o *combatOverlay) layoutFight(gtx layout.Context, fight *fakeFightSection)
 }
 
 func (o *combatOverlay) layoutDragHandle(gtx layout.Context) layout.Dimensions {
-	return inset(unit.Dp(7), unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return inset(o.scaledDp(4), o.scaledDp(3)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return o.decorations.LayoutMove(gtx, func(gtx layout.Context) layout.Dimensions {
 			pointer.CursorPointer.Add(gtx.Ops)
-			size := gtx.Dp(unit.Dp(28))
-			lineWidth := gtx.Dp(unit.Dp(16))
-			lineHeight := gtx.Dp(unit.Dp(2))
+			size := gtx.Dp(o.scaledDp(24))
+			lineWidth := gtx.Dp(o.scaledDp(16))
+			lineHeight := gtx.Dp(o.scaledDp(2))
 			left := (size - lineWidth) / 2
-			for _, top := range []int{7, 13, 19} {
-				y := gtx.Dp(unit.Dp(top))
+			for _, top := range []float32{6, 11, 16} {
+				y := gtx.Dp(o.scaledDp(top))
 				paint.FillShape(gtx.Ops, palette.text, clip.Rect{
 					Min: image.Pt(left, y),
 					Max: image.Pt(left+lineWidth, y+lineHeight),
@@ -401,7 +417,7 @@ func (o *combatOverlay) layoutDragHandle(gtx layout.Context) layout.Dimensions {
 }
 
 func (o *combatOverlay) layoutRow(gtx layout.Context, row fakeCombatant, header bool) layout.Dimensions {
-	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(34))
+	gtx.Constraints.Min.Y = gtx.Dp(o.scaledDp(28))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	if header {
 		fill(gtx, palette.chrome)
@@ -411,7 +427,7 @@ func (o *combatOverlay) layoutRow(gtx layout.Context, row fakeCombatant, header 
 		values = []string{"COMBATANT", "DAMAGE", "DPS", "ACTIVE"}
 	}
 	return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
-		return inset(unit.Dp(12), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return inset(o.scaledDp(6), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			cell := func(value string, weight float32, alignment text.Alignment) layout.FlexChild {
 				return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
 					return label(gtx, o.theme, value, unit.Sp(16), palette.text, alignment)
@@ -422,4 +438,28 @@ func (o *combatOverlay) layoutRow(gtx layout.Context, row fakeCombatant, header 
 			)
 		})
 	})
+}
+
+func (o *combatOverlay) scaledDp(value float32) unit.Dp {
+	scale := o.fontScale
+	if scale <= 0 {
+		scale = 1
+	}
+	return unit.Dp(value * scale)
+}
+
+func overlaySampleFight() fakeFightSection {
+	return fakeFightSection{
+		name: "Test Target", duration: "1m 24s", current: true,
+		combatants: []fakeCombatant{
+			{name: "Wyrmberg", damage: 128450, dps: 1529, active: "1m 24s"},
+			{name: "Oldeman", damage: 112780, dps: 1343, active: "1m 22s"},
+			{name: "Normen", damage: 98420, dps: 1172, active: "1m 20s"},
+			{name: "Mind", damage: 86110, dps: 1025, active: "1m 18s"},
+			{name: "Recon", damage: 74390, dps: 886, active: "1m 17s"},
+			{name: "Ohhealno", damage: 51720, dps: 616, active: "1m 12s"},
+			{name: "Karthar", damage: 38640, dps: 460, active: "1m 09s"},
+			{name: "Ashe", damage: 21480, dps: 256, active: "58s"},
+		},
+	}
 }
