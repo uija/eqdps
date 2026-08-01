@@ -126,6 +126,15 @@ type shell struct {
 	skyHideClick      widget.Clickable
 	skyStatusClick    widget.Clickable
 	skyResetClick     widget.Clickable
+	skyCompareEnabled widget.Bool
+	skyCompareOpen    bool
+	skyComparePath    string
+	skyCompareRows    []skyInventoryDifference
+	skyCompareList    widget.List
+	skyCompareApply   widget.Clickable
+	skyCompareCancel  widget.Clickable
+	skyCompareResults chan skyInventoryCompareResult
+	skyCompareID      uint64
 	skyNoticeText     string
 	skyNoticeUntil    time.Time
 	skyList           widget.List
@@ -323,31 +332,33 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 	ranges := historyRangeItems("open")
 	recents := recentMenuItems(settings)
 	result := &shell{
-		theme:           theme,
-		fightList:       widget.List{List: layout.List{Axis: layout.Vertical}},
-		activeMenu:      -1,
-		activeSub:       -1,
-		window:          window,
-		settings:        settings,
-		currentLog:      currentLog,
-		statusText:      statusText,
-		fileChosen:      make(chan fileChoice, 1),
-		combatUpdates:   make(chan combatUpdate, 1),
-		xpStartResults:  make(chan xpStartResult, 1),
-		overlayClosed:   make(chan *combatOverlay, 1),
-		skyDatabase:     skyDatabase,
-		skyInventory:    make(map[string]int),
-		skyList:         widget.List{List: layout.List{Axis: layout.Vertical}},
-		skyUpdates:      make(chan skyAsyncUpdate, 1),
-		treeClicks:      make(map[string]*widget.Clickable),
-		treeChildren:    make(map[string][]string),
-		expanded:        make(map[string]bool),
-		eventErrors:     make(chan error, 8),
-		eqldbSyncErrors: make(chan error, 8),
-		overlayTestData: overlayTestData,
-		betaPromptOpen:  betaChoice.path != "",
-		betaChoice:      betaChoice,
-		betaResults:     make(chan betaCleanupResult, 1),
+		theme:             theme,
+		fightList:         widget.List{List: layout.List{Axis: layout.Vertical}},
+		activeMenu:        -1,
+		activeSub:         -1,
+		window:            window,
+		settings:          settings,
+		currentLog:        currentLog,
+		statusText:        statusText,
+		fileChosen:        make(chan fileChoice, 1),
+		combatUpdates:     make(chan combatUpdate, 1),
+		xpStartResults:    make(chan xpStartResult, 1),
+		overlayClosed:     make(chan *combatOverlay, 1),
+		skyDatabase:       skyDatabase,
+		skyInventory:      make(map[string]int),
+		skyList:           widget.List{List: layout.List{Axis: layout.Vertical}},
+		skyCompareList:    widget.List{List: layout.List{Axis: layout.Vertical}},
+		skyUpdates:        make(chan skyAsyncUpdate, 1),
+		skyCompareResults: make(chan skyInventoryCompareResult, 1),
+		treeClicks:        make(map[string]*widget.Clickable),
+		treeChildren:      make(map[string][]string),
+		expanded:          make(map[string]bool),
+		eventErrors:       make(chan error, 8),
+		eqldbSyncErrors:   make(chan error, 8),
+		overlayTestData:   overlayTestData,
+		betaPromptOpen:    betaChoice.path != "",
+		betaChoice:        betaChoice,
+		betaResults:       make(chan betaCleanupResult, 1),
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}, {name: "Reset session", enabled: currentLog != "", action: "reset"}}},
@@ -362,6 +373,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 	result.dpsScale.Value = settingToSlider(settings.DPSFontScale, .5, 1.5)
 	result.dpsOpacity.Value = settingToSlider(settings.DPSOpacity, .35, 1)
 	result.idleTimeoutSlider.Value = settingToSlider(float32(settings.IdleTimeoutSec), 5, 60)
+	result.skyCompareEnabled.Value = settings.CompareSkyInventory
 	result.combatIdleNanos.Store(int64(time.Duration(settings.IdleTimeoutSec) * time.Second))
 	result.dpsFontMilli.Store(int64(effectiveFontScale(settings.DPSFontScale)*1000 + .5))
 	if skyDatabaseErr != nil {
@@ -370,6 +382,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 		result.loadSkyState(currentLog)
 	}
 	result.eqldb = newEQLDBGUI(window, currentLog)
+	result.eqldb.inventoryExport = result.compareSkyInventoryExport
 	eqldbRunner, eqldbRunnerErr := eqldbsync.Default(func(err error) {
 		select {
 		case result.eqldbSyncErrors <- err:
@@ -450,6 +463,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Expanded(s.layoutSkySetup),
 		layout.Expanded(s.layoutWaylandHelp),
 		layout.Expanded(s.layoutAbout),
+		layout.Expanded(s.layoutSkyInventoryComparison),
 		layout.Expanded(s.layoutEQLDB),
 	)
 }
@@ -465,6 +479,7 @@ func (s *shell) update(gtx layout.Context) {
 		s.cancelCurrentOperation()
 	}
 	s.updateXPStart(gtx)
+	s.updateSkyInventoryComparison(gtx)
 	s.updateBetaCleanup(gtx)
 	if s.skyAllow.Clicked(gtx) {
 		s.skySetupOpen = false

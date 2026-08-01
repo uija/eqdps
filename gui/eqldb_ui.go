@@ -81,11 +81,12 @@ type eqldbGUIEvent struct {
 }
 
 type eqldbGUI struct {
-	window  appWindow
-	store   eqldb.Store
-	client  *eqldb.Client
-	state   eqldb.State
-	syncNow func()
+	window          appWindow
+	store           eqldb.Store
+	client          *eqldb.Client
+	state           eqldb.State
+	syncNow         func()
+	inventoryExport func(inventorysync.Request)
 
 	context context.Context
 	cancel  context.CancelFunc
@@ -398,6 +399,9 @@ func (ui *eqldbGUI) processEvents() {
 		case event := <-ui.events:
 			switch event.kind {
 			case eqldbGUIExportDetected:
+				if ui.inventoryExport != nil {
+					ui.inventoryExport(event.request)
+				}
 				ui.scheduleExport(event.request, time.Now())
 			case eqldbGUIProcessExport:
 				ui.processPendingExport()

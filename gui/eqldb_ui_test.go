@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -59,6 +60,25 @@ func TestEQLDBGUIExportWithoutWhoReplacesOpenDialog(t *testing.T) {
 	}
 	if ui.levelEditor.Text() != "" {
 		t.Fatalf("default level = %q, want an empty field", ui.levelEditor.Text())
+	}
+}
+
+func TestInventoryExportCallbackRunsWithoutEQLDBConnection(t *testing.T) {
+	var received inventorysync.Request
+	ui := &eqldbGUI{
+		context: context.Background(),
+		events:  make(chan eqldbGUIEvent, 1),
+		inventoryExport: func(request inventorysync.Request) {
+			received = request
+		},
+	}
+	want := inventorysync.Request{Path: "inventory.txt"}
+	ui.events <- eqldbGUIEvent{kind: eqldbGUIExportDetected, request: want}
+
+	ui.processEvents()
+
+	if received.Path != want.Path {
+		t.Fatalf("callback request = %#v", received)
 	}
 }
 

@@ -21,21 +21,22 @@ type guiDefaults struct {
 }
 
 type guiSettings struct {
-	LastLogfile    string   `json:"last_logfile,omitempty"`
-	RecentLogfiles []string `json:"recent_logfiles,omitempty"`
-	OverlayVisible bool     `json:"overlay_visible,omitempty"`
-	WaylandNotice  bool     `json:"wayland_overlay_notice_shown,omitempty"`
-	MainFontScale  float32  `json:"main_font_scale,omitempty"`
-	DPSFontScale   float32  `json:"dps_font_scale,omitempty"`
-	DPSOpacity     float32  `json:"dps_opacity,omitempty"`
-	IdleTimeoutSec int      `json:"idle_timeout_seconds,omitempty"`
-	MainWidth      int      `json:"main_width,omitempty"`
-	MainHeight     int      `json:"main_height,omitempty"`
-	OverlayWidth   int      `json:"overlay_width,omitempty"`
-	OverlayHeight  int      `json:"overlay_height,omitempty"`
-	OverlayX       int      `json:"overlay_x,omitempty"`
-	OverlayY       int      `json:"overlay_y,omitempty"`
-	OverlayPlaced  bool     `json:"overlay_placed,omitempty"`
+	LastLogfile         string   `json:"last_logfile,omitempty"`
+	RecentLogfiles      []string `json:"recent_logfiles,omitempty"`
+	OverlayVisible      bool     `json:"overlay_visible,omitempty"`
+	WaylandNotice       bool     `json:"wayland_overlay_notice_shown,omitempty"`
+	MainFontScale       float32  `json:"main_font_scale,omitempty"`
+	DPSFontScale        float32  `json:"dps_font_scale,omitempty"`
+	DPSOpacity          float32  `json:"dps_opacity,omitempty"`
+	IdleTimeoutSec      int      `json:"idle_timeout_seconds,omitempty"`
+	CompareSkyInventory bool     `json:"compare_inventory_with_sky,omitempty"`
+	MainWidth           int      `json:"main_width,omitempty"`
+	MainHeight          int      `json:"main_height,omitempty"`
+	OverlayWidth        int      `json:"overlay_width,omitempty"`
+	OverlayHeight       int      `json:"overlay_height,omitempty"`
+	OverlayX            int      `json:"overlay_x,omitempty"`
+	OverlayY            int      `json:"overlay_y,omitempty"`
+	OverlayPlaced       bool     `json:"overlay_placed,omitempty"`
 }
 
 func (settings *guiSettings) normalize() {

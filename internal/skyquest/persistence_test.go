@@ -427,3 +427,31 @@ func TestResetPersistentTrackerRebuildsStateWithoutDuplicateUploads(t *testing.T
 		t.Fatalf("reset changed queued upload count from %d to %d", len(before), len(after))
 	}
 }
+
+func TestSetInventoryQuantitiesPersistsSelectedNonRuneItems(t *testing.T) {
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	content := "[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n" +
+		"[Thu Jul 16 10:40:01 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--\n" +
+		"[Thu Jul 16 10:40:02 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tracker, err := OpenPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tracker.SetInventoryQuantities(map[string]int{"Light Woolen Mask": 3, "Wind Rune Caza": 0}); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := LoadPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reloaded.Inventory()["Light Woolen Mask"]; got != 3 {
+		t.Fatalf("mask quantity = %d, want 3", got)
+	}
+	if got := reloaded.Inventory()["Wind Rune Caza"]; got != 1 {
+		t.Fatalf("rune quantity = %d, want unchanged 1", got)
+	}
+}

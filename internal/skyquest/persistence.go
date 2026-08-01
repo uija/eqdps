@@ -652,6 +652,26 @@ func (p *PersistentTracker) Inventory() map[string]int {
 	return p.tracker.Inventory()
 }
 
+// SetInventoryQuantities replaces selected item quantities while preserving
+// quest completion, pending hand-ins, and all unmentioned holdings.
+func (p *PersistentTracker) SetInventoryQuantities(quantities map[string]int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for item, quantity := range quantities {
+		normalized, known := p.tracker.knownItem(item)
+		if !known || strings.HasPrefix(normalized, "Wind Rune ") {
+			continue
+		}
+		if quantity > 0 {
+			p.tracker.owned[normalized] = quantity
+		} else {
+			delete(p.tracker.owned, normalized)
+		}
+	}
+	p.state.Holdings = p.tracker.Inventory()
+	return p.saveLocked()
+}
+
 func (p *PersistentTracker) ReadyQuests() []QuestProgress {
 	p.mu.Lock()
 	defer p.mu.Unlock()

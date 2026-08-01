@@ -71,6 +71,24 @@ func (s *shell) layoutPreferences(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return inset(0, unit.Dp(22)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				before := s.skyCompareEnabled.Value
+				dimensions := material.CheckBox(s.theme, &s.skyCompareEnabled, "Compare inventory exports with Plane of Sky progress").Layout(gtx)
+				if before != s.skyCompareEnabled.Value {
+					s.settings.CompareSkyInventory = s.skyCompareEnabled.Value
+					if err := saveSettings(s.settings); err != nil {
+						s.statusText = "Inventory comparison preference could not be saved"
+					}
+				}
+				return dimensions
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return label(gtx, s.theme, "Wind Runes are excluded from this comparison.", unit.Sp(14), palette.muted, text.Start)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
