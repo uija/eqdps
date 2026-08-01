@@ -97,6 +97,20 @@ type shell struct {
 	dpsFontMilli      atomic.Int64
 	prefsDirty        bool
 	xpSnapshot        xp.Snapshot
+	xpStatusClick     widget.Clickable
+	xpStartOpen       bool
+	xpStartScanning   bool
+	xpStartPath       string
+	xpStartError      string
+	xpLastLevelUp     time.Time
+	xpLastZoneChange  time.Time
+	xpZoneLevelXP     float64
+	xpZoneLevelKnown  bool
+	xpSinceLevel      widget.Clickable
+	xpSinceZone       widget.Clickable
+	xpStartCancel     widget.Clickable
+	xpStartScanID     uint64
+	xpStartResults    chan xpStartResult
 	parserState       string
 	allFights         []fakeFightSection
 	fightFilter       string
@@ -318,6 +332,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 		statusText:      statusText,
 		fileChosen:      make(chan fileChoice, 1),
 		combatUpdates:   make(chan combatUpdate, 1),
+		xpStartResults:  make(chan xpStartResult, 1),
 		overlayClosed:   make(chan *combatOverlay, 1),
 		skyDatabase:     skyDatabase,
 		skyInventory:    make(map[string]int),
@@ -429,6 +444,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Stacked(s.layoutOpenMenu),
 		layout.Stacked(s.layoutOpenSubmenu),
 		layout.Expanded(s.layoutLoadingOverlay),
+		layout.Expanded(s.layoutXPStartOverlay),
 		layout.Expanded(s.layoutBetaCleanup),
 		layout.Expanded(s.layoutSkySetup),
 		layout.Expanded(s.layoutWaylandHelp),
@@ -447,6 +463,7 @@ func (s *shell) update(gtx layout.Context) {
 	if s.operationCancel.Clicked(gtx) {
 		s.cancelCurrentOperation()
 	}
+	s.updateXPStart(gtx)
 	s.updateBetaCleanup(gtx)
 	if s.skyAllow.Clicked(gtx) {
 		s.skySetupOpen = false
@@ -1178,7 +1195,10 @@ func (s *shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 				}),
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return inset(unit.Dp(28), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return label(gtx, s.theme, xpStatusText(s.xpSnapshot, s.fightFilter), unit.Sp(15), palette.muted, text.Start)
+						return s.xpStatusClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							pointer.CursorPointer.Add(gtx.Ops)
+							return label(gtx, s.theme, xpStatusText(s.xpSnapshot, s.fightFilter), unit.Sp(15), palette.muted, text.Start)
+						})
 					})
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {

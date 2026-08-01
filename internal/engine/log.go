@@ -23,11 +23,67 @@ type ReplayProgress struct {
 	Lines int
 }
 
+type ReplayLandmarks struct {
+	LastLevelUp           time.Time
+	LastZoneChange        time.Time
+	LastZoneLevelPercent  float64
+	LastZoneProgressKnown bool
+}
+
 type LiveLineObserver interface {
 	ObserveLiveLine(string)
 }
 
 var ErrReplayCancelled = errors.New("replay cancelled")
+
+// FindReplayLandmarks returns the most recent points from which the GUI can
+// rebuild an XP session. maxBytes keeps the scan on the same logfile snapshot
+// that will subsequently be replayed.
+func FindReplayLandmarks(logPath string, maxBytes int64) (ReplayLandmarks, error) {
+	file, err := os.Open(logPath)
+	if err != nil {
+		return ReplayLandmarks{}, fmt.Errorf("open log: %w", err)
+	}
+	defer file.Close()
+	if maxBytes <= 0 {
+		info, statErr := file.Stat()
+		if statErr != nil {
+			return ReplayLandmarks{}, fmt.Errorf("stat log: %w", statErr)
+		}
+		maxBytes = info.Size()
+	}
+
+	var result ReplayLandmarks
+	levelProgress := xp.NewSession()
+	scanner := bufio.NewScanner(io.LimitReader(file, maxBytes))
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "You have gained a level!") {
+			if event, ok := eqlog.ParseLevelUpLine(line); ok {
+				result.LastLevelUp = event.Time
+				levelProgress.AddLevelUp(event.Time)
+			}
+		}
+		if strings.Contains(line, "You gain experience!") {
+			if event, ok := eqlog.ParseExperienceLine(line); ok {
+				levelProgress.AddGain(event.Time, event.Percent)
+			}
+		}
+		if strings.Contains(line, "You have entered ") {
+			if event, ok := eqlog.ParseZoneChangeLine(line); ok {
+				result.LastZoneChange = event.Time
+				snapshot := levelProgress.SnapshotAtLatestLog()
+				result.LastZoneLevelPercent = snapshot.LevelPercent
+				result.LastZoneProgressKnown = snapshot.ProgressKnown
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return ReplayLandmarks{}, fmt.Errorf("read log: %w", err)
+	}
+	return result, nil
+}
 
 func Replay(logPath string, idleTimeout, back time.Duration, since time.Time, historyLimit int) (*combat.FightTracker, *xp.Session, error) {
 	return ReplayWithProgress(logPath, idleTimeout, back, since, historyLimit, 0, nil, nil)

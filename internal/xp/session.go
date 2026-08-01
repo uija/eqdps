@@ -45,6 +45,16 @@ func NewSession() *Session {
 	return &Session{}
 }
 
+// AddPriorLevelProgress supplies progress earned before the measured session.
+// A level-up observed inside the session takes precedence over this baseline.
+func (s *Session) AddPriorLevelProgress(percent float64, known bool) {
+	if s.progressKnown {
+		return
+	}
+	s.levelPercent += percent
+	s.progressKnown = known
+}
+
 func (s *Session) Observe(logTime, observedAt time.Time) {
 	if logTime.IsZero() || (!s.latestLog.IsZero() && logTime.Before(s.latestLog)) {
 		return

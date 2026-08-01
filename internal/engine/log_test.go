@@ -26,6 +26,56 @@ func TestProcessLineUpdatesCombatAndXP(t *testing.T) {
 	}
 }
 
+func TestFindReplayLandmarksReturnsLatestEvents(t *testing.T) {
+	log := "[Thu Jul 02 05:19:04 2026] You have gained a level! Welcome to level 43!\n" +
+		"[Thu Jul 09 08:55:08 2026] You have entered The Plane of Sky.\n" +
+		"[Mon Jul 13 15:34:31 2026] You have gained a level! Welcome to level 44!\n" +
+		"[Mon Jul 13 16:00:00 2026] You have entered North Ro.\n"
+	path := filepath.Join(t.TempDir(), "eqlog_Test_server.txt")
+	if err := os.WriteFile(path, []byte(log), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	landmarks, err := FindReplayLandmarks(path, int64(len(log)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := landmarks.LastLevelUp.Format("2006-01-02 15:04:05"); got != "2026-07-13 15:34:31" {
+		t.Fatalf("last level up = %s", got)
+	}
+	if got := landmarks.LastZoneChange.Format("2006-01-02 15:04:05"); got != "2026-07-13 16:00:00" {
+		t.Fatalf("last zone change = %s", got)
+	}
+}
+
+func TestReplayFromLandmarkRebuildsXPFromSelectedPoint(t *testing.T) {
+	log := "[Mon Jul 13 15:34:31 2026] You have gained a level! Welcome to level 44!\n" +
+		"[Mon Jul 13 15:40:00 2026] You gain experience! (1.000%)\n" +
+		"[Mon Jul 13 16:00:00 2026] You have entered North Ro.\n" +
+		"[Mon Jul 13 16:05:00 2026] You gain experience! (2.000%)\n"
+	path := filepath.Join(t.TempDir(), "eqlog_Test_server.txt")
+	if err := os.WriteFile(path, []byte(log), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	landmarks, err := FindReplayLandmarks(path, int64(len(log)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, session, err := Replay(path, combat.DefaultIdleTimeout, 0, landmarks.LastZoneChange, combat.DefaultFightHistory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session.AddPriorLevelProgress(landmarks.LastZoneLevelPercent, landmarks.LastZoneProgressKnown)
+	snapshot := session.SnapshotAtLatestLog()
+	if snapshot.Percent != 2 {
+		t.Fatalf("XP since zoning = %v, want 2", snapshot.Percent)
+	}
+	if snapshot.LevelPercent != 3 || !snapshot.ProgressKnown {
+		t.Fatalf("level progress = %.1f known=%v, want 3.0 and known", snapshot.LevelPercent, snapshot.ProgressKnown)
+	}
+}
+
 func TestReplayReportsProgressAndSupportsCancellation(t *testing.T) {
 	log := "[Mon Jul 13 16:46:18 2026] You pierce an elemental visier for 44 points of damage.\n"
 	path := filepath.Join(t.TempDir(), "eqlog_Test_server.txt")

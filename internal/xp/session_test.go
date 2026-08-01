@@ -87,6 +87,30 @@ func TestSessionProgressIsUnknownWithoutObservedLevelUp(t *testing.T) {
 	}
 }
 
+func TestPriorLevelProgressDoesNotChangeMeasuredXP(t *testing.T) {
+	session := NewSession()
+	when := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	session.AddGain(when, 2)
+	session.AddPriorLevelProgress(40, true)
+
+	got := session.SnapshotAtLatestLog()
+	if got.Percent != 2 || got.LevelPercent != 42 || !got.ProgressKnown {
+		t.Fatalf("unexpected snapshot: %+v", got)
+	}
+}
+
+func TestLevelUpInsideSessionTakesPrecedenceOverPriorProgress(t *testing.T) {
+	session := NewSession()
+	when := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	session.AddLevelUp(when)
+	session.AddGain(when.Add(time.Second), 2)
+	session.AddPriorLevelProgress(40, true)
+
+	if got := session.SnapshotAtLatestLog().LevelPercent; got != 2 {
+		t.Fatalf("level progress = %v, want 2", got)
+	}
+}
+
 func TestSnapshotTimeToLevelRoundsUpToMinute(t *testing.T) {
 	snapshot := Snapshot{LevelPercent: 97.085, PercentPerHour: 81.06}
 	got, ok := snapshot.TimeToLevel()

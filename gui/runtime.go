@@ -27,6 +27,14 @@ type combatUpdate struct {
 }
 
 func (s *shell) loadLog(path string, back time.Duration) {
+	s.loadLogFrom(path, back, time.Time{}, historyStatus(back), 0, false)
+}
+
+func (s *shell) loadLogSince(path string, since time.Time, description string, priorLevelXP float64, priorLevelKnown bool) {
+	s.loadLogFrom(path, 0, since, description, priorLevelXP, priorLevelKnown)
+}
+
+func (s *shell) loadLogFrom(path string, back time.Duration, since time.Time, description string, priorLevelXP float64, priorLevelKnown bool) {
 	if s.logCancel != nil {
 		close(s.logCancel)
 	}
@@ -36,10 +44,11 @@ func (s *shell) loadLog(path string, back time.Duration) {
 	s.allFights = nil
 	s.xpSnapshot = xp.Snapshot{}
 	s.parserState = "loading"
-	s.loading = back != 0
-	s.loadingTitle = "Loading combat history…"
+	replay := back != 0 || !since.IsZero()
+	s.loading = replay
+	s.loadingTitle = "Loading combat and XP " + description + "…"
 	s.loadBytes, s.loadTotal, s.loadLines = 0, 0, 0
-	s.statusText = filepathBase(path) + " · loading " + historyStatus(back) + "…"
+	s.statusText = filepathBase(path) + " · loading " + description + "…"
 	go func() {
 		info, err := os.Stat(path)
 		if err != nil {
@@ -65,15 +74,15 @@ func (s *shell) loadLog(path string, back time.Duration) {
 		} else {
 			s.sendCombatUpdate(combatUpdate{collector: collector, collectionEnabled: collector.Enabled()})
 		}
-		if back != 0 {
+		if replay {
 			progress := engine.ReplayProgress{Total: limit}
 			s.sendCombatUpdate(combatUpdate{progress: &progress})
 		}
 		tracker := combat.NewFightTracker()
 		xpSession := xp.NewSession()
-		if back != 0 {
+		if replay {
 			idleTimeout := time.Duration(s.combatIdleNanos.Load())
-			tracker, xpSession, err = engine.ReplayWithProgress(path, idleTimeout, back, time.Time{}, combat.DefaultFightHistory, limit, func(progress engine.ReplayProgress) {
+			tracker, xpSession, err = engine.ReplayWithProgress(path, idleTimeout, back, since, combat.DefaultFightHistory, limit, func(progress engine.ReplayProgress) {
 				s.sendCombatUpdate(combatUpdate{progress: &progress})
 			}, cancel)
 			if err != nil {
@@ -84,9 +93,10 @@ func (s *shell) loadLog(path string, back time.Duration) {
 				}
 				return
 			}
+			xpSession.AddPriorLevelProgress(priorLevelXP, priorLevelKnown)
 		}
 		xpSnapshot := xpSession.SnapshotAtLatestLog()
-		s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · " + historyStatus(back), loadDone: true, xp: &xpSnapshot, state: "live"})
+		s.sendCombatUpdate(combatUpdate{fights: snapshotFights(tracker), status: filepathBase(path) + " · " + description, loadDone: true, xp: &xpSnapshot, state: "live"})
 		err = engine.FollowWithPoll(path, limit, cancel, func(line string, endOffset int64) {
 			idleTimeout := time.Duration(s.combatIdleNanos.Load())
 			engine.ProcessLine(line, tracker, xpSession, idleTimeout)
