@@ -382,3 +382,48 @@ func TestInitialScanReportsProgress(t *testing.T) {
 		t.Fatalf("unexpected progress: %#v", latest)
 	}
 }
+
+func TestResetPersistentTrackerRebuildsStateWithoutDuplicateUploads(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", config)
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	content := "[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n" +
+		"[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := InitializePersistentTracker(logPath, testDatabase(), int64(len(content)), nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	queue, err := eqldbqueue.Default()
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := queue.Batch(eqldbqueue.PlaneOfSky, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	statePath, err := StatePath(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(statePath, []byte("not valid JSON\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tracker, err := ResetPersistentTracker(logPath, testDatabase(), int64(len(content)), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tracker.Inventory()["Wind Rune Caza"]; got != 1 {
+		t.Fatalf("rebuilt quantity = %d, want 1", got)
+	}
+	after, err := queue.Batch(eqldbqueue.PlaneOfSky, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(after) != len(before) {
+		t.Fatalf("reset changed queued upload count from %d to %d", len(before), len(after))
+	}
+}

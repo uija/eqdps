@@ -128,6 +128,44 @@ func (s *shell) startSkyInitialScan() {
 	}(info.Size())
 }
 
+func (s *shell) resetSkyTracker() {
+	logPath := s.currentLog
+	if logPath == "" || s.skyLoading {
+		return
+	}
+	info, err := os.Stat(logPath)
+	if err != nil {
+		s.statusText = "Plane of Sky reset: " + err.Error()
+		return
+	}
+	if s.skyCancel != nil {
+		close(s.skyCancel)
+	}
+	cancel := make(chan struct{})
+	s.skyCancel = cancel
+	s.skyMu.Lock()
+	s.skyTracker = nil
+	s.skyMu.Unlock()
+	s.skyDenied = false
+	s.skySetupOpen = false
+	s.skyLoading = true
+	s.skyLoadTitle = "Resetting and rescanning Plane of Sky progress…"
+	s.skyLoadBytes, s.skyLoadTotal, s.skyLoadLines = 0, info.Size(), 0
+	s.skyMessage = "Resetting saved Plane of Sky progress…"
+	go func(target int64) {
+		tracker, resetErr := skyquest.ResetPersistentTracker(logPath, s.skyDatabase, target, func(progress skyquest.ScanProgress) {
+			s.sendSkyUpdate(skyAsyncUpdate{path: logPath, progress: &engine.ReplayProgress{Bytes: progress.Bytes, Total: progress.Total, Lines: progress.Lines}})
+		}, cancel)
+		if errors.Is(resetErr, skyquest.ErrScanCancelled) {
+			return
+		}
+		if resetErr == nil {
+			resetErr = s.activateSkyTracker(logPath, tracker)
+		}
+		s.sendSkyUpdate(skyAsyncUpdate{path: logPath, tracker: tracker, message: "Plane of Sky progress was rebuilt from the logfile.", err: resetErr, done: true})
+	}(info.Size())
+}
+
 func (s *shell) activateSkyTracker(logPath string, tracker *skyquest.PersistentTracker) error {
 	s.skyMu.Lock()
 	defer s.skyMu.Unlock()

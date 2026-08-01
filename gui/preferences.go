@@ -69,6 +69,28 @@ func (s *shell) layoutPreferences(gtx layout.Context) layout.Dimensions {
 				return label(gtx, s.theme, "Collected observations upload automatically while EQLDB is connected.", unit.Sp(14), palette.muted, text.Start)
 			})
 		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(22)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return label(gtx, s.theme, "Plane of Sky tracker", unit.Sp(17), palette.text, text.Start)
+							}),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return label(gtx, s.theme, "Delete the saved progress and rebuild it from the current logfile.", unit.Sp(14), palette.muted, text.Start)
+							}),
+						)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						if s.currentLog == "" || s.skyLoading {
+							gtx = gtx.Disabled()
+						}
+						return betaCleanupButton(gtx, s.theme, &s.skyResetClick, "Reset and rescan", false)
+					}),
+				)
+			})
+		}),
 	)
 }
 

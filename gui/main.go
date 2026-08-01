@@ -125,6 +125,7 @@ type shell struct {
 	skyHideEmpty      bool
 	skyHideClick      widget.Clickable
 	skyStatusClick    widget.Clickable
+	skyResetClick     widget.Clickable
 	skyNoticeText     string
 	skyNoticeUntil    time.Time
 	skyList           widget.List
@@ -578,6 +579,9 @@ func (s *shell) update(gtx layout.Context) {
 		s.skyHideEmpty = !s.skyHideEmpty
 		s.rebuildSkyRows()
 		s.skyList.ScrollTo(0)
+	}
+	if s.skyResetClick.Clicked(gtx) {
+		s.resetSkyTracker()
 	}
 	if s.skyStatusClick.Clicked(gtx) {
 		s.workspace = 1

@@ -105,6 +105,28 @@ func InitializePersistentTracker(logPath string, database Database, maxBytes int
 	return openPersistentTracker(logPath, database, maxBytes, onProgress, cancel)
 }
 
+// ResetPersistentTracker removes the character's saved Plane of Sky state and
+// rebuilds it from the logfile. Historical rows rebuild local holdings without
+// being queued for upload a second time.
+func ResetPersistentTracker(logPath string, database Database, maxBytes int64, onProgress func(ScanProgress), cancel <-chan struct{}) (*PersistentTracker, error) {
+	statePath, err := StatePath(logPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.Remove(statePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("remove Plane of Sky state: %w", err)
+	}
+	persistent, absoluteLogPath, err := loadPersistentTracker(logPath, database)
+	if err != nil {
+		return nil, err
+	}
+	persistent.queueBackfillOffset = maxBytes
+	if err := persistent.syncLog(absoluteLogPath, maxBytes, onProgress, cancel); err != nil {
+		return nil, err
+	}
+	return persistent, nil
+}
+
 func openPersistentTracker(logPath string, database Database, maxBytes int64, onProgress func(ScanProgress), cancel <-chan struct{}) (*PersistentTracker, error) {
 	persistent, absoluteLogPath, err := loadPersistentTracker(logPath, database)
 	if err != nil {
