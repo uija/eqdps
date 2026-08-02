@@ -47,6 +47,17 @@ func TestParseZoneChangeLine(t *testing.T) {
 	}
 }
 
+func TestLevitationRestrictionIsNotAZoneChange(t *testing.T) {
+	line := "[Sun Aug 02 16:09:37 2026] You have entered an area where levitation effects do not function."
+	if zone, ok := ParseZoneChangeLine(line); ok {
+		t.Fatalf("levitation warning parsed as zone change: %#v", zone)
+	}
+	record, ok := ParseRecord(line)
+	if !ok || record.Kind != RecordUnknown {
+		t.Fatalf("record = %#v, ok=%v; want timestamped unknown record", record, ok)
+	}
+}
+
 func TestParseLootLineOutcomes(t *testing.T) {
 	tests := []struct {
 		name     string

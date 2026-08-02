@@ -306,7 +306,11 @@ func parseZoneChange(timestamp time.Time, message string) (ZoneChange, bool) {
 	if matches == nil {
 		return ZoneChange{}, false
 	}
-	return ZoneChange{Time: timestamp, Name: strings.TrimSpace(matches[1])}, true
+	name := strings.TrimSpace(matches[1])
+	if name == "an area where levitation effects do not function" {
+		return ZoneChange{}, false
+	}
+	return ZoneChange{Time: timestamp, Name: name}, true
 }
 
 func ParseLootLine(line string) (Loot, bool) {

@@ -41,6 +41,27 @@ func TestTrackerNormalizesUpgradedLootInInstancedPlaneOfSky(t *testing.T) {
 	}
 }
 
+func TestTrackerKeepsSkyZoneAfterLevitationRestrictionMessage(t *testing.T) {
+	database := Database{SchemaVersion: 1, Classes: []Class{{Name: "Monk", Quests: []Quest{{
+		Name: "Monk Test of Fists", Requirements: []Requirement{{Name: "Brass Knuckles", Quantity: 1}},
+	}}}}}
+	tracker := NewTracker(database)
+	processTestLine(t, tracker, "[Sat Aug 01 11:40:00 2026] You have entered The Plane of Sky.")
+	warning, ok := eqlog.ParseRecord("[Sat Aug 01 11:40:01 2026] You have entered an area where levitation effects do not function.")
+	if !ok {
+		t.Fatal("levitation warning did not retain its timestamp")
+	}
+	tracker.ProcessRecord(warning)
+	processTestLine(t, tracker, "[Sat Aug 01 11:41:15 2026] --You have looted a Brass Knuckles from Noble Dojorn's corpse.--")
+
+	if tracker.Zone() != PlaneOfSkyZone {
+		t.Fatalf("tracker zone = %q, want %q", tracker.Zone(), PlaneOfSkyZone)
+	}
+	if got := tracker.Owned("Brass Knuckles"); got != 1 {
+		t.Fatalf("Brass Knuckles quantity = %d, want 1", got)
+	}
+}
+
 func TestTrackerRemovesDestroyedItemInAnyZone(t *testing.T) {
 	tracker := NewTracker(testDatabase())
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.")
