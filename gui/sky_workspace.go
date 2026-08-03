@@ -65,7 +65,7 @@ func (s *shell) rebuildSkyRows() {
 			if progress.Ready {
 				ready++
 			}
-			if !s.skyHideEmpty || progress.Completed || skyQuestHasOwnedItem(progress.Quest, s.skyInventory) {
+			if !s.skyHideEmpty || progress.Completed || skyQuestHasOwnedNonRuneItem(progress.Quest, s.skyInventory) {
 				visible = append(visible, progress)
 			}
 		}
@@ -270,8 +270,11 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 	})
 }
 
-func skyQuestHasOwnedItem(quest skyquest.Quest, inventory map[string]int) bool {
+func skyQuestHasOwnedNonRuneItem(quest skyquest.Quest, inventory map[string]int) bool {
 	for _, requirement := range quest.Requirements {
+		if requirement.Kind == "rune" || strings.HasPrefix(requirement.Name, "Wind Rune") {
+			continue
+		}
 		if inventory[requirement.Name] > 0 {
 			return true
 		}

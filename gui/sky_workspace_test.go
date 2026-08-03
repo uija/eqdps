@@ -58,6 +58,34 @@ func TestSkyHideEmptyKeepsCompletedAndStartedQuests(t *testing.T) {
 	}
 }
 
+func TestSkyHideEmptyDoesNotTreatWindRunesAsStartedQuestItems(t *testing.T) {
+	quest := func(name, item string) skyquest.Quest {
+		return skyquest.Quest{Name: name, Requirements: []skyquest.Requirement{
+			{Name: "Wind Rune Caza", Kind: "rune", Quantity: 1},
+			{Name: item, Kind: "item", Quantity: 1},
+		}}
+	}
+	shell := shell{
+		skyHideEmpty: true,
+		skyProgress: []skyquest.QuestProgress{
+			{Class: "Bard", Quest: quest("Bard Rune Only", "Missing")},
+			{Class: "Bard", Quest: quest("Bard With Item", "Owned")},
+		},
+		skyInventory: map[string]int{"Wind Rune Caza": 4, "Owned": 1},
+	}
+
+	shell.rebuildSkyRows()
+	var quests []string
+	for _, row := range shell.skyRows {
+		if row.kind == "quest" {
+			quests = append(quests, row.name)
+		}
+	}
+	if len(quests) != 1 || quests[0] != "With Item" {
+		t.Fatalf("visible quests = %#v, want only quest with non-rune item", quests)
+	}
+}
+
 func TestSkyRequirementSourceUsesSpecificDrop(t *testing.T) {
 	got := skyRequirementSource(skyquest.Requirement{Island: 5, DropsFrom: "Protector of Sky"})
 	if got != "Island 5 — Protector of Sky" {
