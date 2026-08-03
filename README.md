@@ -15,7 +15,7 @@ recent history to compare parses or investigate combat detection.
 ## Download
 
 Windows users can download the prebuilt graphical application directly from
-the [eqdps v0.2.3 release](https://github.com/uija/eqdps/releases/tag/v0.2.3).
+the [eqdps v0.2.4 release](https://github.com/uija/eqdps/releases/tag/v0.2.4).
 
 The Windows executables are not currently code-signed. Microsoft Defender
 SmartScreen may therefore display an **Unknown publisher** warning. Download
@@ -479,6 +479,14 @@ sudo apt install \
 ```
 
 As on Fedora, the TUI-only target does not need the Gio development libraries.
+
+### Bazzite and Fedora Atomic Systems
+
+Bazzite and other immutable Fedora variants require a container-based build
+workflow instead of installing development packages directly on the host. See
+the community-contributed [Bazzite KDE/Nvidia setup guide](docs/eqdps-on-bazzite-kde-nvidia.md)
+for Distrobox build steps, desktop integration, the required file picker, and
+Steam/Proton logfile locations.
 
 ### Build with Make
 
