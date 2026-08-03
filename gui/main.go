@@ -119,6 +119,7 @@ type shell struct {
 	skyDatabase       skyquest.Database
 	skyProgress       []skyquest.QuestProgress
 	skyInventory      map[string]int
+	skyWatched        map[string]bool
 	skyRows           []skyRow
 	skyIdentity       string
 	skyMessage        string
@@ -348,6 +349,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 		overlayClosed:     make(chan *combatOverlay, 1),
 		skyDatabase:       skyDatabase,
 		skyInventory:      make(map[string]int),
+		skyWatched:        make(map[string]bool),
 		skyList:           widget.List{List: layout.List{Axis: layout.Vertical}},
 		skyCompareList:    widget.List{List: layout.List{Axis: layout.Vertical}},
 		skyUpdates:        make(chan skyAsyncUpdate, 1),
@@ -601,6 +603,12 @@ func (s *shell) update(gtx layout.Context) {
 		s.skyReadyCollapsed = !s.skyReadyCollapsed
 		s.rebuildSkyRows()
 		s.skyList.ScrollTo(0)
+	}
+	for _, row := range s.skyRows {
+		if row.watchClick != nil && row.watchClick.Clicked(gtx) {
+			s.setSkyQuestWatched(row.questName, !row.watched)
+			break
+		}
 	}
 	if s.skyResetClick.Clicked(gtx) {
 		s.resetSkyTracker()

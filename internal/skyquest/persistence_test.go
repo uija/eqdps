@@ -455,3 +455,39 @@ func TestSetInventoryQuantitiesPersistsSelectedNonRuneItems(t *testing.T) {
 		t.Fatalf("rune quantity = %d, want unchanged 1", got)
 	}
 }
+
+func TestWatchedQuestsPersistAndSurviveReset(t *testing.T) {
+	directory := t.TempDir()
+	logPath := filepath.Join(directory, "eqlog_Wyrmberg_rivervale.txt")
+	content := "[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tracker, err := OpenPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tracker.SetQuestWatched("Bard Test of Tone", true); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := LoadPersistentTracker(logPath, testDatabase())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.WatchedQuests()["Bard Test of Tone"] {
+		t.Fatal("watched quest was not persisted")
+	}
+	reset, err := ResetPersistentTracker(logPath, testDatabase(), int64(len(content)), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reset.WatchedQuests()["Bard Test of Tone"] {
+		t.Fatal("watched quest was not preserved by reset")
+	}
+	if err := reset.SetQuestWatched("Bard Test of Tone", false); err != nil {
+		t.Fatal(err)
+	}
+	if reset.WatchedQuests()["Bard Test of Tone"] {
+		t.Fatal("quest remained watched after unwatching")
+	}
+}

@@ -50,6 +50,31 @@ func TestReadyToTurnInSectionCanCollapse(t *testing.T) {
 	}
 }
 
+func TestWatchedQuestsAppearBelowReadySection(t *testing.T) {
+	quest := skyquest.Quest{Name: "Bard Test of Voice", Requirements: []skyquest.Requirement{{Name: "Missing", Quantity: 1}}}
+	shell := shell{
+		skyProgress:  []skyquest.QuestProgress{{Class: "Bard", Quest: quest}},
+		skyInventory: map[string]int{},
+		skyWatched:   map[string]bool{"Bard Test of Voice": true},
+	}
+
+	shell.rebuildSkyRows()
+	watchedHeader := -1
+	for index, row := range shell.skyRows {
+		if row.kind == "section" && row.name == "WATCHED (1)" {
+			watchedHeader = index
+			break
+		}
+	}
+	if watchedHeader < 0 || watchedHeader+1 >= len(shell.skyRows) {
+		t.Fatalf("watched section missing: %#v", shell.skyRows)
+	}
+	row := shell.skyRows[watchedHeader+1]
+	if row.kind != "quest" || row.name != "Bard — Test of Voice" || !row.watched || row.watchClick == nil {
+		t.Fatalf("unexpected watched quest row: %#v", row)
+	}
+}
+
 func TestSkyHideEmptyKeepsCompletedAndStartedQuests(t *testing.T) {
 	quest := func(name, item string) skyquest.Quest {
 		return skyquest.Quest{Name: name, Requirements: []skyquest.Requirement{{Name: item, Quantity: 1}}}

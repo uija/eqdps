@@ -258,10 +258,26 @@ func (s *shell) notifyNewReadyQuests(before map[string]struct{}) {
 func (s *shell) applySkySnapshot(tracker *skyquest.PersistentTracker, message string) {
 	s.skyProgress = tracker.QuestProgress()
 	s.skyInventory = tracker.Inventory()
+	s.skyWatched = tracker.WatchedQuests()
 	if message != "" {
 		s.skyMessage = message
 	}
 	s.rebuildSkyRows()
+}
+
+func (s *shell) setSkyQuestWatched(quest string, watched bool) {
+	s.skyMu.RLock()
+	tracker := s.skyTracker
+	s.skyMu.RUnlock()
+	if tracker == nil {
+		s.statusText = "Plane of Sky tracking is not active"
+		return
+	}
+	if err := tracker.SetQuestWatched(quest, watched); err != nil {
+		s.statusText = "Plane of Sky watch list: " + err.Error()
+		return
+	}
+	s.applySkySnapshot(tracker, "")
 }
 
 func (s *shell) layoutSkySetup(gtx layout.Context) layout.Dimensions {

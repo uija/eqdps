@@ -24,6 +24,9 @@ type skyRow struct {
 	detail                   string
 	reward                   string
 	rewardClick              *widget.Clickable
+	questName                string
+	watched                  bool
+	watchClick               *widget.Clickable
 	foreground               color.NRGBA
 }
 
@@ -37,6 +40,7 @@ func (s *shell) loadSkyState(logPath string) {
 	tracker := skyquest.NewTracker(s.skyDatabase)
 	s.skyProgress = tracker.QuestProgress()
 	s.skyInventory = tracker.Inventory()
+	s.skyWatched = make(map[string]bool)
 	s.skyIdentity = ""
 	s.skyMessage = "Select an EverQuest logfile to load character progress."
 	s.rebuildSkyRows()
@@ -54,6 +58,12 @@ func (s *shell) rebuildSkyRows() {
 			if progress.Ready {
 				rows = append(rows, s.skyQuestRows(progress, true)...)
 			}
+		}
+	}
+	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "section", name: fmt.Sprintf("WATCHED (%d)", len(s.skyWatched)), foreground: palette.accent})
+	for _, progress := range s.skyProgress {
+		if s.skyWatched[progress.Quest.Name] {
+			rows = append(rows, s.skyQuestRows(progress, true)...)
 		}
 	}
 	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "section", name: "ALL CLASSES", foreground: palette.accent})
@@ -110,6 +120,9 @@ func (s *shell) skyQuestRows(progress skyquest.QuestProgress, readySummary bool)
 		detail:      progress.Quest.QuestGiver + " — Reward: " + reward,
 		reward:      reward,
 		rewardClick: &widget.Clickable{},
+		questName:   progress.Quest.Name,
+		watched:     s.skyWatched[progress.Quest.Name],
+		watchClick:  &widget.Clickable{},
 		foreground:  foreground,
 	}}
 	for _, requirement := range progress.Quest.Requirements {
@@ -209,23 +222,50 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 	content := func(gtx layout.Context) layout.Dimensions {
 		return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
 			return inset(unit.Dp(10), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				labelStyle := func(gtx layout.Context, value string, alignment text.Alignment) layout.Dimensions {
+					style := material.Label(s.theme, unit.Sp(14)*s.theme.TextSize/16, value)
+					style.Color = foreground
+					style.Alignment = alignment
+					style.MaxLines = 1
+					style.Truncator = "…"
+					if header || row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
+						style.Font.Weight = font.SemiBold
+					}
+					return style.Layout(gtx)
+				}
 				cell := func(value string, weight float32, alignment text.Alignment) layout.FlexChild {
 					return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
 						return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							style := material.Label(s.theme, unit.Sp(14)*s.theme.TextSize/16, value)
-							style.Color = foreground
-							style.Alignment = alignment
-							style.MaxLines = 1
-							style.Truncator = "…"
-							if header || row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
-								style.Font.Weight = font.SemiBold
-							}
-							return style.Layout(gtx)
+							return labelStyle(gtx, value, alignment)
 						})
 					})
 				}
+				nameCell := layout.Flexed(3.1, func(gtx layout.Context) layout.Dimensions {
+					return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						if row.kind != "quest" || row.watchClick == nil {
+							return labelStyle(gtx, values[0], text.Start)
+						}
+						action := "Watch"
+						if row.watched {
+							action = "Unwatch"
+						}
+						return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return labelStyle(gtx, values[0], text.Start)
+							}),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return row.watchClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									pointer.CursorPointer.Add(gtx.Ops)
+									return inset(unit.Dp(6), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return labelWeight(gtx, s.theme, action, unit.Sp(12), palette.accent, text.End, font.SemiBold)
+									})
+								})
+							}),
+						)
+					})
+				})
 				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-					cell(values[0], 3.1, text.Start),
+					nameCell,
 					cell(values[1], 1.25, text.End),
 					cell(values[2], .8, text.End),
 					cell(values[3], .8, text.End),

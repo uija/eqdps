@@ -42,6 +42,7 @@ type CharacterState struct {
 	Server     string                    `json:"server"`
 	Holdings   map[string]int            `json:"holdings"`
 	Completed  map[string]bool           `json:"completed_quests,omitempty"`
+	Watched    map[string]bool           `json:"watched_quests,omitempty"`
 	Pending    map[string]map[string]int `json:"pending_offers,omitempty"`
 	Checkpoint LogCheckpoint             `json:"log_checkpoint"`
 }
@@ -113,6 +114,15 @@ func ResetPersistentTracker(logPath string, database Database, maxBytes int64, o
 	if err != nil {
 		return nil, err
 	}
+	preservedWatched := make(map[string]bool)
+	var previous CharacterState
+	if loadErr := loadState(statePath, &previous); loadErr == nil {
+		for quest, watched := range previous.Watched {
+			if watched && databaseHasQuest(database, quest) {
+				preservedWatched[quest] = true
+			}
+		}
+	}
 	if err := os.Remove(statePath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("remove Plane of Sky state: %w", err)
 	}
@@ -120,6 +130,7 @@ func ResetPersistentTracker(logPath string, database Database, maxBytes int64, o
 	if err != nil {
 		return nil, err
 	}
+	persistent.state.Watched = preservedWatched
 	persistent.queueBackfillOffset = maxBytes
 	if err := persistent.syncLog(absoluteLogPath, maxBytes, onProgress, cancel); err != nil {
 		return nil, err
@@ -150,7 +161,7 @@ func loadPersistentTracker(logPath string, database Database) (*PersistentTracke
 	statePath := filepath.Join(filepath.Dir(absoluteLogPath), character+"_"+server+"_PoS.json")
 	state := CharacterState{
 		Version: stateVersion, Character: character, Server: server, Holdings: make(map[string]int),
-		Completed:  make(map[string]bool),
+		Completed: make(map[string]bool), Watched: make(map[string]bool),
 		Pending:    make(map[string]map[string]int),
 		Checkpoint: LogCheckpoint{LogFile: filepath.Base(absoluteLogPath)},
 	}
@@ -159,6 +170,11 @@ func loadPersistentTracker(logPath string, database Database) (*PersistentTracke
 	}
 	if state.Version != stateVersion || state.Character != character || state.Server != server || state.Checkpoint.LogFile != filepath.Base(absoluteLogPath) {
 		return nil, "", fmt.Errorf("%w: state identity does not match %s", ErrInvalidCheckpoint, filepath.Base(absoluteLogPath))
+	}
+	for quest, watched := range state.Watched {
+		if !watched || !databaseHasQuest(database, quest) {
+			delete(state.Watched, quest)
+		}
 	}
 	queue, err := eqldbqueue.Default()
 	if err != nil {
@@ -652,6 +668,32 @@ func (p *PersistentTracker) Inventory() map[string]int {
 	return p.tracker.Inventory()
 }
 
+func (p *PersistentTracker) WatchedQuests() map[string]bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	result := make(map[string]bool, len(p.state.Watched))
+	for quest, watched := range p.state.Watched {
+		if watched {
+			result[quest] = true
+		}
+	}
+	return result
+}
+
+func (p *PersistentTracker) SetQuestWatched(quest string, watched bool) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if !databaseHasQuest(p.tracker.database, quest) {
+		return fmt.Errorf("unknown Plane of Sky quest %q", quest)
+	}
+	if watched {
+		p.state.Watched[quest] = true
+	} else {
+		delete(p.state.Watched, quest)
+	}
+	return p.saveLocked()
+}
+
 // SetInventoryQuantities replaces selected item quantities while preserving
 // quest completion, pending hand-ins, and all unmentioned holdings.
 func (p *PersistentTracker) SetInventoryQuantities(quantities map[string]int) error {
@@ -704,10 +746,24 @@ func loadState(path string, state *CharacterState) error {
 	if state.Completed == nil {
 		state.Completed = make(map[string]bool)
 	}
+	if state.Watched == nil {
+		state.Watched = make(map[string]bool)
+	}
 	if state.Pending == nil {
 		state.Pending = make(map[string]map[string]int)
 	}
 	return nil
+}
+
+func databaseHasQuest(database Database, name string) bool {
+	for _, class := range database.Classes {
+		for _, quest := range class.Quests {
+			if quest.Name == name {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func logFingerprint(file *os.File, prefixBytes int64) (string, int64, error) {
