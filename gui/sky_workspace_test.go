@@ -33,6 +33,23 @@ func TestSkyRowsIncludeReadyQuestAndRequirements(t *testing.T) {
 	}
 }
 
+func TestReadyToTurnInSectionCanCollapse(t *testing.T) {
+	quest := skyquest.Quest{Name: "Bard Test of Voice", Requirements: []skyquest.Requirement{{Name: "Owned", Quantity: 1}}}
+	shell := shell{
+		skyReadyCollapsed: true,
+		skyProgress:       []skyquest.QuestProgress{{Class: "Bard", Quest: quest, Ready: true}},
+		skyInventory:      map[string]int{"Owned": 1},
+	}
+
+	shell.rebuildSkyRows()
+	if len(shell.skyRows) == 0 || shell.skyRows[0].kind != "ready-section" || shell.skyRows[0].name != "READY TO TURN IN (1)" || shell.skyRows[0].status != "SHOW" {
+		t.Fatalf("unexpected ready header: %#v", shell.skyRows)
+	}
+	if len(shell.skyRows) < 2 || shell.skyRows[1].kind != "spacer" {
+		t.Fatalf("collapsed ready summary contains rows below its header: %#v", shell.skyRows)
+	}
+}
+
 func TestSkyHideEmptyKeepsCompletedAndStartedQuests(t *testing.T) {
 	quest := func(name, item string) skyquest.Quest {
 		return skyquest.Quest{Name: name, Requirements: []skyquest.Requirement{{Name: item, Quantity: 1}}}

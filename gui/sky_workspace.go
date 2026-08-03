@@ -44,10 +44,16 @@ func (s *shell) loadSkyState(logPath string) {
 }
 
 func (s *shell) rebuildSkyRows() {
-	rows := []skyRow{{kind: "section", name: fmt.Sprintf("READY TO TURN IN (%d)", s.skyReadyCount()), foreground: skyReadyColor}}
-	for _, progress := range s.skyProgress {
-		if progress.Ready {
-			rows = append(rows, s.skyQuestRows(progress, true)...)
+	toggleStatus := "HIDE"
+	if s.skyReadyCollapsed {
+		toggleStatus = "SHOW"
+	}
+	rows := []skyRow{{kind: "ready-section", name: fmt.Sprintf("READY TO TURN IN (%d)", s.skyReadyCount()), status: toggleStatus, foreground: skyReadyColor}}
+	if !s.skyReadyCollapsed {
+		for _, progress := range s.skyProgress {
+			if progress.Ready {
+				rows = append(rows, s.skyQuestRows(progress, true)...)
+			}
 		}
 	}
 	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "section", name: "ALL CLASSES", foreground: palette.accent})
@@ -173,7 +179,7 @@ func (s *shell) layoutSkyWorkspace(gtx layout.Context) layout.Dimensions {
 
 func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout.Dimensions {
 	height := unit.Dp(32)
-	if row.kind == "section" || row.kind == "class" {
+	if row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
 		height = 38
 	}
 	if row.kind == "spacer" {
@@ -183,7 +189,7 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	if header {
 		fill(gtx, palette.chrome)
-	} else if row.kind == "section" || row.kind == "class" {
+	} else if row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
 		fill(gtx, palette.panelAlt)
 	}
 	foreground := row.foreground
@@ -200,74 +206,83 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 	} else if row.kind == "requirement" {
 		values[0] = "      " + values[0]
 	}
-	return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
-		return inset(unit.Dp(10), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			cell := func(value string, weight float32, alignment text.Alignment) layout.FlexChild {
-				return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
-					return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						style := material.Label(s.theme, unit.Sp(14)*s.theme.TextSize/16, value)
-						style.Color = foreground
-						style.Alignment = alignment
-						style.MaxLines = 1
-						style.Truncator = "…"
-						if header || row.kind == "section" || row.kind == "class" {
-							style.Font.Weight = font.SemiBold
-						}
-						return style.Layout(gtx)
-					})
-				})
-			}
-			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-				cell(values[0], 3.1, text.Start),
-				cell(values[1], 1.25, text.End),
-				cell(values[2], .8, text.End),
-				cell(values[3], .8, text.End),
-
-				layout.Flexed(3.4, func(gtx layout.Context) layout.Dimensions {
-					if row.kind == "quest" && row.reward != "" {
-
-						for row.rewardClick != nil && row.rewardClick.Clicked(gtx) {
-							if err := platform.OpenURL(skyRewardURL(row.reward)); err != nil {
-								s.statusText = "Could not open reward link: " + err.Error()
+	content := func(gtx layout.Context) layout.Dimensions {
+		return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
+			return inset(unit.Dp(10), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				cell := func(value string, weight float32, alignment text.Alignment) layout.FlexChild {
+					return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
+						return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							style := material.Label(s.theme, unit.Sp(14)*s.theme.TextSize/16, value)
+							style.Color = foreground
+							style.Alignment = alignment
+							style.MaxLines = 1
+							style.Truncator = "…"
+							if header || row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
+								style.Font.Weight = font.SemiBold
 							}
+							return style.Layout(gtx)
+						})
+					})
+				}
+				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+					cell(values[0], 3.1, text.Start),
+					cell(values[1], 1.25, text.End),
+					cell(values[2], .8, text.End),
+					cell(values[3], .8, text.End),
+
+					layout.Flexed(3.4, func(gtx layout.Context) layout.Dimensions {
+						if row.kind == "quest" && row.reward != "" {
+
+							for row.rewardClick != nil && row.rewardClick.Clicked(gtx) {
+								if err := platform.OpenURL(skyRewardURL(row.reward)); err != nil {
+									s.statusText = "Could not open reward link: " + err.Error()
+								}
+							}
+
+							return row.rewardClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								pointer.CursorPointer.Add(gtx.Ops)
+
+								style := material.Label(
+									s.theme,
+									unit.Sp(14)*s.theme.TextSize/16,
+									values[4],
+								)
+
+								style.Color = palette.accent
+								style.Alignment = text.Start
+								style.MaxLines = 1
+								style.Truncator = "…"
+
+								return style.Layout(gtx)
+							})
 						}
 
-						return row.rewardClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							pointer.CursorPointer.Add(gtx.Ops)
-
+						return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							style := material.Label(
 								s.theme,
 								unit.Sp(14)*s.theme.TextSize/16,
 								values[4],
 							)
 
-							style.Color = palette.accent
+							style.Color = foreground
 							style.Alignment = text.Start
 							style.MaxLines = 1
 							style.Truncator = "…"
 
 							return style.Layout(gtx)
 						})
-					}
-
-					return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						style := material.Label(
-							s.theme,
-							unit.Sp(14)*s.theme.TextSize/16,
-							values[4],
-						)
-
-						style.Color = foreground
-						style.Alignment = text.Start
-						style.MaxLines = 1
-						style.Truncator = "…"
-
-						return style.Layout(gtx)
-					})
-				}),
-			)
+					}),
+				)
+			})
 		})
-	})
+	}
+	if row.kind == "ready-section" {
+		return s.skyReadyToggle.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			pointer.CursorPointer.Add(gtx.Ops)
+			return content(gtx)
+		})
+	}
+	return content(gtx)
 }
 
 func skyQuestHasOwnedNonRuneItem(quest skyquest.Quest, inventory map[string]int) bool {

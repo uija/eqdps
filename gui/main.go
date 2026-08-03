@@ -124,6 +124,8 @@ type shell struct {
 	skyMessage        string
 	skyHideEmpty      bool
 	skyHideClick      widget.Clickable
+	skyReadyCollapsed bool
+	skyReadyToggle    widget.Clickable
 	skyStatusClick    widget.Clickable
 	skyResetClick     widget.Clickable
 	skyCompareEnabled widget.Bool
@@ -592,6 +594,11 @@ func (s *shell) update(gtx layout.Context) {
 	}
 	if s.skyHideClick.Clicked(gtx) {
 		s.skyHideEmpty = !s.skyHideEmpty
+		s.rebuildSkyRows()
+		s.skyList.ScrollTo(0)
+	}
+	if s.skyReadyToggle.Clicked(gtx) {
+		s.skyReadyCollapsed = !s.skyReadyCollapsed
 		s.rebuildSkyRows()
 		s.skyList.ScrollTo(0)
 	}
