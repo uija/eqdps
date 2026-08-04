@@ -393,6 +393,8 @@ func meleeName(attack string) string {
 		return "Smashes"
 	case "smite", "smites":
 		return "Smites"
+	case "sting", "stings":
+		return "Stings"
 	case "strike", "strikes":
 		return "Strikes"
 	default:

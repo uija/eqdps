@@ -361,6 +361,7 @@ func TestParseLineAdditionalMeleeVerbs(t *testing.T) {
 	lines := []string{
 		"[Sun Jul 05 20:49:40 2026] Bigg reaves a fire giant warrior for 24 points of damage.",
 		"[Sun Jul 05 19:04:17 2026] A watchful guard smashes YOU for 28 points of damage.",
+		"[Tue Aug 04 09:00:40 2026] Bazzzazzt stings YOU for 256 points of damage.",
 	}
 	for _, line := range lines {
 		if _, ok := ParseLine(line); !ok {
