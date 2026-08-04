@@ -127,6 +127,10 @@ type shell struct {
 	skyHideClick      widget.Clickable
 	skyReadyCollapsed bool
 	skyReadyToggle    widget.Clickable
+	skyWatchClosed    bool
+	skyWatchToggle    widget.Clickable
+	skyClassClosed    map[string]bool
+	skyClassClicks    map[string]*widget.Clickable
 	skyStatusClick    widget.Clickable
 	skyResetClick     widget.Clickable
 	skyCompareEnabled widget.Bool
@@ -350,6 +354,8 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 		skyDatabase:       skyDatabase,
 		skyInventory:      make(map[string]int),
 		skyWatched:        make(map[string]bool),
+		skyClassClosed:    make(map[string]bool),
+		skyClassClicks:    make(map[string]*widget.Clickable),
 		skyList:           widget.List{List: layout.List{Axis: layout.Vertical}},
 		skyCompareList:    widget.List{List: layout.List{Axis: layout.Vertical}},
 		skyUpdates:        make(chan skyAsyncUpdate, 1),
@@ -599,12 +605,21 @@ func (s *shell) update(gtx layout.Context) {
 		s.rebuildSkyRows()
 		s.skyList.ScrollTo(0)
 	}
-	if s.skyReadyToggle.Clicked(gtx) {
-		s.skyReadyCollapsed = !s.skyReadyCollapsed
-		s.rebuildSkyRows()
-		s.skyList.ScrollTo(0)
-	}
 	for _, row := range s.skyRows {
+		if row.toggleClick != nil && row.toggleClick.Clicked(gtx) {
+			switch row.kind {
+			case "ready-section":
+				s.skyReadyCollapsed = !s.skyReadyCollapsed
+				s.skyList.ScrollTo(0)
+			case "watched-section":
+				s.skyWatchClosed = !s.skyWatchClosed
+				s.skyList.ScrollTo(0)
+			case "class":
+				s.skyClassClosed[row.name] = !s.skyClassClosed[row.name]
+			}
+			s.rebuildSkyRows()
+			break
+		}
 		if row.watchClick != nil && row.watchClick.Clicked(gtx) {
 			s.setSkyQuestWatched(row.questName, !row.watched)
 			break

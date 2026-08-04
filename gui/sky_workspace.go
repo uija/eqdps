@@ -27,6 +27,7 @@ type skyRow struct {
 	questName                string
 	watched                  bool
 	watchClick               *widget.Clickable
+	toggleClick              *widget.Clickable
 	foreground               color.NRGBA
 }
 
@@ -52,7 +53,7 @@ func (s *shell) rebuildSkyRows() {
 	if s.skyReadyCollapsed {
 		toggleStatus = "SHOW"
 	}
-	rows := []skyRow{{kind: "ready-section", name: fmt.Sprintf("READY TO TURN IN (%d)", s.skyReadyCount()), status: toggleStatus, foreground: skyReadyColor}}
+	rows := []skyRow{{kind: "ready-section", name: fmt.Sprintf("READY TO TURN IN (%d)", s.skyReadyCount()), status: toggleStatus, toggleClick: &s.skyReadyToggle, foreground: skyReadyColor}}
 	if !s.skyReadyCollapsed {
 		for _, progress := range s.skyProgress {
 			if progress.Ready {
@@ -60,10 +61,16 @@ func (s *shell) rebuildSkyRows() {
 			}
 		}
 	}
-	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "section", name: fmt.Sprintf("WATCHED (%d)", len(s.skyWatched)), foreground: palette.accent})
-	for _, progress := range s.skyProgress {
-		if s.skyWatched[progress.Quest.Name] {
-			rows = append(rows, s.skyQuestRows(progress, true)...)
+	watchedStatus := "HIDE"
+	if s.skyWatchClosed {
+		watchedStatus = "SHOW"
+	}
+	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "watched-section", name: fmt.Sprintf("WATCHED (%d)", len(s.skyWatched)), status: watchedStatus, toggleClick: &s.skyWatchToggle, foreground: palette.accent})
+	if !s.skyWatchClosed {
+		for _, progress := range s.skyProgress {
+			if s.skyWatched[progress.Quest.Name] {
+				rows = append(rows, s.skyQuestRows(progress, true)...)
+			}
 		}
 	}
 	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "section", name: "ALL CLASSES", foreground: palette.accent})
@@ -86,14 +93,34 @@ func (s *shell) rebuildSkyRows() {
 			}
 		}
 		if len(visible) > 0 {
-			rows = append(rows, skyRow{kind: "class", name: s.skyProgress[index].Class, status: fmt.Sprintf("%d/%d done · %d ready", completed, end-index, ready), foreground: palette.accent})
-			for _, progress := range visible {
-				rows = append(rows, s.skyQuestRows(progress, false)...)
+			className := s.skyProgress[index].Class
+			classStatus := "HIDE"
+			if s.skyClassClosed[className] {
+				classStatus = "SHOW"
+			}
+			rows = append(rows, skyRow{kind: "class", name: className, status: fmt.Sprintf("%d/%d done · %d ready · %s", completed, end-index, ready, classStatus), toggleClick: s.skyClassToggle(className), foreground: palette.accent})
+			if !s.skyClassClosed[className] {
+				for _, progress := range visible {
+					rows = append(rows, s.skyQuestRows(progress, false)...)
+				}
 			}
 		}
 		index = end
 	}
 	s.skyRows = rows
+}
+
+func (s *shell) skyClassToggle(className string) *widget.Clickable {
+	if s.skyClassClosed == nil {
+		s.skyClassClosed = make(map[string]bool)
+	}
+	if s.skyClassClicks == nil {
+		s.skyClassClicks = make(map[string]*widget.Clickable)
+	}
+	if s.skyClassClicks[className] == nil {
+		s.skyClassClicks[className] = &widget.Clickable{}
+	}
+	return s.skyClassClicks[className]
 }
 
 func (s *shell) skyQuestRows(progress skyquest.QuestProgress, readySummary bool) []skyRow {
@@ -192,7 +219,7 @@ func (s *shell) layoutSkyWorkspace(gtx layout.Context) layout.Dimensions {
 
 func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout.Dimensions {
 	height := unit.Dp(32)
-	if row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
+	if row.kind == "section" || row.kind == "ready-section" || row.kind == "watched-section" || row.kind == "class" {
 		height = 38
 	}
 	if row.kind == "spacer" {
@@ -202,7 +229,7 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	if header {
 		fill(gtx, palette.chrome)
-	} else if row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
+	} else if row.kind == "section" || row.kind == "ready-section" || row.kind == "watched-section" || row.kind == "class" {
 		fill(gtx, palette.panelAlt)
 	}
 	foreground := row.foreground
@@ -228,7 +255,7 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 					style.Alignment = alignment
 					style.MaxLines = 1
 					style.Truncator = "…"
-					if header || row.kind == "section" || row.kind == "ready-section" || row.kind == "class" {
+					if header || row.kind == "section" || row.kind == "ready-section" || row.kind == "watched-section" || row.kind == "class" {
 						style.Font.Weight = font.SemiBold
 					}
 					return style.Layout(gtx)
@@ -264,6 +291,16 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 						)
 					})
 				})
+				if row.kind == "class" {
+					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+						nameCell,
+						layout.Flexed(6.25, func(gtx layout.Context) layout.Dimensions {
+							return inset(unit.Dp(5), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return labelStyle(gtx, values[1], text.Start)
+							})
+						}),
+					)
+				}
 				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 					nameCell,
 					cell(values[1], 1.25, text.End),
@@ -316,8 +353,8 @@ func (s *shell) layoutSkyRow(gtx layout.Context, row skyRow, header bool) layout
 			})
 		})
 	}
-	if row.kind == "ready-section" {
-		return s.skyReadyToggle.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	if row.toggleClick != nil {
+		return row.toggleClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			pointer.CursorPointer.Add(gtx.Ops)
 			return content(gtx)
 		})

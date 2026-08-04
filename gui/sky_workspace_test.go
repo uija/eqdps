@@ -61,7 +61,7 @@ func TestWatchedQuestsAppearBelowReadySection(t *testing.T) {
 	shell.rebuildSkyRows()
 	watchedHeader := -1
 	for index, row := range shell.skyRows {
-		if row.kind == "section" && row.name == "WATCHED (1)" {
+		if row.kind == "watched-section" && row.name == "WATCHED (1)" {
 			watchedHeader = index
 			break
 		}
@@ -73,6 +73,51 @@ func TestWatchedQuestsAppearBelowReadySection(t *testing.T) {
 	if row.kind != "quest" || row.name != "Bard — Test of Voice" || !row.watched || row.watchClick == nil {
 		t.Fatalf("unexpected watched quest row: %#v", row)
 	}
+}
+
+func TestWatchedSectionCanCollapse(t *testing.T) {
+	quest := skyquest.Quest{Name: "Bard Test of Voice", Requirements: []skyquest.Requirement{{Name: "Missing", Quantity: 1}}}
+	shell := shell{
+		skyWatchClosed: true,
+		skyProgress:    []skyquest.QuestProgress{{Class: "Bard", Quest: quest}},
+		skyWatched:     map[string]bool{"Bard Test of Voice": true},
+	}
+
+	shell.rebuildSkyRows()
+	for index, row := range shell.skyRows {
+		if row.kind == "watched-section" {
+			if row.status != "SHOW" || row.toggleClick == nil {
+				t.Fatalf("unexpected watched header: %#v", row)
+			}
+			if index+1 < len(shell.skyRows) && shell.skyRows[index+1].kind == "quest" {
+				t.Fatalf("collapsed watched section contains quest rows: %#v", shell.skyRows)
+			}
+			return
+		}
+	}
+	t.Fatal("watched header missing")
+}
+
+func TestClassSectionCanCollapse(t *testing.T) {
+	quest := skyquest.Quest{Name: "Bard Test of Voice", Requirements: []skyquest.Requirement{{Name: "Missing", Quantity: 1}}}
+	shell := shell{
+		skyProgress:    []skyquest.QuestProgress{{Class: "Bard", Quest: quest}},
+		skyClassClosed: map[string]bool{"Bard": true},
+	}
+
+	shell.rebuildSkyRows()
+	for index, row := range shell.skyRows {
+		if row.kind == "class" && row.name == "Bard" {
+			if row.status != "0/1 done · 0 ready · SHOW" || row.toggleClick == nil {
+				t.Fatalf("unexpected class header: %#v", row)
+			}
+			if index+1 < len(shell.skyRows) && shell.skyRows[index+1].kind == "quest" {
+				t.Fatalf("collapsed class contains quest rows: %#v", shell.skyRows)
+			}
+			return
+		}
+	}
+	t.Fatal("class header missing")
 }
 
 func TestSkyHideEmptyKeepsCompletedAndStartedQuests(t *testing.T) {
