@@ -106,8 +106,9 @@ func TestPersistentTrackerQueuesRuneAndQuestEvents(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", config)
 	logPath := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
 	content := "" +
-		"[Thu Jul 16 10:40:00 2026] You have entered The Plane of Sky.\n" +
+		"[Thu Jul 16 10:40:00 2026] You have entered East Freeport.\n" +
 		"[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--\n" +
+		"[Thu Jul 16 10:40:01 2026] You have entered The Plane of Sky.\n" +
 		"[Thu Jul 16 10:40:02 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--\n" +
 		"[Thu Jul 16 10:40:03 2026] You offered 1 Light Woolen Mask to Cilin Spellsinger.\n" +
 		"[Thu Jul 16 10:40:04 2026] You offered 1 Wind Rune Caza to Cilin Spellsinger.\n" +

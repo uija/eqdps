@@ -6,26 +6,30 @@ import (
 	"github.com/uija/eqdps/internal/eqlog"
 )
 
-func TestTrackerOnlyAddsRetainedKnownLootInPlaneOfSky(t *testing.T) {
+func TestTrackerAddsRetainedKnownLootInAnyZone(t *testing.T) {
 	tracker := NewTracker(testDatabase())
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:00 2026] You have entered East Freeport.")
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:01 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--")
-	if got := tracker.Owned("Wind Rune Caza"); got != 0 {
-		t.Fatalf("outside-Sky rune count = %d, want 0", got)
+	processTestLine(t, tracker, "[Thu Jul 16 10:40:01 2026] --You have looted a Light Woolen Mask from Gorgalosk's corpse.--")
+	if got := tracker.Owned("Wind Rune Caza"); got != 1 {
+		t.Fatalf("outside-Sky rune count = %d, want 1", got)
+	}
+	if got := tracker.Owned("Light Woolen Mask"); got != 1 {
+		t.Fatalf("outside-Sky quest item count = %d, want 1", got)
 	}
 
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:02 2026] You have entered The Plane of Sky.")
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:03 2026] You looted a Wind Rune Caza from Protector of Sky's corpse and sold it for free.")
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:04 2026] You looted a Wind Rune Caza from Protector of Sky's corpse to create a Wind Rune Caza +1")
-	if got := tracker.Owned("Wind Rune Caza"); got != 0 {
-		t.Fatalf("unretained rune count = %d, want 0", got)
+	if got := tracker.Owned("Wind Rune Caza"); got != 1 {
+		t.Fatalf("unretained rune count = %d, want 1", got)
 	}
 
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:05 2026] --You have looted a Wind Rune Caza from Protector of Sky's corpse.--")
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:05 2026] You looted a Wind Rune Caza from Protector of Sky's corpse and stored it in your Dragon Hoard")
 	processTestLine(t, tracker, "[Thu Jul 16 10:40:06 2026] --You have looted a Not A Quest Item from Protector of Sky's corpse.--")
-	if got := tracker.Owned("Wind Rune Caza"); got != 2 {
-		t.Fatalf("retained and directly stored rune count = %d, want 2", got)
+	if got := tracker.Owned("Wind Rune Caza"); got != 3 {
+		t.Fatalf("retained and directly stored rune count = %d, want 3", got)
 	}
 	if got := tracker.Owned("Not A Quest Item"); got != 0 {
 		t.Fatalf("unknown item count = %d, want 0", got)

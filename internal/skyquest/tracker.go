@@ -138,9 +138,6 @@ func sameRequirements(offered map[string]int, requirements []Requirement) bool {
 }
 
 func (t *Tracker) addLoot(loot eqlog.Loot) {
-	if !isPlaneOfSkyZone(t.zone) {
-		return
-	}
 	item, known := t.knownItem(loot.Item)
 	if !known {
 		return

@@ -396,7 +396,7 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) (boo
 		}
 		p.tracker.ProcessRecord(record)
 		changed = beforeZone != p.tracker.zone || item != "" && beforeQuantity != p.tracker.Owned(item) || len(beforeCompleted) != len(p.tracker.completed)
-		if err := p.enqueueEventsLocked(record, beforeZone, beforeCompleted, endOffset); err != nil {
+		if err := p.enqueueEventsLocked(record, beforeCompleted, endOffset); err != nil {
 			return false, err
 		}
 		if record.Time.After(p.state.Checkpoint.LastTimestamp) {
@@ -411,7 +411,7 @@ func (p *PersistentTracker) processLineLocked(line string, endOffset int64) (boo
 	return changed, nil
 }
 
-func (p *PersistentTracker) enqueueEventsLocked(record eqlog.Record, zone string, completed map[string]bool, endOffset int64) error {
+func (p *PersistentTracker) enqueueEventsLocked(record eqlog.Record, completed map[string]bool, endOffset int64) error {
 	if endOffset <= p.queueBackfillOffset {
 		return nil
 	}
@@ -423,7 +423,7 @@ func (p *PersistentTracker) enqueueEventsLocked(record eqlog.Record, zone string
 	switch record.Kind {
 	case eqlog.RecordLoot:
 		rune, known := p.tracker.knownItem(record.Loot.Item)
-		if isPlaneOfSkyZone(zone) && known && strings.HasPrefix(rune, "Wind Rune ") &&
+		if known && strings.HasPrefix(rune, "Wind Rune ") &&
 			(record.Loot.Outcome == eqlog.LootRetained || record.Loot.Outcome == eqlog.LootStored) {
 			return appendEvent(SyncEvent{
 				Character: p.state.Character, Server: p.state.Server, Type: "wind-rune-receive",
