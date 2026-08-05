@@ -189,8 +189,8 @@ func loadPersistentTracker(logPath string, database Database) (*PersistentTracke
 		queueBackfillOffset: queueBackfillOffset,
 	}
 	for item, quantity := range state.Holdings {
-		if _, known := persistent.tracker.known[item]; known && quantity > 0 {
-			persistent.tracker.owned[item] = quantity
+		if normalized, known := persistent.tracker.knownItem(item); known && quantity > 0 {
+			persistent.tracker.owned[normalized] += quantity
 		}
 	}
 	for quest, completed := range state.Completed {

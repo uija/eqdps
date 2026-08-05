@@ -45,6 +45,19 @@ func TestTrackerNormalizesUpgradedLootInInstancedPlaneOfSky(t *testing.T) {
 	}
 }
 
+func TestTrackerMatchesKnownLootCaseInsensitively(t *testing.T) {
+	database := Database{SchemaVersion: 1, Classes: []Class{{Name: "Magician", Quests: []Quest{{
+		Name:         "Magician Test of Displacement",
+		Requirements: []Requirement{{Name: "Crown Of Elemental Mastery", Quantity: 1}},
+	}}}}}
+	tracker := NewTracker(database)
+	processTestLine(t, tracker, "[Tue Aug 04 20:20:09 2026] --You have looted a Crown of Elemental Mastery from a heartsbane drake's corpse.--")
+
+	if got := tracker.Owned("Crown Of Elemental Mastery"); got != 1 {
+		t.Fatalf("crown quantity = %d, want 1", got)
+	}
+}
+
 func TestTrackerKeepsSkyZoneAfterLevitationRestrictionMessage(t *testing.T) {
 	database := Database{SchemaVersion: 1, Classes: []Class{{Name: "Monk", Quests: []Quest{{
 		Name: "Monk Test of Fists", Requirements: []Requirement{{Name: "Brass Knuckles", Quantity: 1}},

@@ -9,7 +9,7 @@ import (
 func TestReadInventoryExportCountsKnownVariantsAndIgnoresRunes(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Wyrmberg_rivervale-Inventory.txt")
 	content := "Location\tName\tID\tCount\tSlots\n" +
-		"General 1\tLight Woolen Mask +3\t1\t1\t10\n" +
+		"General 1\tlight woolen mask +3\t1\t1\t10\n" +
 		"Bank1\tLight Woolen Mask (Exaltation)\t1\t2\t10\n" +
 		"General 2\tWind Rune Caza\t2\t9\t10\n" +
 		"General 3\tUnrelated Item\t3\t4\t10\n"

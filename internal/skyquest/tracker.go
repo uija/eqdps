@@ -13,7 +13,7 @@ var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
 
 type Tracker struct {
 	database  Database
-	known     map[string]struct{}
+	known     map[string]string
 	owned     map[string]int
 	completed map[string]bool
 	pending   map[string]map[string]int
@@ -31,7 +31,7 @@ type QuestProgress struct {
 func NewTracker(database Database) *Tracker {
 	tracker := &Tracker{
 		database:  database,
-		known:     make(map[string]struct{}),
+		known:     make(map[string]string),
 		owned:     make(map[string]int),
 		completed: make(map[string]bool),
 		pending:   make(map[string]map[string]int),
@@ -39,7 +39,7 @@ func NewTracker(database Database) *Tracker {
 	for _, class := range database.Classes {
 		for _, quest := range class.Quests {
 			for _, requirement := range quest.Requirements {
-				tracker.known[requirement.Name] = struct{}{}
+				tracker.known[itemKey(requirement.Name)] = requirement.Name
 			}
 		}
 	}
@@ -113,12 +113,16 @@ func isPlaneOfSkyZone(zone string) bool {
 
 func (t *Tracker) knownItem(item string) (string, bool) {
 	item = strings.TrimSpace(item)
-	if _, known := t.known[item]; known {
-		return item, true
+	if canonical, known := t.known[itemKey(item)]; known {
+		return canonical, true
 	}
 	base := itemUpgradeSuffixRE.ReplaceAllString(item, "")
-	_, known := t.known[base]
-	return base, known
+	canonical, known := t.known[itemKey(base)]
+	return canonical, known
+}
+
+func itemKey(item string) string {
+	return strings.ToLower(strings.TrimSpace(item))
 }
 
 func sameRequirements(offered map[string]int, requirements []Requirement) bool {
