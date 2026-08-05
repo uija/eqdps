@@ -15,7 +15,7 @@ recent history to compare parses or investigate combat detection.
 ## Download
 
 Windows users can download the prebuilt graphical application directly from
-the [eqdps v0.2.6 release](https://github.com/uija/eqdps/releases/tag/v0.2.6).
+the [eqdps v0.2.7 release](https://github.com/uija/eqdps/releases/tag/v0.2.7).
 
 The Windows executables are not currently code-signed. Microsoft Defender
 SmartScreen may therefore display an **Unknown publisher** warning. Download
