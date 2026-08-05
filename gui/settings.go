@@ -30,6 +30,8 @@ type guiSettings struct {
 	DPSOpacity          float32  `json:"dps_opacity,omitempty"`
 	IdleTimeoutSec      int      `json:"idle_timeout_seconds,omitempty"`
 	CompareSkyInventory bool     `json:"compare_inventory_with_sky,omitempty"`
+	CheckForUpdates     *bool    `json:"check_for_updates,omitempty"`
+	LastSeenReleaseTag  string   `json:"last_seen_release_tag,omitempty"`
 	MainWidth           int      `json:"main_width,omitempty"`
 	MainHeight          int      `json:"main_height,omitempty"`
 	OverlayWidth        int      `json:"overlay_width,omitempty"`
@@ -44,6 +46,10 @@ func (settings *guiSettings) normalize() {
 }
 
 func (settings *guiSettings) normalizeForGOOS(goos string) {
+	if settings.CheckForUpdates == nil {
+		enabled := true
+		settings.CheckForUpdates = &enabled
+	}
 	defaults := settingsDefaultsForGOOS(goos)
 	settings.MainFontScale = clampSetting(settings.MainFontScale, .75, 1.5, defaults.mainFontScale)
 	settings.DPSFontScale = clampSetting(settings.DPSFontScale, .5, 1.5, defaults.dpsFontScale)
@@ -56,6 +62,10 @@ func (settings *guiSettings) normalizeForGOOS(goos string) {
 	settings.MainHeight = normalizedWindowSize(settings.MainHeight, defaults.mainHeight, 460)
 	settings.OverlayWidth = normalizedWindowSize(settings.OverlayWidth, defaults.overlayWidth, 380)
 	settings.OverlayHeight = normalizedWindowSize(settings.OverlayHeight, defaults.overlayHeight, 180)
+}
+
+func (settings guiSettings) updateChecksEnabled() bool {
+	return settings.CheckForUpdates == nil || *settings.CheckForUpdates
 }
 
 func settingsDefaultsForGOOS(goos string) guiDefaults {

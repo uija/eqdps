@@ -56,6 +56,25 @@ func (s *shell) layoutPreferences(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				before := s.checkForUpdates.Value
+				dimensions := material.CheckBox(s.theme, &s.checkForUpdates, "Check for updates").Layout(gtx)
+				if before != s.checkForUpdates.Value {
+					enabled := s.checkForUpdates.Value
+					s.settings.CheckForUpdates = &enabled
+					if err := saveSettings(s.settings); err != nil {
+						s.statusText = "Update-check preference could not be saved"
+					}
+				}
+				return dimensions
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return label(gtx, s.theme, "Checks GitHub for a newly published eqdps release when the application starts.", unit.Sp(14), palette.muted, text.Start)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return inset(0, unit.Dp(18)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				before := s.dropCollection.Value
 				dimensions := material.CheckBox(s.theme, &s.dropCollection, "Contribute kill and loot observations to EQLDB").Layout(gtx)
 				if before != s.dropCollection.Value {

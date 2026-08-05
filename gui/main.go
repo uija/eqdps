@@ -134,6 +134,7 @@ type shell struct {
 	skyStatusClick    widget.Clickable
 	skyResetClick     widget.Clickable
 	skyCompareEnabled widget.Bool
+	checkForUpdates   widget.Bool
 	skyCompareOpen    bool
 	skyComparePath    string
 	skyCompareRows    []skyInventoryDifference
@@ -176,6 +177,14 @@ type shell struct {
 	betaFix           widget.Clickable
 	betaIgnore        widget.Clickable
 	betaResults       chan betaCleanupResult
+	updateResults     chan updateCheckResult
+	updateOpen        bool
+	updateTag         string
+	updateURL         string
+	updateBody        string
+	updateBodyList    widget.List
+	updateOpenClick   widget.Clickable
+	updateCloseClick  widget.Clickable
 	fights            []fakeFightSection
 	menus             []menu
 	rail              []railItem
@@ -369,6 +378,8 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 		betaPromptOpen:    betaChoice.path != "",
 		betaChoice:        betaChoice,
 		betaResults:       make(chan betaCleanupResult, 1),
+		updateResults:     make(chan updateCheckResult, 1),
+		updateBodyList:    widget.List{List: layout.List{Axis: layout.Vertical}},
 		menus: []menu{
 			{name: "File", items: []menuItem{{name: "Open logfile", detail: "Choose a file and initial history", enabled: true, items: ranges}, {name: "Recent logfiles", enabled: len(recents) > 0, items: recents}, {name: "Exit", enabled: true, action: "exit"}}},
 			{name: "Combat", items: []menuItem{{name: "Current fight", enabled: true, action: "current"}, {name: "Load history", enabled: currentLog != "", items: historyRangeItems("reload")}, {name: "Filter…", enabled: true, action: "filter"}, {name: "Reset session", enabled: currentLog != "", action: "reset"}}},
@@ -384,6 +395,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 	result.dpsOpacity.Value = settingToSlider(settings.DPSOpacity, .35, 1)
 	result.idleTimeoutSlider.Value = settingToSlider(float32(settings.IdleTimeoutSec), 5, 60)
 	result.skyCompareEnabled.Value = settings.CompareSkyInventory
+	result.checkForUpdates.Value = settings.updateChecksEnabled()
 	result.combatIdleNanos.Store(int64(time.Duration(settings.IdleTimeoutSec) * time.Second))
 	result.dpsFontMilli.Store(int64(effectiveFontScale(settings.DPSFontScale)*1000 + .5))
 	if skyDatabaseErr != nil {
@@ -442,6 +454,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 			result.openOverlay()
 		}
 	}
+	result.startUpdateCheck()
 	return result
 }
 
@@ -475,6 +488,7 @@ func (s *shell) layout(gtx layout.Context) layout.Dimensions {
 		layout.Expanded(s.layoutAbout),
 		layout.Expanded(s.layoutSkyInventoryComparison),
 		layout.Expanded(s.layoutEQLDB),
+		layout.Expanded(s.layoutUpdateAvailable),
 	)
 }
 
@@ -491,6 +505,7 @@ func (s *shell) update(gtx layout.Context) {
 	s.updateXPStart(gtx)
 	s.updateSkyInventoryComparison(gtx)
 	s.updateBetaCleanup(gtx)
+	s.updateReleaseCheck(gtx)
 	if s.skyAllow.Clicked(gtx) {
 		s.skySetupOpen = false
 		s.startSkyInitialScan()

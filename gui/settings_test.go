@@ -34,6 +34,18 @@ func TestSettingsNormalizationAddsPreferenceDefaults(t *testing.T) {
 	if settings.MainWidth != 1050 || settings.MainHeight != 700 || settings.OverlayWidth != 520 || settings.OverlayHeight != 310 {
 		t.Fatalf("unexpected window size defaults: %#v", settings)
 	}
+	if !settings.updateChecksEnabled() {
+		t.Fatal("expected update checks to be enabled by default")
+	}
+}
+
+func TestSettingsNormalizationPreservesDisabledUpdateChecks(t *testing.T) {
+	enabled := false
+	settings := guiSettings{CheckForUpdates: &enabled}
+	settings.normalizeForGOOS("linux")
+	if settings.updateChecksEnabled() {
+		t.Fatal("expected explicitly disabled update checks to remain disabled")
+	}
 }
 
 func TestSettingsNormalizationUsesSmallerWindowsDefaults(t *testing.T) {
