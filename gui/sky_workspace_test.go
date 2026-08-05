@@ -120,6 +120,30 @@ func TestClassSectionCanCollapse(t *testing.T) {
 	t.Fatal("class header missing")
 }
 
+func TestCompletedClassStartsCollapsed(t *testing.T) {
+	quest := func(name string) skyquest.Quest {
+		return skyquest.Quest{Name: name, Requirements: []skyquest.Requirement{{Name: "Spent", Quantity: 1}}}
+	}
+	shell := shell{skyProgress: []skyquest.QuestProgress{
+		{Class: "Bard", Quest: quest("Bard Test One"), Completed: true},
+		{Class: "Bard", Quest: quest("Bard Test Two"), Completed: true},
+	}}
+
+	shell.rebuildSkyRows()
+	for index, row := range shell.skyRows {
+		if row.kind == "class" && row.name == "Bard" {
+			if row.status != "2/2 done · 0 ready · SHOW" || !shell.skyClassClosed["Bard"] {
+				t.Fatalf("completed class did not start collapsed: row=%#v state=%#v", row, shell.skyClassClosed)
+			}
+			if index+1 < len(shell.skyRows) && shell.skyRows[index+1].kind == "quest" {
+				t.Fatalf("completed class contains quest rows: %#v", shell.skyRows)
+			}
+			return
+		}
+	}
+	t.Fatal("class header missing")
+}
+
 func TestSkyHideEmptyKeepsCompletedAndStartedQuests(t *testing.T) {
 	quest := func(name, item string) skyquest.Quest {
 		return skyquest.Quest{Name: name, Requirements: []skyquest.Requirement{{Name: item, Quantity: 1}}}

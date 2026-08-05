@@ -49,6 +49,9 @@ func (s *shell) loadSkyState(logPath string) {
 }
 
 func (s *shell) rebuildSkyRows() {
+	if s.skyClassClosed == nil {
+		s.skyClassClosed = make(map[string]bool)
+	}
 	toggleStatus := "HIDE"
 	if s.skyReadyCollapsed {
 		toggleStatus = "SHOW"
@@ -94,12 +97,17 @@ func (s *shell) rebuildSkyRows() {
 		}
 		if len(visible) > 0 {
 			className := s.skyProgress[index].Class
+			classClosed, classStateSet := s.skyClassClosed[className]
+			if !classStateSet && completed == end-index {
+				classClosed = true
+				s.skyClassClosed[className] = true
+			}
 			classStatus := "HIDE"
-			if s.skyClassClosed[className] {
+			if classClosed {
 				classStatus = "SHOW"
 			}
 			rows = append(rows, skyRow{kind: "class", name: className, status: fmt.Sprintf("%d/%d done · %d ready · %s", completed, end-index, ready, classStatus), toggleClick: s.skyClassToggle(className), foreground: palette.accent})
-			if !s.skyClassClosed[className] {
+			if !classClosed {
 				for _, progress := range visible {
 					rows = append(rows, s.skyQuestRows(progress, false)...)
 				}
