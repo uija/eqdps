@@ -75,7 +75,10 @@ func (t *Tracker) offer(offer eqlog.TradeOffer) {
 	if t.pending[offer.NPC] == nil {
 		t.pending[offer.NPC] = make(map[string]int)
 	}
-	t.pending[offer.NPC][item] += offer.Quantity
+	// Every Plane of Sky quest requires at most one of each item. Treat a
+	// repeated offer as the same item being offered again after an unlogged
+	// cancelled trade instead of accumulating a quantity that can never match.
+	t.pending[offer.NPC][item] = 1
 }
 
 func (t *Tracker) completeTrade(completed eqlog.TradeComplete) {

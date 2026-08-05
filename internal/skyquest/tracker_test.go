@@ -129,6 +129,30 @@ func TestTrackerCompletesQuestFromExactOfferedItemsAndGiver(t *testing.T) {
 	}
 }
 
+func TestTrackerCompletesQuestAfterRepeatedOfferWithoutLoggedCancellation(t *testing.T) {
+	database := Database{SchemaVersion: 1, Classes: []Class{{Name: "Bard", Quests: []Quest{{
+		Name: "Bard Test of Tone", QuestGiver: "Cilin Spellsinger",
+		Requirements: []Requirement{
+			{Name: "Wind Rune Meda", Quantity: 1},
+			{Name: "Light Woolen Mask", Quantity: 1},
+		},
+	}}}}}
+	tracker := NewTracker(database)
+	for _, line := range []string{
+		"[Wed Aug 05 12:07:00 2026] You have entered The Plane of Sky.",
+		"[Wed Aug 05 12:07:28 2026] You offered 1 Wind Rune Meda to Cilin Spellsinger.",
+		"[Wed Aug 05 12:08:24 2026] You offered 1 Wind Rune Meda to Cilin Spellsinger.",
+		"[Wed Aug 05 12:08:26 2026] You offered 1 Light Woolen Mask to Cilin Spellsinger.",
+		"[Wed Aug 05 12:08:27 2026] You complete the trade with Cilin Spellsinger.",
+	} {
+		processTestLine(t, tracker, line)
+	}
+
+	if !tracker.Completed()["Bard Test of Tone"] {
+		t.Fatal("repeated offer prevented the quest from completing")
+	}
+}
+
 func TestTrackerCompletesKartharTurnInInAdaptiveSkyWithUpgradedItem(t *testing.T) {
 	database := Database{SchemaVersion: 1, Classes: []Class{{
 		Name: "Monk", Quests: []Quest{{
