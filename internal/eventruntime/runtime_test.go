@@ -156,6 +156,46 @@ func TestRuntimeAppliesCurrentVolumeToPlayback(t *testing.T) {
 	}
 }
 
+func TestRuntimePreviewsSoundAtCurrentVolume(t *testing.T) {
+	sounds := make(chan string, 1)
+	volumes := make(chan float64, 1)
+	runtime, err := newRuntime(
+		nil, t.TempDir(), t.TempDir(), nil,
+		fakeNotifier{delivered: make(chan string, 1)},
+		func(string) (soundPlayer, error) {
+			return fakePlayer{played: sounds, volumes: volumes}, nil
+		},
+		func(err error) { t.Errorf("runtime error: %v", err) },
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.SetAudioVolume(.4)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	runtime.Start(ctx)
+	if err := runtime.PreviewSound("embedded:Chord.mp3"); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case got := <-sounds:
+		if got != "embedded:Chord.mp3" {
+			t.Fatalf("previewed sound = %q", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("sound preview was not played")
+	}
+	select {
+	case got := <-volumes:
+		if got != .4 {
+			t.Fatalf("preview volume = %v, want .4", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("sound preview volume was not applied")
+	}
+}
+
 func TestRuntimeAudioFailureDoesNotStopNotifications(t *testing.T) {
 	notifications := make(chan string, 1)
 	var errorsMu sync.Mutex

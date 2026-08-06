@@ -70,6 +70,7 @@ type eventsGUI struct {
 	classClick widget.Clickable
 	spellClick widget.Clickable
 	soundClick widget.Clickable
+	playClick  widget.Clickable
 	picker     string
 	choices    []widget.Clickable
 
@@ -414,6 +415,13 @@ func (ui *eventsGUI) updateEditor(gtx layout.Context) {
 	}
 	if ui.soundClick.Clicked(gtx) {
 		ui.openPicker("sound", ui.soundSelected)
+	}
+	if ui.playClick.Clicked(gtx) && ui.soundSelected > 0 && ui.soundSelected < len(ui.sounds) {
+		if err := ui.runtime.PreviewSound(ui.sounds[ui.soundSelected].ID); err != nil {
+			ui.error = "Could not preview sound: " + err.Error()
+		} else {
+			ui.error = ""
+		}
 	}
 	if ui.picker != "" {
 		for index := range ui.choices {
@@ -955,7 +963,7 @@ func (ui *eventsGUI) editorItems() []string {
 			items = append(items, "exact")
 		}
 	}
-	items = append(items, "notification", "persistence", "sound")
+	items = append(items, "notification", "persistence", "sound", "sound-preview")
 	if ui.error != "" {
 		items = append(items, "error")
 	}
@@ -996,6 +1004,15 @@ func (ui *eventsGUI) layoutEditorItem(gtx layout.Context, theme *material.Theme,
 		return guiEventEditorRow(gtx, theme, "Spell", ui.editorSelector(theme, &ui.spellClick, value, "spell"))
 	case "sound":
 		return guiEventEditorRow(gtx, theme, "Sound", ui.editorSelector(theme, &ui.soundClick, ui.sounds[ui.soundSelected].Label, "sound"))
+	case "sound-preview":
+		return guiEventEditorRow(gtx, theme, "", func(gtx layout.Context) layout.Dimensions {
+			if ui.soundSelected <= 0 || ui.soundSelected >= len(ui.sounds) {
+				gtx = gtx.Disabled()
+			}
+			return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return guiEventActions(gtx, theme, guiEventAction{"Play", &ui.playClick})
+			})
+		})
 	case "error":
 		return guiEventMessage(gtx, theme, ui.error, color.NRGBA{R: 220, G: 150, B: 150, A: 255})
 	default:

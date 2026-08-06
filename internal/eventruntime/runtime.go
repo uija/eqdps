@@ -36,6 +36,7 @@ type Runtime struct {
 	notifier   notificationSender
 	newPlayer  playerFactory
 	onError    func(error)
+	previews   chan string
 	startOnce  sync.Once
 	volumeBits atomic.Uint64
 	iconSetMu  sync.RWMutex
@@ -108,6 +109,7 @@ func newRuntime(
 		notifier:   notifier,
 		newPlayer:  newPlayer,
 		onError:    onError,
+		previews:   make(chan string, deliveryQueueSize),
 	}
 	runtime.SetAudioVolume(1)
 	return runtime, nil
@@ -139,6 +141,18 @@ func (r *Runtime) SetAudioVolume(volume float64) {
 
 func (r *Runtime) AudioVolume() float64 {
 	return math.Float64frombits(r.volumeBits.Load())
+}
+
+func (r *Runtime) PreviewSound(id string) error {
+	if id == "" {
+		return nil
+	}
+	select {
+	case r.previews <- id:
+		return nil
+	default:
+		return event.ErrQueueFull
+	}
 }
 
 func (r *Runtime) SetSpellIconSet(name string) {
@@ -192,15 +206,17 @@ func (r *Runtime) runSounds(ctx context.Context) {
 		return
 	}
 	for {
+		var soundID string
 		select {
 		case <-ctx.Done():
 			return
-		case soundID := <-r.dispatcher.Sounds():
-			if err := player.Play(ctx, soundID, r.AudioVolume(), func(err error) {
-				r.report(fmt.Errorf("event audio: %w", err))
-			}); err != nil {
-				r.report(fmt.Errorf("event audio: %w", err))
-			}
+		case soundID = <-r.dispatcher.Sounds():
+		case soundID = <-r.previews:
+		}
+		if err := player.Play(ctx, soundID, r.AudioVolume(), func(err error) {
+			r.report(fmt.Errorf("event audio: %w", err))
+		}); err != nil {
+			r.report(fmt.Errorf("event audio: %w", err))
 		}
 	}
 }

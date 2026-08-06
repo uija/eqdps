@@ -88,7 +88,7 @@ func TestSpellSelectorFiltersByClass(t *testing.T) {
 
 func TestOpenPickerDoesNotAddEditorRows(t *testing.T) {
 	ui := eventsGUI{editingKind: event.TriggerSpell, picker: "class"}
-	want := "title,class,spell,notification,persistence,sound"
+	want := "title,class,spell,notification,persistence,sound,sound-preview"
 	if got := strings.Join(ui.editorItems(), ","); got != want {
 		t.Fatalf("editor items with class picker = %q, want %q", got, want)
 	}
