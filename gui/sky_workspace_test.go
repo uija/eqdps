@@ -197,6 +197,37 @@ func TestSkyHideEmptyDoesNotTreatWindRunesAsStartedQuestItems(t *testing.T) {
 	}
 }
 
+func TestSkyHideFinishedRemovesCompletedQuestsFromAllSections(t *testing.T) {
+	quest := func(name string) skyquest.Quest {
+		return skyquest.Quest{Name: name, Requirements: []skyquest.Requirement{{Name: "Item", Quantity: 1}}}
+	}
+	shell := shell{
+		skyHideFinished: true,
+		skyWatched:      map[string]bool{"Bard Done": true, "Bard Open": true},
+		skyProgress: []skyquest.QuestProgress{
+			{Class: "Bard", Quest: quest("Bard Done"), Completed: true},
+			{Class: "Bard", Quest: quest("Bard Open")},
+		},
+	}
+
+	shell.rebuildSkyRows()
+	doneRows, openRows := 0, 0
+	for _, row := range shell.skyRows {
+		if row.kind != "quest" {
+			continue
+		}
+		switch row.questName {
+		case "Bard Done":
+			doneRows++
+		case "Bard Open":
+			openRows++
+		}
+	}
+	if doneRows != 0 || openRows != 2 {
+		t.Fatalf("completed rows = %d, open rows = %d; rows: %#v", doneRows, openRows, shell.skyRows)
+	}
+}
+
 func TestSkyRequirementSourceUsesSpecificDrop(t *testing.T) {
 	got := skyRequirementSource(skyquest.Requirement{Island: 5, DropsFrom: "Protector of Sky"})
 	if got != "Island 5 — Protector of Sky" {

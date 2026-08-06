@@ -71,7 +71,7 @@ func (s *shell) rebuildSkyRows() {
 	rows = append(rows, skyRow{kind: "spacer"}, skyRow{kind: "watched-section", name: fmt.Sprintf("WATCHED (%d)", len(s.skyWatched)), status: watchedStatus, toggleClick: &s.skyWatchToggle, foreground: palette.accent})
 	if !s.skyWatchClosed {
 		for _, progress := range s.skyProgress {
-			if s.skyWatched[progress.Quest.Name] {
+			if s.skyWatched[progress.Quest.Name] && (!s.skyHideFinished || !progress.Completed) {
 				rows = append(rows, s.skyQuestRows(progress, true)...)
 			}
 		}
@@ -90,6 +90,9 @@ func (s *shell) rebuildSkyRows() {
 			}
 			if progress.Ready {
 				ready++
+			}
+			if s.skyHideFinished && progress.Completed {
+				continue
 			}
 			if !s.skyHideEmpty || progress.Completed || skyQuestHasOwnedNonRuneItem(progress.Quest, s.skyInventory) {
 				visible = append(visible, progress)
@@ -196,14 +199,30 @@ func (s *shell) layoutSkyWorkspace(gtx layout.Context) layout.Dimensions {
 					return labelWeight(gtx, s.theme, title, unit.Sp(23), palette.text, text.Start, font.SemiBold)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return s.skyHideClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						pointer.CursorPointer.Add(gtx.Ops)
-						value := "Hide quests with no items"
-						if s.skyHideEmpty {
-							value = "Show all quests"
-						}
-						return labelWeight(gtx, s.theme, value, unit.Sp(14), palette.accent, text.End, font.SemiBold)
-					})
+					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return s.skyFinishedClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								pointer.CursorPointer.Add(gtx.Ops)
+								value := "Hide all finished quests"
+								if s.skyHideFinished {
+									value = "Show finished quests"
+								}
+								return labelWeight(gtx, s.theme, value, unit.Sp(14), palette.accent, text.End, font.SemiBold)
+							})
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return inset(unit.Dp(18), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return s.skyHideClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									pointer.CursorPointer.Add(gtx.Ops)
+									value := "Hide quests with no items"
+									if s.skyHideEmpty {
+										value = "Show all quests"
+									}
+									return labelWeight(gtx, s.theme, value, unit.Sp(14), palette.accent, text.End, font.SemiBold)
+								})
+							})
+						}),
+					)
 				}),
 			)
 		}),
