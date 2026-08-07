@@ -95,7 +95,7 @@ func newEventsTUI(
 	help := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
-		SetText("[gray]a[::-] active   [gray]Enter[::-] edit   [gray]d[::-] delete   [gray]s/t/r[::-] add spell/text/regexp   [gray]v[::-] settings   [gray]i[::-] extract icons   [gray]q/Esc[::-] DPS")
+		SetText("[gray]a[::-] active   [gray]Enter[::-] edit   [gray]d[::-] delete   [gray]s/m/t/r[::-] add spell/timer/text/regexp   [gray]v[::-] settings   [gray]i[::-] extract icons   [gray]q/Esc[::-] DPS")
 	ui.layout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(ui.table, 0, 1, true).
@@ -211,7 +211,9 @@ func (ui *eventsTUI) captureTableInput(key *tcell.EventKey) *tcell.EventKey {
 	case 'd', 'D':
 		ui.confirmDelete()
 	case 's', 'S':
-		ui.showSpellEditor(nil)
+		ui.showSpellEditor(event.TriggerSpell, nil)
+	case 'm', 'M':
+		ui.showSpellEditor(event.TriggerSpellTimer, nil)
 	case 't', 'T':
 		ui.showPatternEditor(event.TriggerText, nil)
 	case 'r', 'R':
@@ -378,7 +380,7 @@ func (ui *eventsTUI) render() {
 		cells := []*tview.TableCell{
 			tview.NewTableCell(active).SetMaxWidth(7),
 			tview.NewTableCell(configured.Title).SetExpansion(1),
-			tview.NewTableCell(string(configured.TriggerType)).SetMaxWidth(8),
+			tview.NewTableCell(strings.ReplaceAll(string(configured.TriggerType), "_", " ")).SetMaxWidth(12),
 			tview.NewTableCell(notification).SetMaxWidth(12),
 			tview.NewTableCell(sound).SetMaxWidth(24),
 		}
@@ -436,8 +438,8 @@ func (ui *eventsTUI) editSelected() {
 	}
 	copy := *selected
 	switch copy.TriggerType {
-	case event.TriggerSpell:
-		ui.showSpellEditor(&copy)
+	case event.TriggerSpell, event.TriggerSpellTimer:
+		ui.showSpellEditor(copy.TriggerType, &copy)
 	case event.TriggerText, event.TriggerRegexp:
 		ui.showPatternEditor(copy.TriggerType, &copy)
 	}
@@ -553,9 +555,14 @@ func (ui *eventsTUI) showPatternEditor(kind event.TriggerType, existing *event.E
 	ui.openFormModal(modalTitle, rows, 76, 12, focus, pattern)
 }
 
-func (ui *eventsTUI) showSpellEditor(existing *event.Event) {
+func (ui *eventsTUI) showSpellEditor(kind event.TriggerType, existing *event.Event) {
 	title := tview.NewInputField()
-	notification := tview.NewInputField().SetText("%s has faded.")
+	notificationText := "%s has faded."
+	if kind == event.TriggerSpellTimer {
+		notificationText = "%s timer expired."
+	}
+	notification := tview.NewInputField().SetText(notificationText)
+	timerSeconds := tview.NewInputField().SetFieldWidth(8).SetAcceptanceFunc(tview.InputFieldInteger)
 	persistence := tview.NewCheckbox().SetLabel("Request persistent notification")
 	sound := ui.soundDropDown("")
 	classes := tview.NewList().ShowSecondaryText(false)
@@ -563,13 +570,19 @@ func (ui *eventsTUI) showSpellEditor(existing *event.Event) {
 	message := tview.NewTextView().SetDynamicColors(true)
 	active := true
 	modalTitle := " Add Spell Event "
+	if kind == event.TriggerSpellTimer {
+		modalTitle = " Add Spell Timer "
+	}
 	if existing != nil {
 		active = existing.Active
 		title.SetText(existing.Title)
 		notification.SetText(existing.Notification)
 		persistence.SetChecked(existing.RequestPersistence)
 		sound = ui.soundDropDown(existing.Sound)
-		modalTitle = " Edit Spell Event "
+		if existing.TimerSeconds > 0 {
+			timerSeconds.SetText(strconv.Itoa(existing.TimerSeconds))
+		}
+		modalTitle = strings.Replace(modalTitle, "Add", "Edit", 1)
 	}
 	classes.AddItem("ALL", "", 0, nil)
 	for _, className := range eventAvailableClasses(ui.spells) {
@@ -606,15 +619,27 @@ func (ui *eventsTUI) showSpellEditor(existing *event.Event) {
 			return
 		}
 		spell := visible[index]
+		seconds := 0
+		if kind == event.TriggerSpellTimer {
+			var err error
+			seconds, err = strconv.Atoi(timerSeconds.GetText())
+			if err != nil || seconds < 1 {
+				message.SetText("[red]Enter a timer duration of at least one second.[::-]")
+				return
+			}
+		}
 		name := strings.TrimSpace(title.GetText())
 		if name == "" {
 			name = spell.Name
 		}
 		configured := event.Event{
-			Title: name, Active: active, TriggerType: event.TriggerSpell,
-			Pattern: spell.FadeMessage, SpellName: spell.Name,
+			Title: name, Active: active, TriggerType: kind,
+			Pattern: spell.FadeMessage, SpellName: spell.Name, TimerSeconds: seconds,
 			Notification: notification.GetText(), RequestPersistence: persistence.IsChecked(),
 			Sound: ui.selectedSound(sound),
+		}
+		if kind == event.TriggerSpellTimer {
+			configured.Pattern = spell.Name
 		}
 		if existing != nil {
 			configured.ID = existing.ID
@@ -630,14 +655,23 @@ func (ui *eventsTUI) showSpellEditor(existing *event.Event) {
 	lists := tview.NewFlex().AddItem(classes, 22, 0, true).AddItem(spells, 0, 1, false)
 	body := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(eventFieldRow("Title", title), 1, 0, false).
-		AddItem(lists, 0, 1, true).
-		AddItem(eventFieldRow("Notification", notification), 1, 0, false).
+		AddItem(lists, 0, 1, true)
+	focus := []tview.Primitive{title, classes, spells}
+	if kind == event.TriggerSpellTimer {
+		body.AddItem(eventFieldRow("Duration (seconds)", timerSeconds), 1, 0, false)
+		focus = append(focus, timerSeconds)
+	}
+	body.AddItem(eventFieldRow("Notification", notification), 1, 0, false).
 		AddItem(eventFieldRow("", persistence), 1, 0, false).
 		AddItem(eventFieldRow("Sound", sound), 1, 0, false).
 		AddItem(message, 1, 0, false).
 		AddItem(eventButtonRow(save, cancel), 1, 0, false)
-	ui.openFormModal(modalTitle, body, 80, 24,
-		[]tview.Primitive{title, classes, spells, notification, persistence, sound, save, cancel}, classes)
+	focus = append(focus, notification, persistence, sound, save, cancel)
+	height := 24
+	if kind == event.TriggerSpellTimer {
+		height++
+	}
+	ui.openFormModal(modalTitle, body, 80, height, focus, classes)
 }
 
 func (ui *eventsTUI) saveOne(configured event.Event) error {

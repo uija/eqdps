@@ -440,6 +440,7 @@ func newShell(window *app.Window, overlayTestData bool) *shell {
 		result.eventStore = eventsStore
 		result.eventsCancel = cancelEvents
 		eventsRuntime.Start(eventContext)
+		go result.forwardOverlayTimers(eventContext)
 		result.eventUI, eventsErr = newEventsGUI(window, eventsStore, eventsRuntime, currentLog)
 		if eventsErr != nil {
 			result.statusText = "Events UI unavailable: " + eventsErr.Error()

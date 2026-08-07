@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 	"time"
+
+	"github.com/uija/eqdps/internal/event"
 )
 
 func TestOverlayDisplaysLatestCompletedFightBetweenFights(t *testing.T) {
@@ -13,6 +15,22 @@ func TestOverlayDisplaysLatestCompletedFightBetweenFights(t *testing.T) {
 
 	if got := overlay.displayFight(); got == nil || got.name != "latest completed" {
 		t.Fatalf("expected latest completed fight, got %#v", got)
+	}
+}
+
+func TestPushOverlayTimersDoesNotDependOnMainWindowFrame(t *testing.T) {
+	overlay := &combatOverlay{timerUpdates: make(chan []event.ActiveTimer, 1)}
+	shell := shell{overlay: overlay}
+	want := []event.ActiveTimer{{ID: "mez", Title: "Mesmerization", ExpiresAt: time.Now().Add(time.Minute)}}
+	shell.pushOverlayTimers(want)
+	want[0].Title = "changed after sending"
+	select {
+	case got := <-overlay.timerUpdates:
+		if len(got) != 1 || got[0].Title != "Mesmerization" {
+			t.Fatalf("timer update = %#v", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timer update waited for the main window")
 	}
 }
 

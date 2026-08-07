@@ -56,6 +56,8 @@ func (m *Matcher) Matches(logLine string) []Event {
 		switch entry.event.TriggerType {
 		case TriggerSpell:
 			matched = message == entry.event.Pattern
+		case TriggerSpellTimer:
+			// Spell timers are stateful and are handled by Dispatcher.
 		case TriggerText:
 			if entry.event.ExactMatch {
 				matched = message == entry.event.Pattern

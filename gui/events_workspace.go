@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gioui.org/font"
@@ -44,6 +45,7 @@ type eventsGUI struct {
 	pickerList widget.List
 
 	addSpellClick widget.Clickable
+	addTimerClick widget.Clickable
 	addTextClick  widget.Clickable
 	addRegexClick widget.Clickable
 	iconClick     widget.Clickable
@@ -53,6 +55,7 @@ type eventsGUI struct {
 	titleEditor        widget.Editor
 	patternEditor      widget.Editor
 	notificationEditor widget.Editor
+	timerSecondsEditor widget.Editor
 	exactCheck         widget.Bool
 	persistenceCheck   widget.Bool
 	saveClick          widget.Clickable
@@ -153,6 +156,7 @@ func newEventsGUI(window appWindow, store *eventstore.Store, runtime *eventrunti
 	ui.titleEditor.SingleLine = true
 	ui.patternEditor.SingleLine = true
 	ui.notificationEditor.SingleLine = true
+	ui.timerSecondsEditor.SingleLine = true
 	ui.rebuildRowControls()
 	return ui, nil
 }
@@ -282,6 +286,10 @@ func (ui *eventsGUI) updateList(gtx layout.Context) {
 		ui.iconSetOpen = false
 		ui.openEditor(event.TriggerSpell, nil)
 	}
+	if ui.addTimerClick.Clicked(gtx) {
+		ui.iconSetOpen = false
+		ui.openEditor(event.TriggerSpellTimer, nil)
+	}
 	if ui.addTextClick.Clicked(gtx) {
 		ui.iconSetOpen = false
 		ui.openEditor(event.TriggerText, nil)
@@ -363,6 +371,7 @@ func (ui *eventsGUI) openEditor(kind event.TriggerType, existing *event.Event) {
 	ui.titleEditor.SetText("")
 	ui.patternEditor.SetText("")
 	ui.notificationEditor.SetText("")
+	ui.timerSecondsEditor.SetText("")
 	ui.exactCheck.Value = kind == event.TriggerText
 	ui.persistenceCheck.Value = false
 	ui.classSelected = 0
@@ -371,6 +380,8 @@ func (ui *eventsGUI) openEditor(kind event.TriggerType, existing *event.Event) {
 	ui.updateVisibleSpells()
 	if kind == event.TriggerSpell {
 		ui.notificationEditor.SetText("%s has faded.")
+	} else if kind == event.TriggerSpellTimer {
+		ui.notificationEditor.SetText("%s timer expired.")
 	}
 	if existing != nil {
 		ui.editingID = existing.ID
@@ -383,7 +394,10 @@ func (ui *eventsGUI) openEditor(kind event.TriggerType, existing *event.Event) {
 		if index := guiEventSoundIndex(ui.sounds, existing.Sound); index >= 0 {
 			ui.soundSelected = index
 		}
-		if kind == event.TriggerSpell {
+		if kind == event.TriggerSpell || kind == event.TriggerSpellTimer {
+			if existing.TimerSeconds > 0 {
+				ui.timerSecondsEditor.SetText(strconv.Itoa(existing.TimerSeconds))
+			}
 			ui.classSelected = 0
 			ui.updateVisibleSpells()
 			for index := range ui.visibleSpells {
@@ -528,14 +542,24 @@ func (ui *eventsGUI) saveEditor() {
 		configured.Sound = ui.sounds[ui.soundSelected].ID
 	}
 	switch ui.editingKind {
-	case event.TriggerSpell:
+	case event.TriggerSpell, event.TriggerSpellTimer:
 		if len(ui.visibleSpells) == 0 || ui.spellSelected >= len(ui.visibleSpells) {
 			ui.error = "Select a spell."
 			return
 		}
 		spell := ui.visibleSpells[ui.spellSelected]
 		configured.SpellName = spell.Name
-		configured.Pattern = spell.FadeMessage
+		if ui.editingKind == event.TriggerSpell {
+			configured.Pattern = spell.FadeMessage
+		} else {
+			seconds, err := strconv.Atoi(strings.TrimSpace(ui.timerSecondsEditor.Text()))
+			if err != nil || seconds < 1 {
+				ui.error = "Enter a timer duration of at least one second."
+				return
+			}
+			configured.Pattern = spell.Name
+			configured.TimerSeconds = seconds
+		}
 		if configured.Title == "" {
 			configured.Title = spell.Name
 		}
@@ -680,6 +704,7 @@ func (ui *eventsGUI) layoutList(gtx layout.Context, theme *material.Theme) layou
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return guiEventActions(gtx, theme,
 						guiEventAction{"Add spell", &ui.addSpellClick},
+						guiEventAction{"Add timer", &ui.addTimerClick},
 						guiEventAction{"Add text", &ui.addTextClick},
 						guiEventAction{"Add regexp", &ui.addRegexClick},
 						guiEventAction{"Extract icons", &ui.iconClick},
@@ -865,7 +890,7 @@ func (ui *eventsGUI) layoutEventRow(gtx layout.Context, theme *material.Theme, i
 			values[0] = "Yes"
 		}
 		values[1] = configured.Title
-		values[2] = string(configured.TriggerType)
+		values[2] = strings.ReplaceAll(string(configured.TriggerType), "_", " ")
 		values[3] = "No"
 		if configured.Notification != "" {
 			values[3] = "Yes"
@@ -955,8 +980,11 @@ func (ui *eventsGUI) layoutEditor(gtx layout.Context, theme *material.Theme) lay
 
 func (ui *eventsGUI) editorItems() []string {
 	items := []string{"title"}
-	if ui.editingKind == event.TriggerSpell {
+	if ui.editingKind == event.TriggerSpell || ui.editingKind == event.TriggerSpellTimer {
 		items = append(items, "class", "spell")
+		if ui.editingKind == event.TriggerSpellTimer {
+			items = append(items, "timer-seconds")
+		}
 	} else {
 		items = append(items, "pattern")
 		if ui.editingKind == event.TriggerText {
@@ -982,6 +1010,8 @@ func (ui *eventsGUI) layoutEditorItem(gtx layout.Context, theme *material.Theme,
 		return guiEventEditorRow(gtx, theme, labelText, guiEventEditor(theme, &ui.patternEditor))
 	case "notification":
 		return guiEventEditorRow(gtx, theme, "Notification", guiEventEditor(theme, &ui.notificationEditor))
+	case "timer-seconds":
+		return guiEventEditorRow(gtx, theme, "Duration (seconds)", guiEventEditor(theme, &ui.timerSecondsEditor))
 	case "exact":
 		return guiEventEditorRow(gtx, theme, "", func(gtx layout.Context) layout.Dimensions {
 			return material.CheckBox(theme, &ui.exactCheck, "Full message match").Layout(gtx)

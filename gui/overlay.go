@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"log"
@@ -21,12 +22,14 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/event"
 )
 
 type combatOverlay struct {
 	window           *app.Window
 	theme            *material.Theme
 	updates          chan overlayUpdate
+	timerUpdates     chan []event.ActiveTimer
 	closed           chan<- *combatOverlay
 	owner            *app.Window
 	list             widget.List
@@ -48,6 +51,7 @@ type combatOverlay struct {
 	savedY           int
 	hasSavedPosition bool
 	testFight        *fakeFightSection
+	timers           []event.ActiveTimer
 	focusOrder       uint64
 	focusCandidate   uint64
 	focusCandidateAt time.Time
@@ -88,6 +92,7 @@ func (s *shell) openOverlay() {
 		window:           window,
 		theme:            theme,
 		updates:          make(chan overlayUpdate, 1),
+		timerUpdates:     make(chan []event.ActiveTimer, 1),
 		closed:           s.overlayClosed,
 		owner:            s.window,
 		list:             widget.List{List: layout.List{Axis: layout.Vertical}},
@@ -104,6 +109,9 @@ func (s *shell) openOverlay() {
 	s.overlay = overlay
 	s.overlayMu.Unlock()
 	s.pushOverlay(s.fights)
+	if s.eventRuntime != nil {
+		s.pushOverlayTimers(s.eventRuntime.ActiveTimers())
+	}
 	go func() {
 		if err := overlay.run(); err != nil {
 			log.Printf("DPS overlay: %v", err)
@@ -188,6 +196,42 @@ func (s *shell) pushOverlay(fights []fakeFightSection) {
 	}
 }
 
+func (s *shell) pushOverlayTimers(timers []event.ActiveTimer) {
+	s.overlayMu.RLock()
+	defer s.overlayMu.RUnlock()
+	overlay := s.overlay
+	if overlay == nil {
+		return
+	}
+	timers = append([]event.ActiveTimer(nil), timers...)
+	select {
+	case overlay.timerUpdates <- timers:
+	default:
+		select {
+		case <-overlay.timerUpdates:
+		default:
+		}
+		select {
+		case overlay.timerUpdates <- timers:
+		default:
+		}
+	}
+	if overlay.window != nil {
+		overlay.window.Invalidate()
+	}
+}
+
+func (s *shell) forwardOverlayTimers(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-s.eventRuntime.TimerChanges():
+			s.pushOverlayTimers(s.eventRuntime.ActiveTimers())
+		}
+	}
+}
+
 func (o *combatOverlay) run() error {
 	var ops op.Ops
 	defer func() {
@@ -234,6 +278,8 @@ func (o *combatOverlay) update() {
 					o.completedAt = o.completedAt.Add(-o.idleTimeout)
 				}
 			}
+		case timers := <-o.timerUpdates:
+			o.timers = timers
 		default:
 			return
 		}
@@ -346,18 +392,58 @@ func (o *combatOverlay) layout(gtx layout.Context) layout.Dimensions {
 	}
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-			if fight == nil {
-				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return label(gtx, o.theme, "Waiting for combat…", unit.Sp(18), palette.muted, text.Middle)
-				})
-			}
-			return o.layoutFight(gtx, fight)
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					if len(o.timers) == 0 {
+						return layout.Dimensions{}
+					}
+					gtx.Execute(op.InvalidateCmd{At: now.Add(time.Second)})
+					return (layout.Inset{Top: o.scaledDp(2)}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return o.layoutTimers(gtx, now)
+					})
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					if fight == nil {
+						return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return label(gtx, o.theme, "Waiting for combat…", unit.Sp(18), palette.muted, text.Middle)
+						})
+					}
+					return o.layoutFight(gtx, fight)
+				}),
+			)
 		}),
 		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min = gtx.Constraints.Max
 			return layout.NE.Layout(gtx, o.layoutDragHandle)
 		}),
 	)
+}
+
+func (o *combatOverlay) layoutTimers(gtx layout.Context, now time.Time) layout.Dimensions {
+	rows := make([]layout.FlexChild, 0, len(o.timers))
+	for _, timer := range o.timers {
+		timer := timer
+		rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.Y = gtx.Dp(o.scaledDp(24))
+			gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
+			fill(gtx, palette.panelAlt)
+			return centerContent(gtx, func(gtx layout.Context) layout.Dimensions {
+				return inset(o.scaledDp(6), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return label(gtx, o.theme, timer.Title, unit.Sp(14), palette.text, text.Start)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return (layout.Inset{Right: o.scaledDp(32)}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return labelWeight(gtx, o.theme, formatCountdownGUI(timer.ExpiresAt.Sub(now)), unit.Sp(16), palette.accent, text.End, font.SemiBold)
+							})
+						}),
+					)
+				})
+			})
+		}))
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, rows...)
 }
 
 func (o *combatOverlay) layoutFight(gtx layout.Context, fight *fakeFightSection) layout.Dimensions {

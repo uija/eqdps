@@ -98,6 +98,14 @@ func TestOpenPickerDoesNotAddEditorRows(t *testing.T) {
 	}
 }
 
+func TestSpellTimerEditorIncludesDuration(t *testing.T) {
+	ui := eventsGUI{editingKind: event.TriggerSpellTimer}
+	want := "title,class,spell,timer-seconds,notification,persistence,sound,sound-preview"
+	if got := strings.Join(ui.editorItems(), ","); got != want {
+		t.Fatalf("spell timer editor items = %q, want %q", got, want)
+	}
+}
+
 func TestSelectorBackdropClosesWithoutChangingSelection(t *testing.T) {
 	ui := eventsGUI{
 		picker:          "spell",

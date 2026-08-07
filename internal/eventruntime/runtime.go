@@ -130,6 +130,14 @@ func (r *Runtime) ObserveLiveLine(line string) {
 	r.dispatcher.ObserveLiveLine(line)
 }
 
+func (r *Runtime) ActiveTimers() []event.ActiveTimer {
+	return r.dispatcher.ActiveTimers()
+}
+
+func (r *Runtime) TimerChanges() <-chan struct{} {
+	return r.dispatcher.TimerChanges()
+}
+
 func (r *Runtime) SetAudioVolume(volume float64) {
 	if math.IsNaN(volume) || volume < 0 {
 		volume = 0
@@ -174,7 +182,7 @@ func (r *Runtime) runNotifications(ctx context.Context) {
 			return
 		case delivery := <-r.dispatcher.Notifications():
 			icon := ""
-			if delivery.Event.TriggerType == event.TriggerSpell {
+			if delivery.Event.TriggerType == event.TriggerSpell || delivery.Event.TriggerType == event.TriggerSpellTimer {
 				if iconID, ok := r.iconIDs[delivery.Event.SpellName]; ok {
 					candidate := spellicon.SetIconPath(r.iconDir, r.SpellIconSet(), iconID)
 					if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {

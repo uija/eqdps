@@ -164,7 +164,7 @@ Hotkeys:
 | `r` | Clear the combat tracker and session XP meter |
 | `q` or `Esc` | Quit |
 
-The Events page scopes `a`, `Enter`, `d`, `s`, `t`, `r`, and `v` to event
+The Events page scopes `a`, `Enter`, `d`, `s`, `m`, `t`, `r`, and `v` to event
 editing and settings, so combat reset remains `r` on the DPS screen. Both
 frontends share the persisted master sound volume and selected spell-icon set.
 Extraction discovers all effective UI skins, applies default-UI inheritance,

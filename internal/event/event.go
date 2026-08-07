@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type TriggerType string
 
 const (
-	TriggerSpell  TriggerType = "spell"
-	TriggerText   TriggerType = "text"
-	TriggerRegexp TriggerType = "regexp"
+	TriggerSpell      TriggerType = "spell"
+	TriggerSpellTimer TriggerType = "spell_timer"
+	TriggerText       TriggerType = "text"
+	TriggerRegexp     TriggerType = "regexp"
 )
 
 type Event struct {
@@ -22,9 +24,17 @@ type Event struct {
 	Pattern            string      `json:"pattern"`
 	ExactMatch         bool        `json:"exact_match,omitempty"`
 	SpellName          string      `json:"spell_name,omitempty"`
+	TimerSeconds       int         `json:"timer_seconds,omitempty"`
 	Notification       string      `json:"notification,omitempty"`
 	RequestPersistence bool        `json:"request_persistence,omitempty"`
 	Sound              string      `json:"sound,omitempty"`
+}
+
+type ActiveTimer struct {
+	ID        string
+	Title     string
+	SpellName string
+	ExpiresAt time.Time
 }
 
 func (e *Event) UnmarshalJSON(data []byte) error {
@@ -55,9 +65,12 @@ func (e Event) Validate() error {
 		return fmt.Errorf("event %q has no pattern", e.Title)
 	}
 	switch e.TriggerType {
-	case TriggerSpell:
+	case TriggerSpell, TriggerSpellTimer:
 		if strings.TrimSpace(e.SpellName) == "" {
 			return fmt.Errorf("spell event %q has no spell name", e.Title)
+		}
+		if e.TriggerType == TriggerSpellTimer && e.TimerSeconds < 1 {
+			return fmt.Errorf("spell timer %q must last at least one second", e.Title)
 		}
 	case TriggerText, TriggerRegexp:
 	default:
@@ -67,7 +80,7 @@ func (e Event) Validate() error {
 }
 
 func (e Event) NotificationText() string {
-	if e.TriggerType != TriggerSpell {
+	if e.TriggerType != TriggerSpell && e.TriggerType != TriggerSpellTimer {
 		return e.Notification
 	}
 	return strings.ReplaceAll(e.Notification, "%s", e.SpellName)

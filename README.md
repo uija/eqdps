@@ -61,7 +61,7 @@ in-game DPS overlay, and the Plane of Sky quest tracker in both interfaces.
 - Expandable details grouped by melee, cast magic, proc, DoT, and shield
 - History replay and mob-name filtering
 - EverQuest Legends Plane of Sky quest inventory and completion tracking
-- Configurable spell-fade, text, exact-text, and regular-expression events
+- Configurable spell-fade, spell-timer, text, exact-text, and regular-expression events
 - Cross-platform desktop notifications with selectable EverQuest spell-icon sets
 - Embedded and user-provided notification sounds with shared volume control
 - Optional EQLDB inventory-export uploads from both frontends
@@ -113,9 +113,12 @@ go run ./tui /path/to/eqlog_character_server.txt
 ## Events and Notifications
 
 Open **EVENTS** in the GUI left rail or press `n` from the TUI DPS screen. The
-shared Events workspace supports spell-fade, plain-text, exact-text, and
-regular-expression triggers. Each event can independently show a desktop
-notification, play a sound, or do both. Notifications can request persistent
+shared Events workspace supports spell-fade, spell-timer, plain-text,
+exact-text, and regular-expression triggers. Spell timers start after a
+successful cast, reset after a successful recast, and ignore interrupted casts.
+Active timers appear as compact countdown rows in the graphical DPS overlay and
+take no space there when none are running. Each event can independently show a
+desktop notification, play a sound, or do both. Notifications can request persistent
 display, although the desktop environment controls the final behavior.
 
 The TUI Events page uses these scoped keys:
@@ -126,6 +129,7 @@ The TUI Events page uses these scoped keys:
 | `Enter` | Edit the selected event |
 | `d` | Delete the selected event |
 | `s` | Add a spell-fade event |
+| `m` | Add a spell-timer event |
 | `t` | Add a text event |
 | `r` | Add a regular-expression event |
 | `v` | Open Event settings for sound volume and spell-icon style |
