@@ -43,12 +43,16 @@ type Item struct {
 	enabled bool
 }
 
+const MenuDropDownWidth = 300
+const MenuEntryHeight = 38
+const MenuItemHeight = 32
+
 // NewBar returns an empty application menu bar.
 func NewBar(style *ui.Style, title string) *Bar {
 	return &Bar{
 		style:     style,
 		title:     title,
-		barHeight: unit.Dp(38),
+		barHeight: unit.Dp(MenuEntryHeight),
 	}
 }
 
@@ -69,6 +73,9 @@ func (m *Menu) AddItem(label string, action func()) *Item {
 	item := &Item{label: label, action: action, enabled: true}
 	m.items = append(m.items, item)
 	return item
+}
+func (m *Menu) AddSeparator() {
+
 }
 
 // Update processes menu input events.
@@ -159,11 +166,11 @@ func (b *Bar) layoutDropdown(gtx layout.Context) layout.Dimensions {
 	offset := op.Offset(image.Pt(b.active.anchorX, gtx.Dp(b.barHeight))).Push(gtx.Ops)
 	defer offset.Pop()
 
-	width := gtx.Dp(unit.Dp(210))
+	width := gtx.Dp(unit.Dp(MenuDropDownWidth))
 	gtx.Constraints.Min.X = width
 	gtx.Constraints.Max.X = width
 	itemCount := max(1, len(b.active.items))
-	height := gtx.Dp(unit.Dp(36 * itemCount))
+	height := gtx.Dp(unit.Dp((MenuItemHeight) * itemCount))
 	gtx.Constraints.Min.Y = height
 	gtx.Constraints.Max.Y = height
 	fill(gtx, b.style.Palette.Panel)
@@ -196,14 +203,14 @@ func (b *Bar) layoutButton(gtx layout.Context, entry *Menu) layout.Dimensions {
 }
 
 func (b *Bar) layoutItem(gtx layout.Context, item *Item) layout.Dimensions {
-	height := gtx.Dp(unit.Dp(36))
+	height := gtx.Dp(unit.Dp(MenuItemHeight))
 	gtx.Constraints.Min.Y = height
 	gtx.Constraints.Max.Y = height
 	return item.click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		if item.enabled && item.click.Hovered() {
 			fill(gtx, b.style.Palette.Hover)
 		}
-		return layout.Inset{Left: unit.Dp(12), Right: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Inset{Left: unit.Dp(12), Right: unit.Dp(12), Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			label := material.Label(b.style.Theme, unit.Sp(15), item.label)
 			if item.enabled {
 				label.Color = b.style.Palette.Text
@@ -216,7 +223,7 @@ func (b *Bar) layoutItem(gtx layout.Context, item *Item) layout.Dimensions {
 }
 
 func (b *Bar) layoutEmptyItem(gtx layout.Context) layout.Dimensions {
-	height := gtx.Dp(unit.Dp(36))
+	height := gtx.Dp(unit.Dp(MenuEntryHeight - 2))
 	gtx.Constraints.Min.Y = height
 	gtx.Constraints.Max.Y = height
 	return layout.Inset{Left: unit.Dp(12), Right: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {

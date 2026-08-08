@@ -57,6 +57,13 @@ func NewShell(context *module.Context, closeWindow func()) *Shell {
 	for _, entry := range context.ViewMenuItems {
 		viewMenu.AddItem(entry.Name, entry.Action)
 	}
+	toolsMenu := result.menuBar.AddMenu("Tools")
+
+	toolsMenu.AddSeparator()
+	for _, entry := range context.ToolsMenuItems {
+		toolsMenu.AddItem(entry.Name, entry.Action)
+	}
+	toolsMenu.AddItem("Preferences", func() {})
 	result.menuBar.AddAction("Help", result.help.Open)
 
 	return result
@@ -113,7 +120,7 @@ func (s *Shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(30))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 	fill(gtx, s.style.Palette.Chrome)
-	return layout.Inset{Left: unit.Dp(14), Right: unit.Dp(14)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return layout.Inset{Left: unit.Dp(14), Right: unit.Dp(14), Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		label := material.Label(s.style.Theme, unit.Sp(14), s.status)
 		label.Color = s.style.Palette.Muted
 		return layout.W.Layout(gtx, label.Layout)

@@ -29,6 +29,7 @@ type Context struct {
 	Parser          *eqlog.Parser
 	currentMainView ui.Widget
 	ViewMenuItems   []MenuItem
+	ToolsMenuItems  []MenuItem
 	onLogOpenFuncs  []OnLogOpenFunc
 	onLogRowFuncs   []OnLogRowFunc
 	onStatus        []ui.Widget
@@ -60,6 +61,9 @@ func (c *Context) ParserNewLogEvent(row data.LogRowEvent) {
 }
 func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
 	c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})
+}
+func (c *Context) AddToolsMenuItem(name string, action UIActionFunc) {
+	c.ToolsMenuItems = append(c.ToolsMenuItems, MenuItem{Name: name, Action: action})
 }
 func (c *Context) OnLogOpen(f OnLogOpenFunc) {
 	c.onLogOpenFuncs = append(c.onLogOpenFuncs, f)

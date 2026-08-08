@@ -19,6 +19,7 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.OnLogOpen(m.OnLogOpen)
 	ctx.OnLogRow(m.OnLogRow)
 	ctx.SetMainView(m.MainView)
+	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	return nil
 }
@@ -37,7 +38,9 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64) 
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
 
 }
+func (m *Module) SelectBacklog() {
 
+}
 func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	label := material.Label(
 		style.Theme,
