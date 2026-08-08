@@ -499,7 +499,7 @@ func (ui *eqldbTUI) showMetadataForm(request inventorysync.Request) {
 	form.SetBorder(true).SetTitle(" Inventory metadata needed ")
 	form.SetButtonsAlign(tview.AlignCenter)
 	instructions := fmt.Sprintf(
-		"No recent /who result was found for this export.\n\nFor automatic detection, use this EverQuest macro:\n/who %s\n/outputfile inventory",
+		"No recent /who result was found for this export.\n\nFor automatic detection, use this EverQuest macro:\n/pause 5, /who %s\n/outputfile inventory",
 		ui.character,
 	)
 	form.AddTextView("", instructions, 72, 7, true, false)
@@ -668,7 +668,7 @@ func classCode(option string) string {
 const eqldbMacroExplanation = "The best way to export is a two-line EverQuest macro. This lets eqdps detect your level, race, and classes automatically. Focus the field to select with Shift+arrows; Ctrl+L selects all and Ctrl+Q copies."
 
 func eqldbMacroText(character string) string {
-	return "/who " + character + "\n/outputfile inventory"
+	return "/pause 5, /who " + character + "\n/outputfile inventory"
 }
 
 func addEQLDBMacroField(form *tview.Form, character string, onInteract func()) {

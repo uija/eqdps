@@ -840,7 +840,7 @@ func (ui *eqldbGUI) layoutDialogButtons(gtx layout.Context, theme *material.Them
 }
 
 func (ui *eqldbGUI) layoutMacroField(gtx layout.Context, theme *material.Theme) layout.Dimensions {
-	height := gtx.Dp(unit.Dp(72))
+	height := gtx.Dp(unit.Dp(90))
 	gtx.Constraints.Min.Y = height
 	gtx.Constraints.Max.Y = height
 	return inset(0, unit.Dp(12)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -855,7 +855,7 @@ func (ui *eqldbGUI) layoutMacroField(gtx layout.Context, theme *material.Theme) 
 				})
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return inset(unit.Dp(7), 0).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return inset(unit.Dp(7), 16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return eqldbDialogButton(gtx, theme, &ui.copyClick, "Copy macro", true)
 				})
 			}),
@@ -1059,7 +1059,7 @@ func eqldbGUIMacroText(character string) string {
 	if character == "" {
 		character = "CHARACTERNAME"
 	}
-	return "/who " + character + "\n/outputfile inventory"
+	return "/pause 5, /who " + character + "\n/outputfile inventory"
 }
 
 func maxTimeGUI(first, second time.Time) time.Time {

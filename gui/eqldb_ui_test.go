@@ -33,7 +33,7 @@ func TestEQLDBGUISyncErrorRefreshesClearedConnection(t *testing.T) {
 
 func TestEQLDBGUIMacroGuidanceUsesCharacter(t *testing.T) {
 	macro := eqldbGUIMacroText("Wyrmberg")
-	for _, expected := range []string{"/who Wyrmberg", "/outputfile inventory"} {
+	for _, expected := range []string{"/pause 5, /who Wyrmberg", "/outputfile inventory"} {
 		if !strings.Contains(macro, expected) {
 			t.Fatalf("macro %q does not contain %q", macro, expected)
 		}
