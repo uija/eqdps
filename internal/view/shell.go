@@ -42,11 +42,12 @@ type progress struct {
 
 // Shell is the root application view.
 type Shell struct {
-	style   *ui.Style
-	menuBar *menu.Bar
-	status  string
-	help    *helpView
-	context *module.Context
+	style         *ui.Style
+	menuBar       *menu.Bar
+	status        string
+	help          *helpView
+	selectHistory *historySelection
+	context       *module.Context
 
 	progress *progress
 
@@ -63,6 +64,7 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 		style:            &style,
 		status:           "Ready",
 		help:             newHelpView(&style, context),
+		selectHistory:    NewhistorySelection(&style, context.LoadCombatHistory),
 		context:          context,
 		invalidateFunc:   invalidate,
 		fileSelectResult: make(chan fileResult, 1),
@@ -79,10 +81,17 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	}
 	toolsMenu := result.menuBar.AddMenu("Tools")
 
-	toolsMenu.AddSeparator()
-	for _, entry := range context.ToolsMenuItems {
-		toolsMenu.AddItem(entry.Name, entry.Action)
+	toolsMenu.AddItem("Combat History", func() {
+		result.selectHistory.Show()
+		result.invalidateFunc()
+	})
+	if len(context.ToolsMenuItems) > 0 {
+		toolsMenu.AddSeparator()
+		for _, entry := range context.ToolsMenuItems {
+			toolsMenu.AddItem(entry.Name, entry.Action)
+		}
 	}
+	toolsMenu.AddSeparator()
 	toolsMenu.AddItem("Preferences", func() {})
 	result.menuBar.AddAction("Help", result.help.Open)
 
@@ -137,6 +146,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Stacked(s.menuBar.LayoutOverlay),
 		layout.Expanded(s.help.Layout),
+		layout.Expanded(s.selectHistory.Layout),
 		layout.Expanded(s.layoutProgressOverlay),
 	)
 }
@@ -157,7 +167,9 @@ func (s *Shell) update(gtx layout.Context) {
 		}
 	default:
 	}
+	s.context.Update()
 	s.menuBar.Update(gtx)
+	s.selectHistory.Update(gtx)
 	s.help.Update(gtx)
 }
 
@@ -182,26 +194,4 @@ func fill(gtx layout.Context, background color.NRGBA) {
 	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: background}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
-}
-func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
-	if s.progress == nil {
-		return layout.Dimensions{}
-	}
-
-	fill(gtx, s.style.Palette.Shadow)
-
-	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
-		height := min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y)
-		gtx.Constraints = layout.Exact(image.Pt(width, height))
-
-		fill(gtx, s.style.Palette.Panel)
-
-		return layout.Flex{
-			Axis: layout.Vertical,
-		}.Layout(gtx,
-			layout.Rigid(ui.TitleBar(gtx, *s.style, s.progress.title)),
-			layout.Flexed(1, s.layoutProgressContent),
-		)
-	})
 }

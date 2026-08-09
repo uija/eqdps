@@ -42,6 +42,9 @@ type Context struct {
 
 	lastLevelUp    data.LogLandmark
 	lastZoneChange data.LogLandmark
+
+	parserPath     string
+	readyForFollow chan struct{}
 }
 
 type LevelUp struct {
@@ -60,6 +63,7 @@ func NewContext() *Context {
 		onLogRowFuncs:   make([]OnLogRowFunc, 0),
 		onStatus:        make([]ui.Widget, 0),
 		HelpItems:       make([]HelpItem, 0),
+		readyForFollow:  make(chan struct{}, 1),
 	}
 }
 func (c *Context) ParserLogFileOpened(path string) {
@@ -70,13 +74,38 @@ func (c *Context) ParserLogFileOpened(path string) {
 			f(fields[2], fields[3], 0)
 		}
 	}
-	log.Printf("Starting parser in background...\n")
-	c.startParser(path)
+	c.parserPath = path
+	c.startParser(path, c.runIndexFile)
 }
 func (c *Context) RegisterProgressHandler(h ProgressHandler) {
 	c.progressHandler = h
 }
-func (c *Context) startParser(path string) {
+func (c *Context) LoadCombatHistory(duration time.Duration, offset int64) {
+}
+func (c *Context) runIndexFile() {
+	c.Parser.IndexFile(c.ParserOnReplayProgress, func(lm data.LogLandmark) {
+		switch lm.Type {
+		case data.LogRowEventTypeLevelUp:
+			c.lastLevelUp = lm
+		case data.LogRowEventTypeZoneChange:
+			c.lastZoneChange = lm
+		default:
+		}
+	})
+	c.readyForFollow <- struct{}{}
+}
+func (c *Context) runFollow() {
+	log.Printf("Starting follow parser")
+	c.Parser.Follow(c.ParserNewLogEvent)
+}
+func (c *Context) Update() {
+	select {
+	case <-c.readyForFollow:
+		c.startParser(c.parserPath, c.runFollow)
+	default:
+	}
+}
+func (c *Context) startParser(path string, runFunc func()) {
 	c.stopParser()
 
 	c.Parser = eqlog.NewParser(c.ParserSession)
@@ -86,17 +115,7 @@ func (c *Context) startParser(path string) {
 		c.stopParser()
 		return
 	}
-	go func() {
-		c.Parser.IndexFile(c.ParserOnReplayProgress, func(lm data.LogLandmark) {
-			switch lm.Type {
-			case data.LogRowEventTypeLevelUp:
-				c.lastLevelUp = lm
-			case data.LogRowEventTypeZoneChange:
-				c.lastZoneChange = lm
-			default:
-			}
-		})
-	}()
+	go runFunc()
 }
 func (c *Context) stopParser() {
 	if c.Parser != nil {
@@ -109,7 +128,9 @@ func (c *Context) ParserOnReplayProgress(progress eqlog.ReplayProgress) {
 	c.progressHandler("Parsing Logfile...", progress.Bytes, progress.Total)
 }
 func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
-	// extract
+	for _, f := range c.onLogRowFuncs {
+		f(row)
+	}
 }
 func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
 	c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})

@@ -15,6 +15,8 @@ import (
 	"github.com/uija/eqdps/internal/ui"
 )
 
+const SEPARATOR_TEXT = "-- SEPARATOR --"
+
 // Bar is an application menu bar with overlay dropdown menus.
 type Bar struct {
 	style     *ui.Style
@@ -75,7 +77,11 @@ func (m *Menu) AddItem(label string, action func()) *Item {
 	return item
 }
 func (m *Menu) AddSeparator() {
-
+	m.items = append(m.items, &Item{
+		label:   SEPARATOR_TEXT,
+		action:  func() {},
+		enabled: false,
+	})
 }
 
 // Update processes menu input events.
@@ -181,7 +187,6 @@ func (b *Bar) layoutDropdown(gtx layout.Context) layout.Dimensions {
 
 	children := make([]layout.FlexChild, 0, len(b.active.items))
 	for _, item := range b.active.items {
-		item := item
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return b.layoutItem(gtx, item)
 		}))
@@ -211,7 +216,11 @@ func (b *Bar) layoutItem(gtx layout.Context, item *Item) layout.Dimensions {
 			fill(gtx, b.style.Palette.Hover)
 		}
 		return layout.Inset{Left: unit.Dp(12), Right: unit.Dp(12), Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(b.style.Theme, unit.Sp(15), item.label)
+			caption := item.label
+			if item.label == SEPARATOR_TEXT {
+				caption = "----"
+			}
+			label := material.Label(b.style.Theme, unit.Sp(15), caption)
 			if item.enabled {
 				label.Color = b.style.Palette.Text
 			} else {

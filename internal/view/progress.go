@@ -2,12 +2,37 @@ package view
 
 import (
 	"fmt"
+	"image"
 
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/ui"
 )
+
+func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
+	if s.progress == nil {
+		return layout.Dimensions{}
+	}
+
+	fill(gtx, s.style.Palette.Shadow)
+
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
+		height := min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y)
+		gtx.Constraints = layout.Exact(image.Pt(width, height))
+
+		fill(gtx, s.style.Palette.Panel)
+
+		return layout.Flex{
+			Axis: layout.Vertical,
+		}.Layout(gtx,
+			layout.Rigid(ui.TitleBar(gtx, *s.style, s.progress.title)),
+			layout.Flexed(1, s.layoutProgressContent),
+		)
+	})
+}
 
 func (s *Shell) layoutProgressContent(gtx layout.Context) layout.Dimensions {
 	value := float32(0)

@@ -1,6 +1,8 @@
 package dps
 
 import (
+	"time"
+
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
@@ -10,7 +12,15 @@ import (
 )
 
 type Module struct {
-	ctx *module.Context
+	ctx    *module.Context
+	combat Combat
+}
+
+type CombatInstance struct {
+	start      time.Time
+	target     string
+	lastAction time.Time
+	events     []*data.LogRowEvent
 }
 
 func (m *Module) Init(ctx *module.Context) error {
@@ -21,6 +31,7 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.SetMainView(m.MainView)
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
+	m.combat = newCombat()
 	return nil
 }
 
@@ -36,7 +47,7 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64) 
 
 }
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
-
+	m.combat.AddEvent(event)
 }
 func (m *Module) SelectBacklog() {
 
