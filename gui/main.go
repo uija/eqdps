@@ -16,7 +16,7 @@ import (
 
 func main() {
 	context := module.NewContext()
-	context.RegisterModule(&dps.Module{})
+	context.RegisterModule(dps.NewModule())
 	context.RegisterModule(&sky.Module{})
 
 	go func() {

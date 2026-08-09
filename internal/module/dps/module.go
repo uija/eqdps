@@ -14,6 +14,15 @@ import (
 type Module struct {
 	ctx    *module.Context
 	combat Combat
+	rows   chan *data.LogRowEvent
+	stop   chan struct{}
+}
+
+func NewModule() *Module {
+	return &Module{
+		rows: make(chan *data.LogRowEvent),
+		stop: make(chan struct{}, 1),
+	}
 }
 
 type CombatInstance struct {
@@ -32,6 +41,22 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	m.combat = newCombat()
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case row := <-m.rows:
+				m.combat.AddEvent(row)
+			case now := <-ticker.C:
+				m.combat.endTimedOutFights(now)
+			case <-m.stop:
+				return
+			}
+		}
+	}()
 	return nil
 }
 
@@ -40,7 +65,7 @@ func (m *Module) OpenMainView() {
 }
 
 func (m *Module) Shutdown() {
-
+	m.stop <- struct{}{}
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64) {

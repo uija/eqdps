@@ -14,9 +14,10 @@ type Fight struct {
 
 	combatants map[string]*Combatant
 
-	start     time.Time
-	end       time.Time
-	endReason int
+	start      time.Time
+	lastUpdate time.Time
+	end        time.Time
+	endReason  string
 }
 
 type Combatant struct {
