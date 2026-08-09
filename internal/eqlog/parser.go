@@ -42,11 +42,14 @@ type Parser struct {
 	metadata data.CharacterMetadata
 	reading  bool
 	closing  bool
+	session  uint64
 	stop     chan struct{}
 }
 
-func NewParser() *Parser {
-	return &Parser{}
+func NewParser(session uint64) *Parser {
+	return &Parser{
+		session: session,
+	}
 }
 
 func (p *Parser) Open(path string) error {
@@ -290,6 +293,7 @@ func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowE
 	eventType, eventData := classify(matches[2])
 	p.updateMetadata(eventType, eventData, timestamp)
 	event := &data.LogRowEvent{
+		Session:   p.session,
 		Timestamp: timestamp,
 		Offset:    endOffset,
 		Message:   matches[2],

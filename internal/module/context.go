@@ -3,6 +3,7 @@ package module
 import (
 	"log"
 	"regexp"
+	"time"
 
 	"gioui.org/layout"
 	"gioui.org/unit"
@@ -25,38 +26,72 @@ type UIActionFunc func()
 type OnLogOpenFunc func(characterName string, serverName string, filesize int64)
 type OnLogRowFunc func(event *data.LogRowEvent)
 
+type ProgressHandler func(title string, current int64, max int64)
+
 type Context struct {
 	Parser          *eqlog.Parser
+	ParserSession   uint64
 	currentMainView ui.Widget
 	ViewMenuItems   []MenuItem
 	ToolsMenuItems  []MenuItem
+	progressHandler ProgressHandler
 	onLogOpenFuncs  []OnLogOpenFunc
 	onLogRowFuncs   []OnLogRowFunc
 	onStatus        []ui.Widget
 	HelpItems       []HelpItem
 }
 
-func NewContext(parser *eqlog.Parser) *Context {
+func NewContext() *Context {
 	return &Context{
-		Parser:         parser,
-		ViewMenuItems:  make([]MenuItem, 0),
-		onLogOpenFuncs: make([]OnLogOpenFunc, 0),
-		onLogRowFuncs:  make([]OnLogRowFunc, 0),
-		onStatus:       make([]ui.Widget, 0),
-		HelpItems:      make([]HelpItem, 0),
+		ParserSession:   0,
+		Parser:          nil,
+		ViewMenuItems:   make([]MenuItem, 0),
+		progressHandler: func(title string, current int64, max int64) {},
+		onLogOpenFuncs:  make([]OnLogOpenFunc, 0),
+		onLogRowFuncs:   make([]OnLogRowFunc, 0),
+		onStatus:        make([]ui.Widget, 0),
+		HelpItems:       make([]HelpItem, 0),
 	}
 }
 func (c *Context) ParserLogFileOpened(path string) {
 	// Extract Character and Servername
 	exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
 	if fields := exp.FindStringSubmatch(path); fields != nil {
-		log.Printf("Name: %s Server: %s", fields[2], fields[3])
 		for _, f := range c.onLogOpenFuncs {
 			f(fields[2], fields[3], 0)
 		}
 	}
+	log.Printf("Starting parser in background...\n")
+	c.startParser(path)
 }
-func (c *Context) ParserNewLogEvent(row data.LogRowEvent) {
+func (c *Context) RegisterProgressHandler(h ProgressHandler) {
+	c.progressHandler = h
+}
+func (c *Context) startParser(path string) {
+	c.stopParser()
+
+	c.Parser = eqlog.NewParser(c.ParserSession)
+	err := c.Parser.Open(path)
+	if err != nil {
+		log.Printf("Unable to upen log. %v", err)
+		c.stopParser()
+		return
+	}
+	go func() {
+		c.Parser.Replay(60*time.Minute, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	}()
+}
+func (c *Context) stopParser() {
+	if c.Parser != nil {
+		c.ParserSession++
+		c.Parser.Close()
+		c.Parser = nil
+	}
+}
+func (c *Context) ParserOnReplayProgress(progress eqlog.ReplayProgress) {
+	c.progressHandler("Parsing Logfile...", progress.Bytes, progress.Total)
+}
+func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 	// extract
 }
 func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {

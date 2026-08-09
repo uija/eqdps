@@ -41,6 +41,7 @@ type CharacterMetadata struct {
 }
 
 type LogRowEvent struct {
+	Session   uint64
 	Timestamp time.Time
 	Offset    int64
 	Message   string

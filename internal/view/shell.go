@@ -29,6 +29,17 @@ var style = ui.Style{
 	},
 }
 
+type fileResult struct {
+	Path  string
+	Error error
+}
+
+type progress struct {
+	title string
+	value int64
+	max   int64
+}
+
 // Shell is the root application view.
 type Shell struct {
 	style   *ui.Style
@@ -36,19 +47,28 @@ type Shell struct {
 	status  string
 	help    *helpView
 	context *module.Context
+
+	progress *progress
+
+	invalidateFunc   func()
+	fileSelectResult chan fileResult
+	progressUpdate   chan progress
 }
 
 // NewShell constructs the root application view.
-func NewShell(context *module.Context, closeWindow func()) *Shell {
+func NewShell(context *module.Context, closeWindow func(), invalidate func()) *Shell {
 	style.Theme.Palette.Bg = style.Palette.Window
 	style.Theme.Palette.Fg = style.Palette.Text
 	result := &Shell{
-		style:   &style,
-		status:  "Ready",
-		help:    newHelpView(&style, context),
-		context: context,
+		style:            &style,
+		status:           "Ready",
+		help:             newHelpView(&style, context),
+		context:          context,
+		invalidateFunc:   invalidate,
+		fileSelectResult: make(chan fileResult, 1),
+		progressUpdate:   make(chan progress, 1),
 	}
-
+	context.RegisterProgressHandler(result.OnProgress)
 	result.menuBar = menu.NewBar(&style, "EVERQUEST LEGENDS")
 	fileMenu := result.menuBar.AddMenu("File")
 	fileMenu.AddItem("Open Log", result.OpenLogfile)
@@ -70,21 +90,36 @@ func NewShell(context *module.Context, closeWindow func()) *Shell {
 }
 
 func (s *Shell) OpenLogfile() {
-	path, err := zenity.SelectFile(
-		zenity.Title("Open EverQuest logfile"),
-		zenity.FileFilters{
-			{
-				Name:     "Everquest logs",
-				Patterns: []string{"eqlog_*_.txt", "*.txt"},
+	go func() {
+		path, err := zenity.SelectFile(
+			zenity.Title("Open EverQuest logfile"),
+			zenity.FileFilters{
+				{
+					Name:     "Everquest logs",
+					Patterns: []string{"eqlog_*_.txt", "*.txt"},
+				},
 			},
-		},
-	)
-	if err != nil {
-		// TODO: Show error
-		log.Printf("Unable to open file %v", err)
-		return
+		)
+		s.fileSelectResult <- fileResult{Path: path, Error: err}
+		s.invalidateFunc()
+	}()
+}
+func (s *Shell) OnProgress(title string, value int64, max int64) {
+	update := progress{title: title, value: value, max: max}
+	select {
+	case s.progressUpdate <- update:
+	default:
+		select {
+		case <-s.progressUpdate:
+		default:
+		}
+
+		select {
+		case s.progressUpdate <- update:
+		default:
+		}
 	}
-	s.context.ParserLogFileOpened(path)
+	s.invalidateFunc()
 }
 
 // Layout renders the complete application view.
@@ -102,10 +137,26 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 		}),
 		layout.Stacked(s.menuBar.LayoutOverlay),
 		layout.Expanded(s.help.Layout),
+		layout.Expanded(s.layoutProgressOverlay),
 	)
 }
 
 func (s *Shell) update(gtx layout.Context) {
+	select {
+	case result := <-s.fileSelectResult:
+		if result.Error != nil {
+			log.Printf("Unable to open file %v", result.Error)
+			break
+		}
+		s.context.ParserLogFileOpened(result.Path)
+	case p := <-s.progressUpdate:
+		if p.value >= p.max {
+			s.progress = nil
+		} else {
+			s.progress = &p
+		}
+	default:
+	}
 	s.menuBar.Update(gtx)
 	s.help.Update(gtx)
 }
@@ -131,4 +182,26 @@ func fill(gtx layout.Context, background color.NRGBA) {
 	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: background}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
+}
+func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
+	if s.progress == nil {
+		return layout.Dimensions{}
+	}
+
+	fill(gtx, s.style.Palette.Shadow)
+
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
+		height := min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y)
+		gtx.Constraints = layout.Exact(image.Pt(width, height))
+
+		fill(gtx, s.style.Palette.Panel)
+
+		return layout.Flex{
+			Axis: layout.Vertical,
+		}.Layout(gtx,
+			layout.Rigid(ui.TitleBar(gtx, *s.style, s.progress.title)),
+			layout.Flexed(1, s.layoutProgressContent),
+		)
+	})
 }

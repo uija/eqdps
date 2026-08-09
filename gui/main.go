@@ -8,7 +8,6 @@ import (
 	"gioui.org/io/system"
 	"gioui.org/op"
 	"gioui.org/unit"
-	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/module/dps"
 	"github.com/uija/eqdps/internal/module/sky"
@@ -16,8 +15,7 @@ import (
 )
 
 func main() {
-	parser := eqlog.NewParser()
-	context := module.NewContext(parser)
+	context := module.NewContext()
 	context.RegisterModule(&dps.Module{})
 	context.RegisterModule(&sky.Module{})
 
@@ -39,6 +37,8 @@ func main() {
 func run(context *module.Context, window *app.Window) error {
 	rootView := view.NewShell(context, func() {
 		window.Perform(system.ActionClose)
+	}, func() {
+		window.Invalidate()
 	})
 
 	var ops op.Ops

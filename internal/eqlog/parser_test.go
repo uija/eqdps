@@ -42,7 +42,7 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 		{"inventory export", "Outputfile Complete: Wyrmberg_rivervale-Inventory.txt", data.LogRowEventTypeInventoryExport},
 	}
 
-	parser := NewParser()
+	parser := NewParser(0)
 	for index, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			row := "[Sun Jul 26 12:00:00 2026] " + test.message
@@ -76,7 +76,7 @@ func TestReplayBuildsMetadataAndOffsets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parser := NewParser()
+	parser := NewParser(0)
 	if err := parser.Open(path); err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestReplayUsesLookbackFromLatestLogTimestamp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parser := NewParser()
+	parser := NewParser(0)
 	if err := parser.Open(path); err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestFollowStartsAtOpenOffsetAndStopsOnClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parser := NewParser()
+	parser := NewParser(0)
 	if err := parser.Open(path); err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestFollowStartsAtOpenOffsetAndStopsOnClose(t *testing.T) {
 }
 
 func TestParserRequiresOpenLog(t *testing.T) {
-	parser := NewParser()
+	parser := NewParser(0)
 	if err := parser.Replay(0, nil, nil); !errors.Is(err, ErrLogNotOpen) {
 		t.Fatalf("Replay error = %v", err)
 	}
@@ -241,7 +241,7 @@ func TestCloseClearsOpenedLog(t *testing.T) {
 	if err := os.WriteFile(path, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	parser := NewParser()
+	parser := NewParser(0)
 	if err := parser.Open(path); err != nil {
 		t.Fatal(err)
 	}
