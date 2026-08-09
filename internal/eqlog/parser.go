@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,7 +17,10 @@ import (
 	"github.com/uija/eqdps/internal/data"
 )
 
-const followPollInterval = 250 * time.Millisecond
+const (
+	followPollInterval       = 250 * time.Millisecond
+	latestTimestampTailBytes = int64(10 * 1024)
+)
 
 var logFilenameRE = regexp.MustCompile(`^eqlog_([^_]+)_([^_]+)\.txt$`)
 
@@ -34,6 +38,7 @@ type ReplayProgress struct {
 }
 
 type ReplayProgressHandler func(ReplayProgress)
+type LandmarkHandler func(data.LogLandmark)
 
 type Parser struct {
 	mu       sync.Mutex
@@ -93,6 +98,106 @@ func (p *Parser) Open(path string) error {
 	return nil
 }
 
+func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark LandmarkHandler) error {
+	path, stop, err := p.beginRead()
+	if err != nil {
+		return err
+	}
+	defer p.endRead()
+
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("Unable to open logfile for indexing. %w", err)
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("inspect logfile for replay: %w", err)
+	}
+
+	reader := bufio.NewReader(io.LimitReader(file, info.Size()))
+
+	var offset int64
+	if onProgress != nil {
+		onProgress(ReplayProgress{Total: info.Size()})
+	}
+	lines := 0
+	for {
+		select {
+		case <-stop:
+			return nil
+		default:
+		}
+		line, readErr := reader.ReadString('\n')
+		if len(line) > 0 {
+			line = strings.TrimRight(line, "\r\n")
+			lines++
+			switch {
+			case strings.Contains(line, "You have entered "):
+				matches := envelopeRE.FindStringSubmatch(line)
+				if matches == nil {
+					continue
+				}
+				timestamp, err := time.Parse(timestampLayout, matches[1])
+				if err != nil {
+					log.Printf("Unable to parse timestamp. %v", err)
+					continue
+				}
+				values := zoneChangeExpression.FindStringSubmatch(matches[2])
+				if values != nil {
+					p.metadata.Zone = values[1]
+					onLandmark(data.LogLandmark{
+						Type:      data.LogRowEventTypeZoneChange,
+						Timestamp: timestamp,
+						Offset:    offset,
+						Zone:      values[1],
+					})
+				}
+			case strings.Contains(line, "You have gained a level! Welcome to level "):
+				matches := envelopeRE.FindStringSubmatch(line)
+				if matches == nil {
+					continue
+				}
+				timestamp, err := time.Parse(timestampLayout, matches[1])
+				if err != nil {
+					log.Printf("Unable to parse timestamp. %v", err)
+					continue
+				}
+				values := levelUpExpression.FindStringSubmatch(matches[2])
+				if values != nil {
+					level, err := strconv.Atoi(values[1])
+					if err != nil {
+						log.Printf("Unable to parse level. %s", values[1])
+						continue
+					}
+					p.metadata.Level = level
+					onLandmark(data.LogLandmark{
+						Type:      data.LogRowEventTypeLevelUp,
+						Timestamp: timestamp,
+						Offset:    offset,
+						Level:     level,
+					})
+				}
+			}
+			offset += int64(len(line))
+			if onProgress != nil && lines%10000 == 0 {
+				onProgress(ReplayProgress{Bytes: offset, Total: info.Size(), Lines: lines})
+			}
+		}
+		if readErr == nil {
+			continue
+		}
+		if errors.Is(readErr, io.EOF) {
+			if onProgress != nil {
+				onProgress(ReplayProgress{Bytes: info.Size(), Total: info.Size(), Lines: lines})
+			}
+			return nil
+		}
+		return fmt.Errorf("read logfile replay: %w", readErr)
+	}
+}
+
 // Replay reads rows from the end of the logfile's requested lookback window.
 // A zero or negative lookback reads from the beginning.
 func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress ReplayProgressHandler) error {
@@ -130,7 +235,6 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 		}
 	}
 	p.resetReplayState()
-
 	reader := bufio.NewReader(io.LimitReader(file, info.Size()))
 	var offset int64
 	lines := 0
@@ -154,7 +258,7 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 			} else {
 				p.advanceOffset(offset)
 			}
-			if onProgress != nil && lines%5000 == 0 {
+			if onProgress != nil && lines%10000 == 0 {
 				onProgress(ReplayProgress{Bytes: offset, Total: info.Size(), Lines: lines})
 			}
 		}
@@ -172,7 +276,24 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 }
 
 func latestTimestamp(file *os.File, size int64, stop <-chan struct{}) (time.Time, bool, error) {
-	reader := bufio.NewReader(io.LimitReader(file, size))
+	start := max(size-latestTimestampTailBytes, 0)
+	if _, err := file.Seek(start, io.SeekStart); err != nil {
+		return time.Time{}, false, fmt.Errorf("seek to logfile tail: %w", err)
+	}
+	reader := bufio.NewReader(io.LimitReader(file, size-start))
+	if start > 0 {
+		select {
+		case <-stop:
+			return time.Time{}, true, nil
+		default:
+		}
+		if _, err := reader.ReadString('\n'); err != nil {
+			if errors.Is(err, io.EOF) {
+				return time.Time{}, false, nil
+			}
+			return time.Time{}, false, fmt.Errorf("discard partial logfile row: %w", err)
+		}
+	}
 	var latest time.Time
 	for {
 		select {
@@ -181,8 +302,10 @@ func latestTimestamp(file *os.File, size int64, stop <-chan struct{}) (time.Time
 		default:
 		}
 		line, readErr := reader.ReadString('\n')
-		if timestamp, ok := rowTimestamp(line); ok && timestamp.After(latest) {
-			latest = timestamp
+		if strings.HasSuffix(line, "\n") {
+			if timestamp, ok := rowTimestamp(line); ok {
+				latest = timestamp
+			}
 		}
 		if readErr == nil {
 			continue

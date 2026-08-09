@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -165,6 +166,41 @@ func TestReplayUsesLookbackFromLatestLogTimestamp(t *testing.T) {
 	}
 	if events[1].Offset != int64(len(content)) {
 		t.Fatalf("final offset = %d, want %d", events[1].Offset, len(content))
+	}
+}
+
+func TestLatestTimestampUsesLastCompleteRowFromFileTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
+	var content strings.Builder
+	content.WriteString("[Sun Jul 26 12:00:00 2099] Timestamp outside the tail.\n")
+	for content.Len() < int(latestTimestampTailBytes)+2048 {
+		content.WriteString("[Sun Jul 26 11:00:00 2026] Filler row.\n")
+	}
+	content.WriteString("[Sun Jul 26 12:10:00 2026] Last complete row.\n")
+	content.WriteString("[Sun Jul 26 12:11:00 2026] Incomplete row")
+	if err := os.WriteFile(path, []byte(content.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	latest, stopped, err := latestTimestamp(file, info.Size(), make(chan struct{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stopped {
+		t.Fatal("tail lookup unexpectedly stopped")
+	}
+	want := time.Date(2026, time.July, 26, 12, 10, 0, 0, time.UTC)
+	if !latest.Equal(want) {
+		t.Fatalf("latest timestamp = %v, want %v", latest, want)
 	}
 }
 

@@ -31,10 +31,18 @@ const (
 	LogRowEventTypeInventoryExport
 )
 
+type LogLandmark struct {
+	Type      LogRowEventType
+	Timestamp time.Time
+	Offset    int64
+	Zone      string
+	Level     int
+}
 type CharacterMetadata struct {
 	CharacterName string
 	ServerName    string
 	Level         int
+	Zone          string
 	Classes       []string
 	Race          string
 	WhoObservedAt time.Time

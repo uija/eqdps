@@ -9,6 +9,8 @@ import (
 const timestampLayout = "Mon Jan 02 15:04:05 2006"
 
 var envelopeRE = regexp.MustCompile(`^\[([^\]]+)\] (.*)$`)
+var levelUpExpression = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
+var zoneChangeExpression = regexp.MustCompile(`^You have entered (.+)\.$`)
 
 type eventPattern struct {
 	eventType  data.LogRowEventType
@@ -25,11 +27,11 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeExperience, regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`)},
 	{data.LogRowEventTypeKillExperienceReward, regexp.MustCompile(`^You gain (?:party )?experience!(?: \([0-9]+(?:\.[0-9]+)?%\))?$`)},
 	{data.LogRowEventTypeCorpseCoinReward, regexp.MustCompile(`^You receive .+ from the corpse\.$`)},
-	{data.LogRowEventTypeLevelUp, regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)},
+	{data.LogRowEventTypeLevelUp, levelUpExpression},
 	{data.LogRowEventTypeAggroClear, regexp.MustCompile(`^Your enemies have forgotten you!$`)},
 	{data.LogRowEventTypeYouSlain, regexp.MustCompile(`^You have slain (.+)!$`)},
 	{data.LogRowEventTypeSlainBy, regexp.MustCompile(`^(.+) has been slain by (.+)!$`)},
-	{data.LogRowEventTypeZoneChange, regexp.MustCompile(`^You have entered (.+)\.$`)},
+	{data.LogRowEventTypeZoneChange, zoneChangeExpression},
 	{data.LogRowEventTypeLoot, regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`)},
 	{data.LogRowEventTypeLootResult, regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`)},
 	{data.LogRowEventTypeItemDestroyed, regexp.MustCompile(`^You successfully destroyed ([0-9]+) (.+)\.$`)},

@@ -39,6 +39,15 @@ type Context struct {
 	onLogRowFuncs   []OnLogRowFunc
 	onStatus        []ui.Widget
 	HelpItems       []HelpItem
+
+	lastLevelUp    data.LogLandmark
+	lastZoneChange data.LogLandmark
+}
+
+type LevelUp struct {
+	Timestamp  time.Time
+	ByteOffset int64
+	Level      int
 }
 
 func NewContext() *Context {
@@ -78,7 +87,15 @@ func (c *Context) startParser(path string) {
 		return
 	}
 	go func() {
-		c.Parser.Replay(60*time.Minute, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+		c.Parser.IndexFile(c.ParserOnReplayProgress, func(lm data.LogLandmark) {
+			switch lm.Type {
+			case data.LogRowEventTypeLevelUp:
+				c.lastLevelUp = lm
+			case data.LogRowEventTypeZoneChange:
+				c.lastZoneChange = lm
+			default:
+			}
+		})
 	}()
 }
 func (c *Context) stopParser() {
