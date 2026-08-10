@@ -4,8 +4,20 @@ import (
 	"log"
 	"time"
 
+	"gioui.org/widget"
 	"github.com/uija/eqdps/internal/data"
 )
+
+const END_REASON_ZONED = "Zonedout"
+const END_REASON_TIMEOUT = "Timeout"
+
+const CATEGORY_MELEE = "Melee"
+const CATEGORY_SPELLS = "Spells"
+const CATEGORY_DOTS = "DoTs"
+const CATEGORY_PROCS = "Procs"
+const CATEGORY_DS = "Damage Shield"
+
+var DamageCategories = []string{CATEGORY_MELEE, CATEGORY_SPELLS, CATEGORY_DOTS, CATEGORY_PROCS, CATEGORY_DS}
 
 type Fight struct {
 	name         string
@@ -26,6 +38,9 @@ type Combatant struct {
 
 	overall    *CombatDamageData
 	categories map[string]CombatDamageCategory
+
+	open  bool
+	click widget.Clickable
 }
 
 func newCombatant(name, normalized string) *Combatant {
@@ -36,6 +51,7 @@ func newCombatant(name, normalized string) *Combatant {
 		categories: make(map[string]CombatDamageCategory),
 	}
 }
+
 func (c *Combatant) AddDamageEvent(e *DamageEvent) {
 	c.overall.addDamageEvent(e)
 
@@ -44,17 +60,17 @@ func (c *Combatant) AddDamageEvent(e *DamageEvent) {
 	case data.LogRowEventTypeDamage:
 		if e.isSpell() {
 			if e.IsCast {
-				category = "Spells"
+				category = CATEGORY_SPELLS
 			} else {
-				category = "Procs"
+				category = CATEGORY_PROCS
 			}
 		} else {
-			category = "Melee"
+			category = CATEGORY_MELEE
 		}
 	case data.LogRowEventTypeDamageOverTime:
-		category = "DoTs"
+		category = CATEGORY_DOTS
 	case data.LogRowEventTypeDamageShield:
-		category = "Damage Shield"
+		category = CATEGORY_DS
 	}
 	if category == "" {
 		log.Printf("Unable to determine category.")

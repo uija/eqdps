@@ -34,3 +34,14 @@ func TitleBar(gtx layout.Context, style Style, text string) func(gtx layout.Cont
 		})
 	}
 }
+func ColoredRow(gtx layout.Context, color color.NRGBA, content layout.Widget) layout.Dimensions {
+	return layout.Stack{}.Layout(
+		gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			size := gtx.Constraints.Min
+			paint.FillShape(gtx.Ops, color, clip.Rect{Max: size}.Op())
+			return layout.Dimensions{Size: size}
+		}),
+		layout.Stacked(content),
+	)
+}

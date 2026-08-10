@@ -27,6 +27,7 @@ type OnLogOpenFunc func(characterName string, serverName string, filesize int64)
 type OnLogRowFunc func(event *data.LogRowEvent)
 
 type ProgressHandler func(title string, current int64, max int64)
+type UpdateFunc func(layout.Context)
 
 type Context struct {
 	Parser          *eqlog.Parser
@@ -39,9 +40,12 @@ type Context struct {
 	onLogRowFuncs   []OnLogRowFunc
 	onStatus        []ui.Widget
 	HelpItems       []HelpItem
+	updateFuncs     []UpdateFunc
 
 	lastLevelUp    data.LogLandmark
 	lastZoneChange data.LogLandmark
+
+	replayDuration time.Duration
 
 	parserPath     string
 	readyForFollow chan struct{}
@@ -64,6 +68,7 @@ func NewContext() *Context {
 		onStatus:        make([]ui.Widget, 0),
 		HelpItems:       make([]HelpItem, 0),
 		readyForFollow:  make(chan struct{}, 1),
+		updateFuncs:     make([]UpdateFunc, 0),
 	}
 }
 func (c *Context) ParserLogFileOpened(path string) {
@@ -81,6 +86,8 @@ func (c *Context) RegisterProgressHandler(h ProgressHandler) {
 	c.progressHandler = h
 }
 func (c *Context) LoadCombatHistory(duration time.Duration, offset int64) {
+	c.replayDuration = duration
+	c.startParser(c.parserPath, c.runReplay)
 }
 func (c *Context) runIndexFile() {
 	c.Parser.IndexFile(c.ParserOnReplayProgress, func(lm data.LogLandmark) {
@@ -95,14 +102,21 @@ func (c *Context) runIndexFile() {
 	c.readyForFollow <- struct{}{}
 }
 func (c *Context) runFollow() {
-	log.Printf("Starting follow parser")
+	log.Printf("Starting followmode")
 	c.Parser.Follow(c.ParserNewLogEvent)
 }
-func (c *Context) Update() {
+func (c *Context) runReplay() {
+	c.Parser.Replay(c.replayDuration, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	c.readyForFollow <- struct{}{}
+}
+func (c *Context) Update(gtx layout.Context) {
 	select {
 	case <-c.readyForFollow:
 		c.startParser(c.parserPath, c.runFollow)
 	default:
+	}
+	for _, f := range c.updateFuncs {
+		f(gtx)
 	}
 }
 func (c *Context) startParser(path string, runFunc func()) {
@@ -143,6 +157,9 @@ func (c *Context) OnLogOpen(f OnLogOpenFunc) {
 }
 func (c *Context) OnLogRow(f OnLogRowFunc) {
 	c.onLogRowFuncs = append(c.onLogRowFuncs, f)
+}
+func (c *Context) UpdateFunc(f UpdateFunc) {
+	c.updateFuncs = append(c.updateFuncs, f)
 }
 func (c *Context) OnStatus(f ui.Widget) {
 	c.onStatus = append(c.onStatus, f)

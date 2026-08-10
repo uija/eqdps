@@ -95,6 +95,9 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	toolsMenu.AddItem("Preferences", func() {})
 	result.menuBar.AddAction("Help", result.help.Open)
 
+	// check if there is a logfile to open
+	result.fileSelectResult <- fileResult{Error: nil, Path: "/home/jk/EQL/Logs/eqlog_Wyrmberg_rivervale.txt"}
+
 	return result
 }
 
@@ -167,16 +170,19 @@ func (s *Shell) update(gtx layout.Context) {
 		}
 	default:
 	}
-	s.context.Update()
+	s.context.Update(gtx)
 	s.menuBar.Update(gtx)
 	s.selectHistory.Update(gtx)
 	s.help.Update(gtx)
 }
 
 func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {
-	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return s.context.Layout(s.style, gtx)
-	})
+	return s.context.Layout(s.style, gtx)
+	/*
+		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return s.context.Layout(s.style, gtx)
+		})
+	*/
 }
 
 func (s *Shell) layoutStatus(gtx layout.Context) layout.Dimensions {

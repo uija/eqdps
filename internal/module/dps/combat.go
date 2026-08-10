@@ -40,7 +40,7 @@ func (c *Combat) findUnvalidatedFightFor(name string) (*Fight, bool) {
 func (c *Combat) endTimedOutFights(now time.Time) {
 	for name, fight := range c.activeFights {
 		if now.Sub(fight.end) > 20*time.Second {
-			fight.endReason = "Timeout"
+			fight.endReason = END_REASON_TIMEOUT
 			c.history = append(c.history, fight)
 			delete(c.activeFights, name)
 		}
@@ -98,6 +98,7 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 		}
 		c.activeFights[npc] = newFight(true)
 		c.activeFights[npc].name = npc
+		c.history = append(c.history, c.activeFights[npc])
 		return c.activeFights[npc]
 	}
 	if fight, ok := c.activeFights[npc]; ok {
@@ -108,6 +109,7 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 	}
 	c.activeFights[npc] = newFight(false)
 	c.activeFights[npc].name = npc
+	c.history = append(c.history, c.activeFights[npc])
 	return c.activeFights[npc]
 }
 
@@ -131,8 +133,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) {
 	case data.LogRowEventTypeZoneChange:
 		for _, fight := range c.activeFights {
 			fight.end = e.Timestamp
-			fight.endReason = "Zoning"
-			c.history = append(c.history, fight)
+			fight.endReason = END_REASON_ZONED
 		}
 		c.activeFights = make(map[string]*Fight)
 	// You have entered The Plane of Sky.
@@ -141,7 +142,6 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) {
 		if fight, ok := c.activeFights[target]; ok {
 			fight.end = e.Timestamp
 			fight.endReason = e.Data[2]
-			c.history = append(c.history, fight)
 			delete(c.activeFights, target)
 		}
 		// <a mob name> has been slain by <a player name>!
@@ -151,7 +151,6 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) {
 		if fight, ok := c.activeFights[target]; ok {
 			fight.end = e.Timestamp
 			fight.endReason = "You"
-			c.history = append(c.history, fight)
 			delete(c.activeFights, target)
 		}
 	}
