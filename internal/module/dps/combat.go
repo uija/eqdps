@@ -79,9 +79,10 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 			validated = true
 		}
 	}
+	fight_name := evaluateFightName(npc)
 	if validated {
 		c.knownPlayers[player] = true
-		fight, ok := c.activeFights[npc]
+		fight, ok := c.activeFights[fight_name]
 		if ok {
 			fight.validated = true
 			return fight
@@ -91,26 +92,36 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 		if ok {
 			// we have a fight thats under the wrong name
 			delete(c.activeFights, fight.name)
-			fight.name = npc
+			fight.name = fight_name
 			fight.validated = true
-			c.activeFights[npc] = fight
+			c.activeFights[fight_name] = fight
 			return fight
 		}
-		c.activeFights[npc] = newFight(true)
-		c.activeFights[npc].name = npc
-		c.history = append(c.history, c.activeFights[npc])
-		return c.activeFights[npc]
+		c.activeFights[fight_name] = newFight(true)
+		c.activeFights[fight_name].name = fight_name
+		c.history = append(c.history, c.activeFights[fight_name])
+		return c.activeFights[fight_name]
 	}
-	if fight, ok := c.activeFights[npc]; ok {
+	if fight, ok := c.activeFights[fight_name]; ok {
 		return fight
 	}
-	if fight, ok := c.activeFights[player]; ok {
+	if fight, ok := c.activeFights[fight_name]; ok {
 		return fight
 	}
-	c.activeFights[npc] = newFight(false)
-	c.activeFights[npc].name = npc
-	c.history = append(c.history, c.activeFights[npc])
-	return c.activeFights[npc]
+	c.activeFights[fight_name] = newFight(false)
+	c.activeFights[fight_name].name = fight_name
+	c.history = append(c.history, c.activeFights[fight_name])
+	return c.activeFights[fight_name]
+}
+
+func evaluateFightName(name string) string {
+	if ret, ok := strings.CutSuffix(name, " pet"); ok {
+		return ret
+	}
+	if ret, ok := strings.CutSuffix(name, "`s warder"); ok {
+		return ret
+	}
+	return name
 }
 
 func (c *Combat) AddEvent(e *data.LogRowEvent) {
