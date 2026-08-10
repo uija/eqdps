@@ -7,6 +7,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
@@ -69,4 +70,12 @@ func ColoredAccentedRow(gtx layout.Context, color color.NRGBA, accent color.NRGB
 		}),
 		layout.Stacked(content),
 	)
+}
+func RightAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dimensions {
+	return layout.Inset{Right: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		tgtx := gtx
+		tgtx.Constraints.Min.X = tgtx.Constraints.Max.X
+		label.Alignment = text.End
+		return label.Layout(tgtx)
+	})
 }

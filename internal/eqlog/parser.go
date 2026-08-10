@@ -37,6 +37,9 @@ type ReplayProgress struct {
 	Lines int
 }
 
+var num_rows = 0
+var used_rows = 0
+
 type ReplayProgressHandler func(ReplayProgress)
 type LandmarkHandler func(data.LogLandmark)
 
@@ -135,16 +138,16 @@ func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark Landmark
 			lines++
 			switch {
 			case strings.Contains(line, "You have entered "):
-				matches := envelopeRE.FindStringSubmatch(line)
-				if matches == nil {
+				timestampText, message, ok := splitEnvelope(line)
+				if !ok {
 					continue
 				}
-				timestamp, err := time.Parse(timestampLayout, matches[1])
+				timestamp, err := time.Parse(timestampLayout, timestampText)
 				if err != nil {
 					log.Printf("Unable to parse timestamp. %v", err)
 					continue
 				}
-				values := zoneChangeExpression.FindStringSubmatch(matches[2])
+				values := zoneChangeExpression.FindStringSubmatch(message)
 				if values != nil {
 					p.metadata.Zone = values[1]
 					onLandmark(data.LogLandmark{
@@ -155,16 +158,16 @@ func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark Landmark
 					})
 				}
 			case strings.Contains(line, "You have gained a level! Welcome to level "):
-				matches := envelopeRE.FindStringSubmatch(line)
-				if matches == nil {
+				timestampText, message, ok := splitEnvelope(line)
+				if !ok {
 					continue
 				}
-				timestamp, err := time.Parse(timestampLayout, matches[1])
+				timestamp, err := time.Parse(timestampLayout, timestampText)
 				if err != nil {
 					log.Printf("Unable to parse timestamp. %v", err)
 					continue
 				}
-				values := levelUpExpression.FindStringSubmatch(matches[2])
+				values := levelUpExpression.FindStringSubmatch(message)
 				if values != nil {
 					level, err := strconv.Atoi(values[1])
 					if err != nil {
@@ -201,6 +204,8 @@ func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark Landmark
 // Replay reads rows from the end of the logfile's requested lookback window.
 // A zero or negative lookback reads from the beginning.
 func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress ReplayProgressHandler) error {
+	used_rows = 0
+	num_rows = 0
 	path, stop, err := p.beginRead()
 	if err != nil {
 		return err
@@ -251,6 +256,14 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 		if len(line) > 0 {
 			offset += int64(len(line))
 			lines++
+			/*
+				if strings.Contains(line, " tells ") {
+					continue
+				}
+				if strings.Contains(line, " sais ") {
+					continue
+				}
+			*/
 			if cutoff.IsZero() {
 				p.emit(line, offset, false, handler)
 			} else if timestamp, ok := rowTimestamp(line); ok && !timestamp.Before(cutoff) {
@@ -269,6 +282,7 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 			if onProgress != nil {
 				onProgress(ReplayProgress{Bytes: info.Size(), Total: info.Size(), Lines: lines})
 			}
+			log.Printf("Used %d out of %d filed. %d skipped", used_rows, num_rows, num_rows-used_rows)
 			return nil
 		}
 		return fmt.Errorf("read logfile replay: %w", readErr)
@@ -318,12 +332,20 @@ func latestTimestamp(file *os.File, size int64, stop <-chan struct{}) (time.Time
 }
 
 func rowTimestamp(row string) (time.Time, bool) {
-	matches := envelopeRE.FindStringSubmatch(strings.TrimRight(row, "\r\n"))
-	if matches == nil {
+	timestampText, _, ok := splitEnvelope(strings.TrimRight(row, "\r\n"))
+	if !ok {
 		return time.Time{}, false
 	}
-	timestamp, err := time.Parse(timestampLayout, matches[1])
+	timestamp, err := time.Parse(timestampLayout, timestampText)
 	return timestamp, err == nil
+}
+
+func splitEnvelope(row string) (timestamp, message string, ok bool) {
+	if len(row) == 0 || row[0] != '[' {
+		return "", "", false
+	}
+	timestamp, message, ok = strings.Cut(row[1:], "] ")
+	return timestamp, message, ok
 }
 
 // Follow blocks while waiting for new complete logfile rows. Call Close from
@@ -399,27 +421,32 @@ func (p *Parser) Close() {
 }
 
 func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowEvent, bool) {
+	num_rows++
 	row = strings.TrimRight(row, "\r\n")
-	matches := envelopeRE.FindStringSubmatch(row)
+	timestampText, message, validEnvelope := splitEnvelope(row)
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.offset = endOffset
-	if matches == nil {
-		return nil, false
-	}
-	timestamp, err := time.Parse(timestampLayout, matches[1])
-	if err != nil {
+	if !validEnvelope {
 		return nil, false
 	}
 
-	eventType, eventData := classify(matches[2])
+	eventType, eventData, known := classify(message)
+	if !known {
+		return nil, false
+	}
+	timestamp, err := time.Parse(timestampLayout, timestampText)
+	if err != nil {
+		return nil, false
+	}
+	used_rows++
 	p.updateMetadata(eventType, eventData, timestamp)
 	event := &data.LogRowEvent{
 		Session:   p.session,
 		Timestamp: timestamp,
 		Offset:    endOffset,
-		Message:   matches[2],
+		Message:   message,
 		Live:      live,
 		Type:      eventType,
 		Data:      eventData,

@@ -47,7 +47,10 @@ type Context struct {
 
 	replayDuration time.Duration
 
+	invalidateFunc func()
+
 	parserPath     string
+	isReplay       bool
 	readyForFollow chan struct{}
 }
 
@@ -57,7 +60,7 @@ type LevelUp struct {
 	Level      int
 }
 
-func NewContext() *Context {
+func NewContext(invalidateFunc func()) *Context {
 	return &Context{
 		ParserSession:   0,
 		Parser:          nil,
@@ -69,6 +72,7 @@ func NewContext() *Context {
 		HelpItems:       make([]HelpItem, 0),
 		readyForFollow:  make(chan struct{}, 1),
 		updateFuncs:     make([]UpdateFunc, 0),
+		invalidateFunc:  invalidateFunc,
 	}
 }
 func (c *Context) ParserLogFileOpened(path string) {
@@ -102,17 +106,21 @@ func (c *Context) runIndexFile() {
 	c.readyForFollow <- struct{}{}
 }
 func (c *Context) runFollow() {
-	log.Printf("Starting followmode")
 	c.Parser.Follow(c.ParserNewLogEvent)
 }
 func (c *Context) runReplay() {
+	c.isReplay = true
+	started := time.Now()
 	c.Parser.Replay(c.replayDuration, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	log.Printf("Replay took: %v", time.Since(started))
+	c.isReplay = false
 	c.readyForFollow <- struct{}{}
 }
 func (c *Context) Update(gtx layout.Context) {
 	select {
 	case <-c.readyForFollow:
 		c.startParser(c.parserPath, c.runFollow)
+		c.invalidateFunc()
 	default:
 	}
 	for _, f := range c.updateFuncs {
@@ -144,6 +152,9 @@ func (c *Context) ParserOnReplayProgress(progress eqlog.ReplayProgress) {
 func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 	for _, f := range c.onLogRowFuncs {
 		f(row)
+	}
+	if !c.isReplay {
+		c.invalidateFunc()
 	}
 }
 func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {

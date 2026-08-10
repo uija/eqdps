@@ -63,6 +63,9 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	style.Palette.Accent = color.NRGBA{
 		R: 190, G: 155, B: 74, A: 255,
 	}
+	style.Palette.Active = color.NRGBA{R: 109, G: 178, B: 124, A: 255}
+	style.Palette.Inactive = color.NRGBA{R: 190, G: 155, B: 74, A: 255}
+
 	result := &Shell{
 		style:            &style,
 		status:           "Ready",

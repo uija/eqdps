@@ -15,12 +15,12 @@ import (
 )
 
 func main() {
-	context := module.NewContext()
-	context.RegisterModule(dps.NewModule())
-	context.RegisterModule(&sky.Module{})
-
 	go func() {
 		window := new(app.Window)
+		context := module.NewContext(window.Invalidate)
+		context.RegisterModule(dps.NewModule())
+		context.RegisterModule(&sky.Module{})
+
 		window.Option(
 			app.Title("eqdps"),
 			app.Size(unit.Dp(960), unit.Dp(640)),
