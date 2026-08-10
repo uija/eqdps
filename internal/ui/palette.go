@@ -10,4 +10,5 @@ type Palette struct {
 	Hover  color.NRGBA
 	Panel  color.NRGBA
 	Shadow color.NRGBA
+	Accent color.NRGBA
 }

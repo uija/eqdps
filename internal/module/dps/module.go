@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -131,7 +133,9 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 				gtx,
 				len(m.combat.history),
 				func(gtx layout.Context, index int) layout.Dimensions {
-					return m.RenderFight(size-index-1, style, gtx)
+					return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return m.RenderFight(size-index-1, style, gtx)
+					})
 				},
 			)
 		}),
@@ -143,7 +147,6 @@ func (m *Module) RenderFight(index int, style *ui.Style, gtx layout.Context) lay
 	rows := make([]layout.FlexChild, 0)
 	rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderFightHeader(fight, style, gtx) }))
 	rows = append(rows, m.GenerateFightCombatantRows(fight, style, gtx)...)
-
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, rows...)
 }
 func (m *Module) GenerateFightCombatantRows(fight *Fight, style *ui.Style, gtx layout.Context) []layout.FlexChild {
@@ -155,22 +158,28 @@ func (m *Module) GenerateFightCombatantRows(fight *Fight, style *ui.Style, gtx l
 	sort.Slice(names, func(i, j int) bool {
 		return fight.combatants[names[i]].overall.damage > fight.combatants[names[j]].overall.damage
 	})
-	for _, name := range names {
-		rows = append(rows, m.GenerateFightCombatantDetails(fight.combatants[name], style, gtx)...)
+	for idx, name := range names {
+		rows = append(rows, m.GenerateFightCombatantDetails(fight.combatants[name], idx, style, gtx)...)
 	}
 	return rows
 }
-func (m *Module) GenerateFightCombatantDetails(c *Combatant, style *ui.Style, gtx layout.Context) []layout.FlexChild {
+func (m *Module) GenerateFightCombatantDetails(c *Combatant, idx int, style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	rows := make([]layout.FlexChild, 0)
 	pre := " + "
 	if c.open {
 		pre = " - "
 	}
+	color := style.Palette.Panel
+	if idx%2 == 0 {
+		color = style.Palette.Window
+	}
 	//return layout.Rigid(func(gtx layout.Context) layout.Dimensions
 	rows = append(rows,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return c.click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return m.GenerateFightDetailsRow(1, fmt.Sprintf("%s%s", pre, c.name), c.overall, style, gtx)
+				return ui.ColoredAccentedRow(gtx, color, style.Palette.Accent, strings.ToLower(c.name) == "you", func(gtx layout.Context) layout.Dimensions {
+					return m.GenerateFightDetailsRow(1, fmt.Sprintf("%s%s", pre, c.name), c.overall, style, gtx)
+				})
 			})
 		}),
 	)
@@ -180,8 +189,11 @@ func (m *Module) GenerateFightCombatantDetails(c *Combatant, style *ui.Style, gt
 			if cat, ok := c.categories[catname]; ok {
 				rows = append(rows,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
-							return m.GenerateFightDetailsRow(2, catname, cat.overall, style, gtx)
+						// Spacing to the top, so Category names dont directly connect to Combatant rows
+						return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(layout.Context) layout.Dimensions {
+							return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+								return m.GenerateFightDetailsRow(2, catname, cat.overall, style, gtx)
+							})
 						})
 					}),
 				)
@@ -224,6 +236,7 @@ func (m *Module) GenerateFightDetailsRow(intent int, name string, d *CombatDamag
 	cells = append(cells, layout.Flexed(float32(m.columns[5].weight), func(gtx layout.Context) layout.Dimensions {
 		return material.Body1(style.Theme, fmt.Sprintf("%v", d.lastUpdate.Sub(d.start))).Layout(gtx)
 	}))
+	// each row gets its own padding
 	return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(4), Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, cells...)
 	})
@@ -234,7 +247,10 @@ func (m *Module) RenderFightHeader(fight *Fight, style *ui.Style, gtx layout.Con
 			return layout.Flex{Axis: layout.Horizontal}.Layout(
 				gtx,
 				layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
-					return material.Body1(style.Theme, fight.name).Layout(gtx)
+					label := material.Body1(style.Theme, fight.name)
+					label.TextSize = unit.Sp(16)
+					label.Font.Weight = font.SemiBold
+					return layout.Inset{Top: unit.Dp(5)}.Layout(gtx, label.Layout)
 				}),
 				layout.Flexed(10, func(gtx layout.Context) layout.Dimensions {
 					cnt := ""

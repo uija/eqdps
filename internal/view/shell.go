@@ -60,6 +60,9 @@ type Shell struct {
 func NewShell(context *module.Context, closeWindow func(), invalidate func()) *Shell {
 	style.Theme.Palette.Bg = style.Palette.Window
 	style.Theme.Palette.Fg = style.Palette.Text
+	style.Palette.Accent = color.NRGBA{
+		R: 190, G: 155, B: 74, A: 255,
+	}
 	result := &Shell{
 		style:            &style,
 		status:           "Ready",
@@ -177,7 +180,9 @@ func (s *Shell) update(gtx layout.Context) {
 }
 
 func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {
-	return s.context.Layout(s.style, gtx)
+	return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return s.context.Layout(s.style, gtx)
+	})
 	/*
 		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return s.context.Layout(s.style, gtx)
