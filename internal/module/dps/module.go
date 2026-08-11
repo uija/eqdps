@@ -60,12 +60,12 @@ func (m *Module) Init(ctx *module.Context) error {
 	m.columns = append(m.columns, column{title: "Crits", weight: 1})
 	m.columns = append(m.columns, column{title: "Active", weight: 1})
 	ctx.AddViewMenuItem("DPS Meter", m.OpenMainView)
-	ctx.OnLogOpen(m.OnLogOpen)
-	ctx.OnLogRow(m.OnLogRow)
+	ctx.RegisterLogOpen(m.OnLogOpen)
+	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.SetMainView(m.MainView)
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
-	ctx.UpdateFunc(m.Update)
+	ctx.RegisterUpdate(m.Update)
 	m.combat = newCombat()
 
 	go func() {
@@ -94,7 +94,7 @@ func (m *Module) Shutdown() {
 	m.stop <- struct{}{}
 }
 
-func (m *Module) OnLogOpen(characterName string, serverName string, size int64) {
+func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {
 
 }
 func (m *Module) OnLogRow(event *data.LogRowEvent) {

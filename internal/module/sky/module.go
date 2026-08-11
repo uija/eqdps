@@ -17,14 +17,15 @@ import (
 var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
 
 type Module struct {
-	ctx *module.Context
-	db  Database
+	ctx    *module.Context
+	db     Database
+	config Config
 }
 
 func (m *Module) Init(ctx *module.Context) error {
 	ctx.AddViewMenuItem("Plane of Sky Quest Tracker", m.OpenMainView)
-	ctx.OnLogOpen(m.OnLogOpen)
-	ctx.OnLogRow(m.OnLogRow)
+	ctx.RegisterLogOpen(m.OnLogOpen)
+	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.AddHelpItem("Plane of Sky Quest Tracker", m.LayoutHelp)
 	m.ctx = ctx
 	m.db, _ = LoadDatabase()
@@ -39,7 +40,7 @@ func (m *Module) Shutdown() {
 
 }
 
-func (m *Module) OnLogOpen(characterName string, serverName string, size int64) {
+func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {
 
 }
 func (m *Module) HandleLootedItems(quantity int, item string) {

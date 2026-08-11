@@ -34,11 +34,11 @@ type Module struct {
 }
 
 func (m *Module) Init(ctx *module.Context) error {
-	ctx.OnLogOpen(m.OnLogOpen)
-	ctx.OnLogRow(m.OnLogRow)
-	ctx.OnStatus(m.Layout)
-	ctx.OnOverlay(m.LayoutOverlay)
-	ctx.UpdateFunc(m.Update)
+	ctx.RegisterLogOpen(m.OnLogOpen)
+	ctx.RegisterLogRow(m.OnLogRow)
+	ctx.RegisterStatusWidget(m.Layout)
+	ctx.RegisterOverlayWidget(m.LayoutOverlay)
+	ctx.RegisterUpdate(m.Update)
 	m.ctx = ctx
 	return nil
 }
@@ -118,7 +118,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return dims
 }
 
-func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64) {
+func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) {
 	m.latestLog = time.Time{}
 	m.lastCombat = time.Time{}
 	m.activeBetween = 0

@@ -101,7 +101,9 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	result.menuBar.AddAction("Help", result.help.Open)
 
 	// check if there is a logfile to open
-	result.fileSelectResult <- fileResult{Error: nil, Path: "/home/jk/EQL/Logs/eqlog_Wyrmberg_rivervale.txt"}
+	if context.Config.LastLogfile != "" {
+		result.fileSelectResult <- fileResult{Error: nil, Path: context.Config.LastLogfile}
+	}
 
 	return result
 }
@@ -117,8 +119,14 @@ func (s *Shell) OpenLogfile() {
 				},
 			},
 		)
-		s.fileSelectResult <- fileResult{Path: path, Error: err}
-		s.invalidateFunc()
+		if err == nil {
+			s.context.Config.LastLogfile = path
+			if err := s.context.Config.Save(); err != nil {
+				log.Printf("Unable to save config. %v", err)
+			}
+			s.fileSelectResult <- fileResult{Path: path, Error: err}
+			s.invalidateFunc()
+		}
 	}()
 }
 func (s *Shell) OnProgress(title string, value int64, max int64) {

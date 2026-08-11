@@ -23,11 +23,11 @@ type HelpItem struct {
 }
 
 type UIActionFunc func()
-type OnLogOpenFunc func(characterName string, serverName string, filesize int64)
-type OnLogRowFunc func(event *data.LogRowEvent)
+type LogOpenListener func(characterName string, serverName string, filesize int64, path string)
+type LogRowListener func(event *data.LogRowEvent)
 
 type ProgressHandler func(title string, current int64, max int64)
-type UpdateFunc func(layout.Context)
+type UpdateListener func(layout.Context)
 
 type Context struct {
 	Parser          *eqlog.Parser
@@ -35,13 +35,17 @@ type Context struct {
 	currentMainView ui.Widget
 	ViewMenuItems   []MenuItem
 	ToolsMenuItems  []MenuItem
+
 	progressHandler ProgressHandler
-	onLogOpenFuncs  []OnLogOpenFunc
-	onLogRowFuncs   []OnLogRowFunc
-	onStatus        []ui.Widget
-	onOverlay       []ui.Widget
-	HelpItems       []HelpItem
-	updateFuncs     []UpdateFunc
+
+	logOpenListener       []LogOpenListener
+	logRowListener        []LogRowListener
+	statusWidgetProvider  []ui.Widget
+	overlayWidgetProvider []ui.Widget
+	HelpItems             []HelpItem
+	updateListener        []UpdateListener
+
+	Config *data.Config
 
 	lastLevelUp    data.LogLandmark
 	lastZoneChange data.LogLandmark
@@ -64,28 +68,35 @@ type ReplayRequest struct {
 }
 
 func NewContext(invalidateFunc func()) *Context {
+	config, err := data.GetConfig()
+	if err != nil {
+		log.Printf("Unable to create config. %v", err)
+		config = &data.Config{}
+	}
 	return &Context{
-		ParserSession:   0,
-		Parser:          nil,
-		ViewMenuItems:   make([]MenuItem, 0),
-		progressHandler: func(title string, current int64, max int64) {},
-		onLogOpenFuncs:  make([]OnLogOpenFunc, 0),
-		onLogRowFuncs:   make([]OnLogRowFunc, 0),
-		onStatus:        make([]ui.Widget, 0),
-		onOverlay:       make([]ui.Widget, 0),
-		HelpItems:       make([]HelpItem, 0),
+		ParserSession:         0,
+		Parser:                nil,
+		ViewMenuItems:         make([]MenuItem, 0),
+		progressHandler:       func(title string, current int64, max int64) {},
+		logOpenListener:       make([]LogOpenListener, 0),
+		logRowListener:        make([]LogRowListener, 0),
+		statusWidgetProvider:  make([]ui.Widget, 0),
+		overlayWidgetProvider: make([]ui.Widget, 0),
+		HelpItems:             make([]HelpItem, 0),
+		updateListener:        make([]UpdateListener, 0),
+
 		readyForFollow:  make(chan struct{}, 1),
 		requestedReplay: make(chan eqlog.Loopback, 1),
-		updateFuncs:     make([]UpdateFunc, 0),
 		invalidateFunc:  invalidateFunc,
+		Config:          config,
 	}
 }
 func (c *Context) ParserLogFileOpened(path string) {
 	// Extract Character and Servername
 	exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
 	if fields := exp.FindStringSubmatch(path); fields != nil {
-		for _, f := range c.onLogOpenFuncs {
-			f(fields[2], fields[3], 0)
+		for _, f := range c.logOpenListener {
+			f(fields[2], fields[3], 0, path)
 		}
 	}
 	c.parserPath = path
@@ -116,7 +127,7 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 			return material.Label(style.Theme, unit.Sp(14), c.parserPath).Layout(gtx)
 		})
 	}
-	for _, f := range c.onStatus {
+	for _, f := range c.statusWidgetProvider {
 		items = append(items, func(gtx layout.Context) layout.Dimensions {
 			return f(style, gtx)
 		})
@@ -147,7 +158,7 @@ func (c *Context) Update(gtx layout.Context) {
 		c.invalidateFunc()
 	default:
 	}
-	for _, f := range c.updateFuncs {
+	for _, f := range c.updateListener {
 		f(gtx)
 	}
 }
@@ -189,7 +200,7 @@ func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 		}
 	default:
 	}
-	for _, f := range c.onLogRowFuncs {
+	for _, f := range c.logRowListener {
 		f(row)
 	}
 	if !c.isReplay {
@@ -202,20 +213,20 @@ func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
 func (c *Context) AddToolsMenuItem(name string, action UIActionFunc) {
 	c.ToolsMenuItems = append(c.ToolsMenuItems, MenuItem{Name: name, Action: action})
 }
-func (c *Context) OnLogOpen(f OnLogOpenFunc) {
-	c.onLogOpenFuncs = append(c.onLogOpenFuncs, f)
+func (c *Context) RegisterLogOpen(f LogOpenListener) {
+	c.logOpenListener = append(c.logOpenListener, f)
 }
-func (c *Context) OnLogRow(f OnLogRowFunc) {
-	c.onLogRowFuncs = append(c.onLogRowFuncs, f)
+func (c *Context) RegisterLogRow(f LogRowListener) {
+	c.logRowListener = append(c.logRowListener, f)
 }
-func (c *Context) UpdateFunc(f UpdateFunc) {
-	c.updateFuncs = append(c.updateFuncs, f)
+func (c *Context) RegisterUpdate(f UpdateListener) {
+	c.updateListener = append(c.updateListener, f)
 }
-func (c *Context) OnStatus(f ui.Widget) {
-	c.onStatus = append(c.onStatus, f)
+func (c *Context) RegisterStatusWidget(f ui.Widget) {
+	c.statusWidgetProvider = append(c.statusWidgetProvider, f)
 }
-func (c *Context) OnOverlay(f ui.Widget) {
-	c.onOverlay = append(c.onOverlay, f)
+func (c *Context) RegisterOverlayWidget(f ui.Widget) {
+	c.overlayWidgetProvider = append(c.overlayWidgetProvider, f)
 }
 func (c *Context) SetMainView(f ui.Widget) {
 	c.currentMainView = f
