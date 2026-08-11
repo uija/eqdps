@@ -11,6 +11,7 @@ type Palette struct {
 	Panel  color.NRGBA
 	Shadow color.NRGBA
 	Accent color.NRGBA
+	Border color.NRGBA
 
 	Active   color.NRGBA
 	Inactive color.NRGBA

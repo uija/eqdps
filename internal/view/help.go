@@ -54,14 +54,14 @@ func (v *helpView) Layout(gtx layout.Context) layout.Dimensions {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 			return v.backdrop.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				fill(gtx, v.style.Palette.Shadow)
+				ui.Fill(gtx, v.style.Palette.Shadow)
 				return layout.Dimensions{Size: gtx.Constraints.Min}
 			})
 		}),
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min = gtx.Constraints.Max
-				fill(gtx, v.style.Palette.Panel)
+				ui.Fill(gtx, v.style.Palette.Panel)
 				if v.helpItem == nil {
 					return layout.UniformInset(unit.Dp(24)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,

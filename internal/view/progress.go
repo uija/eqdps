@@ -16,14 +16,14 @@ func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
 		return layout.Dimensions{}
 	}
 
-	fill(gtx, s.style.Palette.Shadow)
+	ui.Fill(gtx, s.style.Palette.Shadow)
 
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
 		height := min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y)
 		gtx.Constraints = layout.Exact(image.Pt(width, height))
 
-		fill(gtx, s.style.Palette.Panel)
+		ui.Fill(gtx, s.style.Palette.Panel)
 
 		return layout.Flex{
 			Axis: layout.Vertical,

@@ -1,12 +1,10 @@
 package view
 
 import (
-	"image"
 	"image/color"
 	"log"
 
 	"gioui.org/layout"
-	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
@@ -65,12 +63,13 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	}
 	style.Palette.Active = color.NRGBA{R: 109, G: 178, B: 124, A: 255}
 	style.Palette.Inactive = color.NRGBA{R: 190, G: 155, B: 74, A: 255}
+	style.Palette.Border = color.NRGBA{R: 200, G: 200, B: 200, A: 255}
 
 	result := &Shell{
 		style:            &style,
 		status:           "Ready",
 		help:             newHelpView(&style, context),
-		selectHistory:    NewhistorySelection(&style, context.LoadCombatHistory),
+		selectHistory:    NewhistorySelection(&style, context.RequestReplay),
 		context:          context,
 		invalidateFunc:   invalidate,
 		fileSelectResult: make(chan fileResult, 1),
@@ -196,16 +195,21 @@ func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {
 func (s *Shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(30))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
-	fill(gtx, s.style.Palette.Chrome)
-	return layout.Inset{Left: unit.Dp(14), Right: unit.Dp(14), Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		label := material.Label(s.style.Theme, unit.Sp(14), s.status)
-		label.Color = s.style.Palette.Muted
-		return layout.W.Layout(gtx, label.Layout)
-	})
-}
+	ui.Fill(gtx, s.style.Palette.Chrome)
 
-func fill(gtx layout.Context, background color.NRGBA) {
-	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
-	paint.ColorOp{Color: background}.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
+	items := make([]layout.FlexChild, 0)
+	elements := s.context.CompactStatusElements(s.style, gtx)
+	if len(elements) > 0 {
+		for _, ele := range elements {
+			items = append(items, layout.Flexed(1, ele))
+		}
+	} else {
+		items = append(items, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{}.Layout(gtx, material.Body1(s.style.Theme, s.status).Layout)
+		}))
+	}
+
+	return layout.Inset{Left: unit.Dp(14), Right: unit.Dp(14), Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{}.Layout(gtx, items...)
+	})
 }

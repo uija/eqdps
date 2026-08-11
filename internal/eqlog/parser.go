@@ -54,6 +54,12 @@ type Parser struct {
 	stop     chan struct{}
 }
 
+type Loopback struct {
+	ByteOffset int64
+	TimeOffset time.Duration
+	Timestamp  time.Time
+}
+
 func NewParser(session uint64) *Parser {
 	return &Parser{
 		session: session,
@@ -203,7 +209,7 @@ func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark Landmark
 
 // Replay reads rows from the end of the logfile's requested lookback window.
 // A zero or negative lookback reads from the beginning.
-func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress ReplayProgressHandler) error {
+func (p *Parser) Replay(lookback Loopback, handler EventHandler, onProgress ReplayProgressHandler) error {
 	used_rows = 0
 	num_rows = 0
 	path, stop, err := p.beginRead()
@@ -224,7 +230,9 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 	}
 
 	var cutoff time.Time
-	if lookback > 0 {
+	if !lookback.Timestamp.IsZero() {
+		cutoff = lookback.Timestamp
+	} else if lookback.TimeOffset > 0 {
 		latest, stopped, err := latestTimestamp(file, info.Size(), stop)
 		if err != nil {
 			return err
@@ -233,7 +241,7 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 			return nil
 		}
 		if !latest.IsZero() {
-			cutoff = latest.Add(-lookback)
+			cutoff = latest.Add(-lookback.TimeOffset)
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
 			return fmt.Errorf("rewind logfile for replay: %w", err)
@@ -256,14 +264,6 @@ func (p *Parser) Replay(lookback time.Duration, handler EventHandler, onProgress
 		if len(line) > 0 {
 			offset += int64(len(line))
 			lines++
-			/*
-				if strings.Contains(line, " tells ") {
-					continue
-				}
-				if strings.Contains(line, " sais ") {
-					continue
-				}
-			*/
 			if cutoff.IsZero() {
 				p.emit(line, offset, false, handler)
 			} else if timestamp, ok := rowTimestamp(line); ok && !timestamp.Before(cutoff) {

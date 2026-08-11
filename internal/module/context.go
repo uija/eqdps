@@ -39,25 +39,28 @@ type Context struct {
 	onLogOpenFuncs  []OnLogOpenFunc
 	onLogRowFuncs   []OnLogRowFunc
 	onStatus        []ui.Widget
+	onOverlay       []ui.Widget
 	HelpItems       []HelpItem
 	updateFuncs     []UpdateFunc
 
 	lastLevelUp    data.LogLandmark
 	lastZoneChange data.LogLandmark
 
-	replayDuration time.Duration
+	replayLoopback eqlog.Loopback
 
 	invalidateFunc func()
 
-	parserPath     string
-	isReplay       bool
-	readyForFollow chan struct{}
+	parserPath      string
+	isReplay        bool
+	readyForFollow  chan struct{}
+	requestedReplay chan eqlog.Loopback
 }
 
-type LevelUp struct {
-	Timestamp  time.Time
+type ReplayRequest struct {
 	ByteOffset int64
-	Level      int
+	TimeOffset time.Duration
+	LastLevel  bool
+	LastZoning bool
 }
 
 func NewContext(invalidateFunc func()) *Context {
@@ -69,8 +72,10 @@ func NewContext(invalidateFunc func()) *Context {
 		onLogOpenFuncs:  make([]OnLogOpenFunc, 0),
 		onLogRowFuncs:   make([]OnLogRowFunc, 0),
 		onStatus:        make([]ui.Widget, 0),
+		onOverlay:       make([]ui.Widget, 0),
 		HelpItems:       make([]HelpItem, 0),
 		readyForFollow:  make(chan struct{}, 1),
+		requestedReplay: make(chan eqlog.Loopback, 1),
 		updateFuncs:     make([]UpdateFunc, 0),
 		invalidateFunc:  invalidateFunc,
 	}
@@ -89,9 +94,8 @@ func (c *Context) ParserLogFileOpened(path string) {
 func (c *Context) RegisterProgressHandler(h ProgressHandler) {
 	c.progressHandler = h
 }
-func (c *Context) LoadCombatHistory(duration time.Duration, offset int64) {
-	c.replayDuration = duration
-	c.startParser(c.parserPath, c.runReplay)
+func (c *Context) RequestReplay(request eqlog.Loopback) {
+	c.requestedReplay <- request
 }
 func (c *Context) runIndexFile() {
 	c.Parser.IndexFile(c.ParserOnReplayProgress, func(lm data.LogLandmark) {
@@ -105,19 +109,39 @@ func (c *Context) runIndexFile() {
 	})
 	c.readyForFollow <- struct{}{}
 }
+func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []layout.Widget {
+	items := make([]layout.Widget, 0)
+	if c.parserPath != "" {
+		items = append(items, func(gtx layout.Context) layout.Dimensions {
+			return material.Label(style.Theme, unit.Sp(14), c.parserPath).Layout(gtx)
+		})
+	}
+	for _, f := range c.onStatus {
+		items = append(items, func(gtx layout.Context) layout.Dimensions {
+			return f(style, gtx)
+		})
+	}
+	return items
+}
 func (c *Context) runFollow() {
 	c.Parser.Follow(c.ParserNewLogEvent)
 }
 func (c *Context) runReplay() {
 	c.isReplay = true
 	started := time.Now()
-	c.Parser.Replay(c.replayDuration, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	c.Parser.Replay(c.replayLoopback, c.ParserNewLogEvent, c.ParserOnReplayProgress)
 	log.Printf("Replay took: %v", time.Since(started))
 	c.isReplay = false
 	c.readyForFollow <- struct{}{}
 }
 func (c *Context) Update(gtx layout.Context) {
 	select {
+	case rr := <-c.requestedReplay:
+		if c.parserPath == "" {
+			break
+		}
+		c.replayLoopback = rr
+		c.startParser(c.parserPath, c.runReplay)
 	case <-c.readyForFollow:
 		c.startParser(c.parserPath, c.runFollow)
 		c.invalidateFunc()
@@ -150,6 +174,18 @@ func (c *Context) ParserOnReplayProgress(progress eqlog.ReplayProgress) {
 	c.progressHandler("Parsing Logfile...", progress.Bytes, progress.Total)
 }
 func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
+	switch row.Type {
+	case data.LogRowEventTypeZoneChange:
+		if row.Timestamp.After(c.lastZoneChange.Timestamp) {
+			c.lastZoneChange.Zone = row.Data[1]
+			c.lastZoneChange.Timestamp = row.Timestamp
+		}
+	case data.LogRowEventTypeLevelUp:
+		if row.Timestamp.After(c.lastLevelUp.Timestamp) {
+			c.lastLevelUp.Timestamp = row.Timestamp
+		}
+	default:
+	}
 	for _, f := range c.onLogRowFuncs {
 		f(row)
 	}
@@ -175,6 +211,9 @@ func (c *Context) UpdateFunc(f UpdateFunc) {
 func (c *Context) OnStatus(f ui.Widget) {
 	c.onStatus = append(c.onStatus, f)
 }
+func (c *Context) OnOverlay(f ui.Widget) {
+	c.onOverlay = append(c.onOverlay, f)
+}
 func (c *Context) SetMainView(f ui.Widget) {
 	c.currentMainView = f
 }
@@ -185,14 +224,20 @@ func (c *Context) AddHelpItem(name string, layout ui.Widget) {
 func (c *Context) RegisterModule(m Module) error {
 	return m.Init(c)
 }
-
 func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if c.currentMainView != nil {
 		return c.currentMainView(style, gtx)
+	} else {
+		return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			label := material.Label(style.Theme, unit.Sp(15), "No modules registered")
+			//label.Color = palette.muted
+			return label.Layout(gtx)
+		})
 	}
-	return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		label := material.Label(style.Theme, unit.Sp(15), "No modules registered")
-		//label.Color = palette.muted
-		return label.Layout(gtx)
-	})
+}
+func (c *Context) GetLastLevelOffset() time.Time {
+	return c.lastLevelUp.Timestamp
+}
+func (c *Context) GetLastZoningOffset() time.Time {
+	return c.lastZoneChange.Timestamp
 }

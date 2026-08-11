@@ -8,15 +8,15 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/ui"
 )
 
-type LoadHistoryCallback func(duration time.Duration, offset int64)
+type LoadHistoryCallback func(eqlog.Loopback)
 type historyEntry struct {
 	caption   string
 	clickable widget.Clickable
-	duration  time.Duration
-	offset    int64
+	loopback  eqlog.Loopback
 }
 
 type historySelection struct {
@@ -34,25 +34,26 @@ func NewhistorySelection(style *ui.Style, callback LoadHistoryCallback) *history
 		callback: callback,
 		entries:  make([]historyEntry, 0),
 	}
-	result.entries = append(result.entries, historyEntry{caption: "last Hour", duration: time.Hour, offset: -1})
-	result.entries = append(result.entries, historyEntry{caption: "last 4 Hours", duration: 4 * time.Hour, offset: -1})
-	result.entries = append(result.entries, historyEntry{caption: "last 8 Hours", duration: 8 * time.Hour, offset: -1})
-	result.entries = append(result.entries, historyEntry{caption: "last Day", duration: 24 * time.Hour, offset: -1})
-	result.entries = append(result.entries, historyEntry{caption: "All", duration: 0, offset: -1})
+
+	result.entries = append(result.entries, historyEntry{caption: "last Hour", loopback: eqlog.Loopback{TimeOffset: time.Hour}})
+	result.entries = append(result.entries, historyEntry{caption: "last 4 Hours", loopback: eqlog.Loopback{TimeOffset: 4 * time.Hour}})
+	result.entries = append(result.entries, historyEntry{caption: "last 8 Hours", loopback: eqlog.Loopback{TimeOffset: 8 * time.Hour}})
+	result.entries = append(result.entries, historyEntry{caption: "last Day", loopback: eqlog.Loopback{TimeOffset: 24 * time.Hour}})
+	result.entries = append(result.entries, historyEntry{caption: "All", loopback: eqlog.Loopback{}})
 
 	return result
 }
 func (h *historySelection) ResetOffsetEntries() {
 	list := make([]historyEntry, 0)
 	for _, e := range h.entries {
-		if e.duration < 0 {
+		if e.loopback.ByteOffset > 0 {
 			list = append(list, e)
 		}
 	}
 	h.entries = list
 }
 func (h *historySelection) AddOffsetEntry(caption string, offset int64) {
-	h.entries = append(h.entries, historyEntry{caption: caption, duration: 0, offset: offset})
+	h.entries = append(h.entries, historyEntry{caption: caption, loopback: eqlog.Loopback{ByteOffset: offset}})
 }
 func (h *historySelection) Update(gtx layout.Context) {
 	if h.close.Clicked(gtx) {
@@ -60,7 +61,7 @@ func (h *historySelection) Update(gtx layout.Context) {
 	}
 	for idx, e := range h.entries {
 		if h.entries[idx].clickable.Clicked(gtx) {
-			h.callback(e.duration, e.offset)
+			h.callback(e.loopback)
 			h.visible = false
 		}
 	}
@@ -72,14 +73,14 @@ func (h *historySelection) Layout(gtx layout.Context) layout.Dimensions {
 	if !h.visible {
 		return layout.Dimensions{}
 	}
-	fill(gtx, h.style.Palette.Shadow)
+	ui.Fill(gtx, h.style.Palette.Shadow)
 
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
 		height := min(gtx.Dp(unit.Dp(320)), gtx.Constraints.Max.Y)
 		gtx.Constraints = layout.Exact(image.Pt(width, height))
 
-		fill(gtx, h.style.Palette.Panel)
+		ui.Fill(gtx, h.style.Palette.Panel)
 
 		return layout.Flex{
 			Axis: layout.Vertical,

@@ -12,17 +12,32 @@ import (
 	"gioui.org/widget/material"
 )
 
-func fill(gtx layout.Context, background color.NRGBA) {
+func Fill(gtx layout.Context, background color.NRGBA) {
 	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: background}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
+}
+func FillOverlay(gtx layout.Context, background color.NRGBA, border color.NRGBA) {
+	size := gtx.Constraints.Min
+	paint.FillShape(gtx.Ops, border, clip.Rect{Max: size}.Op())
+	if size.X <= 2 || size.Y <= 2 {
+		return
+	}
+	paint.FillShape(
+		gtx.Ops,
+		background,
+		clip.Rect{
+			Min: image.Pt(1, 1),
+			Max: image.Pt(size.X-1, size.Y-1),
+		}.Op(),
+	)
 }
 func TitleBar(gtx layout.Context, style Style, text string) func(gtx layout.Context) layout.Dimensions {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(38))
 		gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
 
-		fill(gtx, style.Palette.Chrome)
+		Fill(gtx, style.Palette.Chrome)
 
 		return layout.Inset{
 			Left:  unit.Dp(14),

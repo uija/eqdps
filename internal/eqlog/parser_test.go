@@ -83,7 +83,7 @@ func TestReplayBuildsMetadataAndOffsets(t *testing.T) {
 	}
 	var events []*data.LogRowEvent
 	var progress []ReplayProgress
-	if err := parser.Replay(0, func(event *data.LogRowEvent) {
+	if err := parser.Replay(Loopback{}, func(event *data.LogRowEvent) {
 		events = append(events, event)
 	}, func(update ReplayProgress) {
 		progress = append(progress, update)
@@ -155,7 +155,7 @@ func TestReplayUsesLookbackFromLatestLogTimestamp(t *testing.T) {
 		t.Fatal(err)
 	}
 	var events []*data.LogRowEvent
-	if err := parser.Replay(6*time.Minute, func(event *data.LogRowEvent) {
+	if err := parser.Replay(Loopback{TimeOffset: 6 * time.Minute}, func(event *data.LogRowEvent) {
 		events = append(events, event)
 	}, nil); err != nil {
 		t.Fatal(err)
@@ -264,7 +264,7 @@ func TestFollowStartsAtOpenOffsetAndStopsOnClose(t *testing.T) {
 
 func TestParserRequiresOpenLog(t *testing.T) {
 	parser := NewParser(0)
-	if err := parser.Replay(0, nil, nil); !errors.Is(err, ErrLogNotOpen) {
+	if err := parser.Replay(Loopback{}, nil, nil); !errors.Is(err, ErrLogNotOpen) {
 		t.Fatalf("Replay error = %v", err)
 	}
 	if err := parser.Follow(nil); !errors.Is(err, ErrLogNotOpen) {
@@ -282,7 +282,7 @@ func TestCloseClearsOpenedLog(t *testing.T) {
 		t.Fatal(err)
 	}
 	parser.Close()
-	if err := parser.Replay(0, nil, nil); !errors.Is(err, ErrLogNotOpen) {
+	if err := parser.Replay(Loopback{}, nil, nil); !errors.Is(err, ErrLogNotOpen) {
 		t.Fatalf("Replay error after Close = %v", err)
 	}
 }

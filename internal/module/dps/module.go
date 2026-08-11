@@ -53,7 +53,7 @@ type CombatInstance struct {
 func (m *Module) Init(ctx *module.Context) error {
 	m.ctx = ctx
 	m.table.Axis = layout.Vertical
-	m.columns = append(m.columns, column{title: "Combatant", weight: 7})
+	m.columns = append(m.columns, column{title: "Combatant", weight: 8})
 	m.columns = append(m.columns, column{title: "Damage", weight: 1})
 	m.columns = append(m.columns, column{title: "Dps", weight: 1})
 	m.columns = append(m.columns, column{title: "Hits", weight: 1})
@@ -260,7 +260,7 @@ func (m *Module) RenderFightHeader(fight *Fight, style *ui.Style, gtx layout.Con
 		return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(
 				gtx,
-				layout.Flexed(7, func(gtx layout.Context) layout.Dimensions {
+				layout.Flexed(8, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							label := material.Body1(style.Theme, fight.name)
@@ -299,11 +299,13 @@ func (m *Module) RenderFightHeader(fight *Fight, style *ui.Style, gtx layout.Con
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					label := material.Body1(style.Theme, cnt)
 					label.Alignment = text.End
-					label.TextSize = 12
+					label.TextSize = 13
+					label.Color = style.Palette.Muted
 					return layout.Inset{Top: unit.Dp(4), Right: unit.Dp(8)}.Layout(gtx, label.Layout)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return material.Body1(style.Theme, fmt.Sprintf("%v", fight.end.Sub(fight.start))).Layout(gtx)
+					label := material.Body1(style.Theme, fmt.Sprintf("%v", fight.end.Sub(fight.start)))
+					return ui.RightAlignLabel(gtx, label)
 				}),
 			)
 		})
