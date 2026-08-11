@@ -62,7 +62,7 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.AddViewMenuItem("DPS Meter", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
-	ctx.SetMainView(m.MainView)
+	//ctx.SetMainView(m.MainView)
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	ctx.RegisterUpdate(m.Update)

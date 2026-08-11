@@ -94,3 +94,8 @@ func RightAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dimen
 		return label.Layout(tgtx)
 	})
 }
+func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string) material.LabelStyle {
+	l := material.Label(th, unit.Sp(size), txt)
+	l.Color = col
+	return l
+}
