@@ -177,12 +177,15 @@ func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 	switch row.Type {
 	case data.LogRowEventTypeZoneChange:
 		if row.Timestamp.After(c.lastZoneChange.Timestamp) {
-			c.lastZoneChange.Zone = row.Data[1]
+			c.lastZoneChange.Zone = row.Metadata.Zone
 			c.lastZoneChange.Timestamp = row.Timestamp
+			c.lastZoneChange.Offset = row.Offset
 		}
 	case data.LogRowEventTypeLevelUp:
 		if row.Timestamp.After(c.lastLevelUp.Timestamp) {
 			c.lastLevelUp.Timestamp = row.Timestamp
+			c.lastLevelUp.Offset = row.Offset
+			c.lastLevelUp.Level = row.Metadata.Level
 		}
 	default:
 	}

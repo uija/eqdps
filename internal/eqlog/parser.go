@@ -531,6 +531,11 @@ func (p *Parser) updateMetadata(eventType data.LogRowEventType, eventData []stri
 		if err == nil && level > 0 {
 			p.metadata.Level = level
 		}
+	case data.LogRowEventTypeZoneChange:
+		if len(eventData) < 2 {
+			return
+		}
+		p.metadata.Zone = eventData[1]
 	}
 }
 
