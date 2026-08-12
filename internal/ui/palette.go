@@ -15,6 +15,7 @@ type Palette struct {
 
 	Active   color.NRGBA
 	Inactive color.NRGBA
+	Done     color.NRGBA
 
 	Yes color.NRGBA
 	No  color.NRGBA

@@ -26,6 +26,7 @@ const (
 	LogRowEventTypeTradeOffer
 	LogRowEventTypeTradeComplete
 	LogRowEventTypeTradeCancel
+	LogRowEventTypeTradeRejected
 	LogRowEventTypeWho
 	LogRowEventTypeAnonymousWho
 	LogRowEventTypeInventoryExport

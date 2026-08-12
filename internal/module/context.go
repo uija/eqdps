@@ -25,6 +25,8 @@ type HelpItem struct {
 type UIActionFunc func()
 type LogOpenListener func(characterName string, serverName string, filesize int64, path string)
 type LogRowListener func(event *data.LogRowEvent)
+type ReplayStartListener func()
+type ReplayEndListener func()
 
 type ProgressHandler func(title string, current int64, max int64)
 type UpdateListener func(layout.Context)
@@ -40,6 +42,8 @@ type Context struct {
 
 	logOpenListener       []LogOpenListener
 	logRowListener        []LogRowListener
+	replayStartListener   []ReplayStartListener
+	replayEndListener     []ReplayEndListener
 	statusWidgetProvider  []ui.Widget
 	overlayWidgetProvider []ui.Widget
 	HelpItems             []HelpItem
@@ -80,6 +84,8 @@ func NewContext(invalidateFunc func()) *Context {
 		progressHandler:       func(title string, current int64, max int64) {},
 		logOpenListener:       make([]LogOpenListener, 0),
 		logRowListener:        make([]LogRowListener, 0),
+		replayStartListener:   make([]ReplayStartListener, 0),
+		replayEndListener:     make([]ReplayEndListener, 0),
 		statusWidgetProvider:  make([]ui.Widget, 0),
 		overlayWidgetProvider: make([]ui.Widget, 0),
 		HelpItems:             make([]HelpItem, 0),
@@ -140,7 +146,13 @@ func (c *Context) runFollow() {
 func (c *Context) runReplay() {
 	c.isReplay = true
 	started := time.Now()
+	for _, f := range c.replayStartListener {
+		f()
+	}
 	c.Parser.Replay(c.replayLoopback, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	for _, f := range c.replayEndListener {
+		f()
+	}
 	log.Printf("Replay took: %v", time.Since(started))
 	c.isReplay = false
 	c.readyForFollow <- struct{}{}
@@ -221,6 +233,12 @@ func (c *Context) RegisterLogRow(f LogRowListener) {
 }
 func (c *Context) RegisterUpdate(f UpdateListener) {
 	c.updateListener = append(c.updateListener, f)
+}
+func (c *Context) RegisterReplayStart(f ReplayStartListener) {
+	c.replayStartListener = append(c.replayStartListener, f)
+}
+func (c *Context) RegisterReplayEnd(f ReplayEndListener) {
+	c.replayEndListener = append(c.replayEndListener, f)
 }
 func (c *Context) RegisterStatusWidget(f ui.Widget) {
 	c.statusWidgetProvider = append(c.statusWidgetProvider, f)

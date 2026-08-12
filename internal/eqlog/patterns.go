@@ -39,6 +39,7 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeTradeOffer, regexp.MustCompile(`^You offered ([0-9]+) (.+) to (.+)\.$`), []string{"You offered ", " to "}},
 	{data.LogRowEventTypeTradeComplete, regexp.MustCompile(`^You complete the trade with (.+)\.$`), []string{"You complete the trade with "}},
 	{data.LogRowEventTypeTradeCancel, regexp.MustCompile(`^(You have|(.+) has) cancelled the trade\.$`), []string{" cancelled the trade."}},
+	{data.LogRowEventTypeTradeRejected, regexp.MustCompile(`^(.+?) says, 'I have no need for this, .+?\. You can have it back\.'$`), []string{" says, 'I have no need for this, ", " You can have it back.'"}},
 	{data.LogRowEventTypeWho, regexp.MustCompile(`^\s*(?:AFK\s+)?\[([0-9]+) ([A-Z]{3}(?:/[A-Z]{3}){0,2})\]\s+([^(]+?)\s+\(([^)]+)\)(?:\s+<([^>]+)>)?\s+ZONE:`), []string{"ZONE:"}},
 	{data.LogRowEventTypeAnonymousWho, regexp.MustCompile(`^\s*(?:AFK\s+)?\[ANONYMOUS\]\s+(.+?)\s*$`), []string{"[ANONYMOUS]"}},
 	{data.LogRowEventTypeInventoryExport, regexp.MustCompile(`^Outputfile Complete:\s+(.+-Inventory\.txt)\s*$`), []string{"Outputfile Complete:", "-Inventory.txt"}},

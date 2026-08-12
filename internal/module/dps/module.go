@@ -33,6 +33,8 @@ type Module struct {
 
 	table   widget.List
 	columns []column
+
+	relay bool
 }
 
 func NewModule() *Module {
@@ -62,6 +64,8 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.AddViewMenuItem("DPS Meter", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
+	ctx.RegisterReplayStart(m.OnReplayStart)
+	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	//ctx.SetMainView(m.MainView)
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
@@ -96,6 +100,12 @@ func (m *Module) Shutdown() {
 
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {
 
+}
+func (m *Module) OnReplayStart() {
+	m.relay = true
+}
+func (m *Module) OnReplayEnd() {
+	m.relay = true
 }
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	switch event.Type {
@@ -137,23 +147,26 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 }
 
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.Flex{Axis: layout.Vertical}.Layout(
-		gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTableHeader(style, gtx) }),
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			list := material.List(style.Theme, &m.table)
-			size := len(m.combat.history)
-			return list.Layout(
-				gtx,
-				len(m.combat.history),
-				func(gtx layout.Context, index int) layout.Dimensions {
-					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return m.RenderFight(size-index-1, style, gtx)
-					})
-				},
-			)
-		}),
-	)
+	children := make([]layout.FlexChild, 0)
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTableHeader(style, gtx) }))
+	if !m.relay {
+		children = append(children,
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				list := material.List(style.Theme, &m.table)
+				size := len(m.combat.history)
+				return list.Layout(
+					gtx,
+					len(m.combat.history),
+					func(gtx layout.Context, index int) layout.Dimensions {
+						return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return m.RenderFight(size-index-1, style, gtx)
+						})
+					},
+				)
+			}),
+		)
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }
 func (m *Module) RenderFight(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	fight := m.combat.history[index]

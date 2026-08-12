@@ -26,6 +26,7 @@ var style = ui.Style{
 		Shadow:   color.NRGBA{A: 190},
 		Active:   color.NRGBA{R: 109, G: 178, B: 124, A: 255},
 		Inactive: color.NRGBA{R: 190, G: 155, B: 74, A: 255},
+		Done:     color.NRGBA{R: 120, G: 120, B: 120, A: 255},
 		Border:   color.NRGBA{R: 200, G: 200, B: 200, A: 255},
 		Yes:      color.NRGBA{R: 190, G: 242, B: 199, A: 255},
 		No:       color.NRGBA{R: 242, G: 190, B: 191, A: 255},
