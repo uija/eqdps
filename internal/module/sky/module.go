@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,11 +22,21 @@ var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
 const HeaderSize = 15
 const RowSize = 14
 
+type InventoryRow struct {
+	Name string
+	Need int
+	Have int
+	Hint string
+}
+
 type Module struct {
-	ctx    *module.Context
-	db     Database
-	config Config
-	status []ClassStatus
+	ctx       *module.Context
+	db        Database
+	config    Config
+	status    []ClassStatus
+	inventory []InventoryRow
+
+	mainView ui.Widget
 
 	replay bool
 
@@ -33,14 +44,23 @@ type Module struct {
 
 	tradeIn *TradeInTracker
 
-	questlist widget.List
+	questlist     widget.List
+	inventorylist widget.List
+
+	progression_click widget.Clickable
+	inventory_click   widget.Clickable
+
+	hide_finished widget.Clickable
+	hide_empty    widget.Clickable
 }
 
 func NewModule() *Module {
 	return &Module{
-		config:  Config{},
-		status:  make([]ClassStatus, 0),
-		tradeIn: nil,
+		config:    Config{},
+		status:    make([]ClassStatus, 0),
+		tradeIn:   nil,
+		mainView:  func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
+		inventory: make([]InventoryRow, 0),
 	}
 }
 
@@ -88,12 +108,14 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.RegisterUpdate(m.Update)
-	ctx.SetMainView(m.MainView)
+	ctx.SetMainView(m.Layout)
 	ctx.AddHelpItem("Plane of Sky Quest Tracker", m.LayoutHelp)
 	m.ctx = ctx
 	m.db, _ = LoadDatabase()
 	m.questlist.Axis = layout.Vertical
+	m.inventorylist.Axis = layout.Vertical
 	m.BuildStatusFromDatabase()
+	m.mainView = m.MainView
 	return nil
 }
 
@@ -135,6 +157,7 @@ func (m *Module) BuildStatusFromDatabase() {
 	}
 }
 func (m *Module) RecalculateStatus() {
+	items := make(map[string]InventoryRow)
 	for cidx := range m.status {
 		c := &m.status[cidx]
 		c.QuestsDone = 0
@@ -148,6 +171,7 @@ func (m *Module) RecalculateStatus() {
 				q.MissingItems = 0
 				for iidx := range q.Items {
 					i := &q.Items[iidx]
+
 					i.Amount = m.config.QuestItems[strings.ToLower(i.Name)]
 					if i.Amount == 0 {
 						q.MissingItems++
@@ -159,6 +183,33 @@ func (m *Module) RecalculateStatus() {
 			}
 		}
 	}
+	for _, c := range m.status {
+		for _, q := range c.Quests {
+			for _, i := range q.Items {
+				ir, ok := items[i.Name]
+				if !ok {
+					amount := m.config.QuestItems[strings.ToLower(i.Name)]
+					ir = InventoryRow{
+						Name: i.Name,
+						Hint: i.Hint,
+						Need: 0,
+						Have: amount,
+					}
+				}
+				if !q.Done {
+					ir.Need++
+				}
+				items[i.Name] = ir
+			}
+		}
+	}
+	m.inventory = make([]InventoryRow, 0)
+	for _, ir := range items {
+		m.inventory = append(m.inventory, ir)
+	}
+	sort.Slice(m.inventory, func(i, j int) bool {
+		return m.inventory[i].Hint < m.inventory[j].Hint
+	})
 }
 
 func (m *Module) OpenMainView() {
@@ -184,6 +235,20 @@ func (m *Module) Update(gtx layout.Context) {
 				m.status[cidx].Quests[qidx].Watched = false
 			}
 		}
+	}
+	if m.progression_click.Clicked(gtx) {
+		m.mainView = m.MainView
+	}
+	if m.inventory_click.Clicked(gtx) {
+		m.mainView = m.InventoryView
+	}
+	if m.hide_empty.Clicked(gtx) {
+		m.config.HideEmpty = !m.config.HideEmpty
+		m.config.Save()
+	}
+	if m.hide_finished.Clicked(gtx) {
+		m.config.HideFinished = !m.config.HideFinished
+		m.config.Save()
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {

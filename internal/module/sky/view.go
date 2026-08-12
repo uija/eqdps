@@ -11,13 +11,62 @@ import (
 	"github.com/uija/eqdps/internal/ui"
 )
 
+func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return m.mainView(style, gtx)
+}
+func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context, tools layout.FlexChild) layout.FlexChild {
+	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Flexed(1, material.Label(style.Theme, unit.Sp(17), "Plane of Sky - "+active).Layout),
+			layout.Flexed(1,
+				func(gtx layout.Context) layout.Dimensions {
+					children := make([]layout.FlexChild, 0)
+					if active != "Progression" {
+						children = append(children,
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return m.progression_click.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Show Progression").Layout)
+							}),
+						)
+					}
+					if active != "Inventory" {
+						children = append(children,
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return m.inventory_click.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Show Inventory").Layout)
+							}),
+						)
+					}
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
+				},
+			),
+			tools,
+		)
+	})
+}
+
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	hide_finished := "Hide finished"
+	if m.config.HideFinished {
+		hide_finished = "Show finished"
+	}
+	hide_empty := "Hide empty"
+	if m.config.HideEmpty {
+		hide_empty = "Show empty"
+	}
 	children := make([]layout.FlexChild, 0)
-	children = append(children,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return material.Label(style.Theme, unit.Sp(15), "Plane of Sky").Layout(gtx)
-		}),
-	)
+	children = append(children, m.RenderTopRow("Progression", style, gtx,
+		layout.Flexed(1,
+			func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return m.hide_finished.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Active, hide_finished).Layout)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return m.hide_empty.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Active, hide_empty).Layout)
+					}),
+				)
+			},
+		),
+	))
 	if !m.replay {
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -72,79 +121,87 @@ func (m *Module) RenderClassQuests(index int, style *ui.Style, gtx layout.Contex
 		title_color := style.Theme.Fg
 		highlight_color := style.Palette.Accent
 		missing_text := fmt.Sprintf("Missing %d", quest.MissingItems)
+		show := true
 		if quest.Done {
 			title_color = style.Palette.Done
 			highlight_color = style.Palette.Done
 			missing_text = "Done"
+			if m.config.HideFinished {
+				show = false
+			}
+		} else if quest.MissingItems == len(quest.Items) && m.config.HideEmpty {
+			show = false
 		}
-		rows = append(rows,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-						layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-							label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest.Name)
-							label.Font.Weight = font.SemiBold
-							return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, label.Layout)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							if !quest.Watched {
-								return m.status[index].Quests[qidx].WatchClick.Layout(gtx,
-									ui.ColoredLabel(style.Theme, RowSize, highlight_color, "Watch").Layout,
-								)
-							} else {
-								return ui.ColoredLabel(style.Theme, RowSize, highlight_color, "   ").Layout(gtx)
-							}
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							// TODO Evaluate value
-							return ui.ColoredLabel(style.Theme, RowSize, title_color, missing_text).Layout(gtx)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return material.Label(style.Theme, unit.Sp(RowSize), "").Layout(gtx)
-						}),
-						layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-							txt := fmt.Sprintf("%s - %s", quest.QuestGiver, quest.Reward)
-
-							return m.status[index].Quests[qidx].RewardClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredLabel(style.Theme, RowSize, highlight_color, txt).Layout(gtx)
-							})
-						}),
-					)
-				})
-			}),
-		)
-		for _, item := range quest.Items {
+		if show {
 			rows = append(rows,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Top: unit.Dp(2), Bottom: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						color := style.Palette.No
-
-						prefix := "+"
-						amount_text := fmt.Sprintf("%d", item.Amount)
-						if quest.Done {
-							amount_text = "-"
-							color = style.Palette.Done
-						} else if item.Amount > 0 {
-							color = style.Palette.Yes
-						} else {
-							prefix = "-"
-						}
+					return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-							layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
-								return layout.Inset{Left: unit.Dp(32)}.Layout(gtx,
-									ui.ColoredLabel(style.Theme, RowSize, color, fmt.Sprintf("%s %s", prefix, item.Name)).Layout,
-								)
+							layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+								label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest.Name)
+								label.Font.Weight = font.SemiBold
+								return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, label.Layout)
 							}),
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredLabel(style.Theme, RowSize, color, amount_text).Layout(gtx)
+								if !quest.Watched {
+									return m.status[index].Quests[qidx].WatchClick.Layout(gtx,
+										ui.ColoredLabel(style.Theme, RowSize, highlight_color, "Watch").Layout,
+									)
+								} else {
+									return ui.ColoredLabel(style.Theme, RowSize, highlight_color, "   ").Layout(gtx)
+								}
+							}),
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								// TODO Evaluate value
+								return ui.ColoredLabel(style.Theme, RowSize, title_color, missing_text).Layout(gtx)
+							}),
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return material.Label(style.Theme, unit.Sp(RowSize), "").Layout(gtx)
 							}),
 							layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredLabel(style.Theme, RowSize, color, item.Hint).Layout(gtx)
+								txt := fmt.Sprintf("%s - %s", quest.QuestGiver, quest.Reward)
+
+								return m.status[index].Quests[qidx].RewardClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return ui.ColoredLabel(style.Theme, RowSize, highlight_color, txt).Layout(gtx)
+								})
 							}),
 						)
 					})
 				}),
 			)
+			for _, item := range quest.Items {
+				rows = append(rows,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Top: unit.Dp(2), Bottom: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							color := style.Palette.No
+
+							prefix := "+"
+							amount_text := fmt.Sprintf("%d", item.Amount)
+							if quest.Done {
+								amount_text = "-"
+								color = style.Palette.Done
+							} else if item.Amount > 0 {
+								color = style.Palette.Yes
+							} else {
+								prefix = "-"
+							}
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+								layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Left: unit.Dp(32)}.Layout(gtx,
+										ui.ColoredLabel(style.Theme, RowSize, color, fmt.Sprintf("%s %s", prefix, item.Name)).Layout,
+									)
+								}),
+								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+									return ui.ColoredLabel(style.Theme, RowSize, color, amount_text).Layout(gtx)
+								}),
+								layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
+									return ui.ColoredLabel(style.Theme, RowSize, color, item.Hint).Layout(gtx)
+								}),
+							)
+						})
+					}),
+				)
+			}
 		}
 	}
 	return rows

@@ -61,6 +61,17 @@ func ColoredRow(gtx layout.Context, color color.NRGBA, content layout.Widget) la
 		layout.Stacked(content),
 	)
 }
+func ColoredBorderedRow(gtx layout.Context, color color.NRGBA, content layout.Widget) layout.Dimensions {
+	return layout.Stack{}.Layout(
+		gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			size := gtx.Constraints.Min
+			paint.FillShape(gtx.Ops, color, clip.Rect{Max: size}.Op())
+			return layout.Dimensions{Size: size}
+		}),
+		layout.Stacked(content),
+	)
+}
 
 func ColoredAccentedRow(gtx layout.Context, color color.NRGBA, accent color.NRGBA, showAccent bool, content layout.Widget) layout.Dimensions {
 	return layout.Stack{}.Layout(

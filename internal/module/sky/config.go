@@ -14,9 +14,11 @@ type Log struct {
 }
 
 type Config struct {
-	QuestItems map[string]int `json:"quest_items"`
-	Quests     map[string]int `json:"quests"`
-	Log        Log            `json:"log"`
+	QuestItems   map[string]int `json:"quest_items"`
+	Quests       map[string]int `json:"quests"`
+	Log          Log            `json:"log"`
+	HideFinished bool           `json:"hide_finished"`
+	HideEmpty    bool           `json:"hide_empty"`
 }
 
 func LoadConfig(path string) (Config, error) {
