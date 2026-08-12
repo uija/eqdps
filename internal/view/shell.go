@@ -62,6 +62,7 @@ type Shell struct {
 
 // NewShell constructs the root application view.
 func NewShell(context *module.Context, closeWindow func(), invalidate func()) *Shell {
+	ui.Init()
 	style.Theme.Palette.Bg = style.Palette.Window
 	style.Theme.Palette.Fg = style.Palette.Text
 	style.Palette.Accent = color.NRGBA{

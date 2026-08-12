@@ -80,7 +80,11 @@ func (m *Module) LayoutOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	var dims layout.Dimensions
 	if m.latestLog.IsZero() || m.xpReceived == 0 {
-		dims = m.statusbar_click.Layout(gtx, material.Label(style.Theme, unit.Sp(13), "Waiting for data...").Layout)
+		dims = m.statusbar_click.Layout(gtx,
+			func(gtx layout.Context) layout.Dimensions {
+				return ui.IconLabel(gtx, style.Theme, 13, ui.Timer, "Waiting for data...")
+			},
+		)
 	} else {
 		active := m.activeBetween
 
@@ -93,7 +97,11 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 		if active > 0 {
 			xpPerHour = m.xpReceived / active.Hours()
 		}
-		dims = m.statusbar_click.Layout(gtx, material.Label(style.Theme, unit.Sp(13), fmt.Sprintf("%.02f xp/h", xpPerHour)).Layout)
+		dims = m.statusbar_click.Layout(gtx,
+			func(gtx layout.Context) layout.Dimensions {
+				return ui.IconLabel(gtx, style.Theme, 14, ui.Timer, fmt.Sprintf("%.02f xp/h", xpPerHour))
+			},
+		)
 	}
 	if m.overlay {
 		width := gtx.Dp(unit.Dp(220))

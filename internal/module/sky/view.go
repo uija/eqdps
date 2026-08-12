@@ -24,7 +24,10 @@ func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context
 					if active != "Progression" {
 						children = append(children,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								return m.progression_click.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Show Progression").Layout)
+								return m.progression_click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return ui.IconLabel(gtx, style.Theme, 15, ui.ActionVisibility, "Show Progression")
+								})
+								//return m.progression_click.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Show Progression").Layout)
 							}),
 						)
 					}
@@ -44,13 +47,13 @@ func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context
 }
 
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	hide_finished := "Hide finished"
+	finished_icon := ui.CheckBox
 	if m.config.HideFinished {
-		hide_finished = "Show finished"
+		finished_icon = ui.CheckBoxOutline
 	}
-	hide_empty := "Hide empty"
+	empty_icon := ui.CheckBox
 	if m.config.HideEmpty {
-		hide_empty = "Show empty"
+		empty_icon = ui.CheckBoxOutline
 	}
 	children := make([]layout.FlexChild, 0)
 	children = append(children, m.RenderTopRow("Progression", style, gtx,
@@ -58,10 +61,18 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 			func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return m.hide_finished.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Active, hide_finished).Layout)
+						return m.hide_finished.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return ui.IconLabel(gtx, style.Theme, 15, finished_icon, "Show finished Quests")
+							},
+						)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return m.hide_empty.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Active, hide_empty).Layout)
+						return m.hide_empty.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return ui.IconLabel(gtx, style.Theme, 15, empty_icon, "Show empty Quests")
+							},
+						)
 					}),
 				)
 			},
@@ -97,7 +108,12 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ui.ColoredLabel(style.Theme, HeaderSize, style.Palette.Accent, cl.Name).Layout(gtx)
+							icon := ui.AddBox
+							if cl.Visible {
+								icon = ui.DelBox
+							}
+							return ui.ColoredIconLabel(gtx, style.Theme, HeaderSize, icon, style.Palette.Accent, cl.Name)
+							//return ui.ColoredLabel(style.Theme, HeaderSize, style.Palette.Accent, cl.Name).Layout(gtx)
 						}),
 						layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 							numQuests := len(cl.Quests)
