@@ -16,19 +16,19 @@ func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
 		return layout.Dimensions{}
 	}
 
-	ui.Fill(gtx, s.style.Palette.Shadow)
+	ui.Fill(gtx, s.Style.Palette.Shadow)
 
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
 		height := min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y)
 		gtx.Constraints = layout.Exact(image.Pt(width, height))
 
-		ui.Fill(gtx, s.style.Palette.Panel)
+		ui.Fill(gtx, s.Style.Palette.Panel)
 
 		return layout.Flex{
 			Axis: layout.Vertical,
 		}.Layout(gtx,
-			layout.Rigid(ui.TitleBar(gtx, *s.style, s.progress.title)),
+			layout.Rigid(ui.TitleBar(gtx, *s.Style, s.progress.title)),
 			layout.Flexed(1, s.layoutProgressContent),
 		)
 	})
@@ -47,11 +47,11 @@ func (s *Shell) layoutProgressContent(gtx layout.Context) layout.Dimensions {
 			Axis: layout.Vertical,
 		}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				bar := material.ProgressBar(s.style.Theme, value)
+				bar := material.ProgressBar(s.Style.Theme, value)
 				bar.Height = unit.Dp(8)
 				bar.Radius = unit.Dp(0)
-				bar.Color = s.style.Palette.Text
-				bar.TrackColor = s.style.Palette.Hover
+				bar.Color = s.Style.Palette.Text
+				bar.TrackColor = s.Style.Palette.Hover
 				return bar.Layout(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -59,11 +59,11 @@ func (s *Shell) layoutProgressContent(gtx layout.Context) layout.Dimensions {
 					Top: unit.Dp(12),
 				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					label := material.Label(
-						s.style.Theme,
+						s.Style.Theme,
 						unit.Sp(14),
 						detail,
 					)
-					label.Color = s.style.Palette.Muted
+					label.Color = s.Style.Palette.Muted
 					label.Alignment = text.Middle
 					return label.Layout(gtx)
 				})

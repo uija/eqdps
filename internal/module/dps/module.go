@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gioui.org/font"
+	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -16,6 +17,7 @@ import (
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
+	"github.com/uija/eqdps/internal/view"
 )
 
 var categories = []string{}
@@ -34,14 +36,23 @@ type Module struct {
 	table   widget.List
 	columns []column
 
-	relay bool
+	overlay *Overlay
+
+	relay        bool
+	startOverlay bool
+
+	overlayClick  widget.Clickable
+	overlayClosed chan struct{}
+
+	invalidateFunc func()
 }
 
 func NewModule() *Module {
 	return &Module{
-		rows:    make(chan *data.LogRowEvent, 1024),
-		stop:    make(chan struct{}, 1),
-		columns: make([]column, 0),
+		rows:          make(chan *data.LogRowEvent, 1024),
+		stop:          make(chan struct{}, 1),
+		columns:       make([]column, 0),
+		overlayClosed: make(chan struct{}, 0),
 	}
 }
 
@@ -52,7 +63,7 @@ type CombatInstance struct {
 	events     []*data.LogRowEvent
 }
 
-func (m *Module) Init(ctx *module.Context) error {
+func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	m.ctx = ctx
 	m.table.Axis = layout.Vertical
 	m.columns = append(m.columns, column{title: "Combatant", weight: 8})
@@ -61,16 +72,18 @@ func (m *Module) Init(ctx *module.Context) error {
 	m.columns = append(m.columns, column{title: "Hits", weight: 1})
 	m.columns = append(m.columns, column{title: "Crits", weight: 1})
 	m.columns = append(m.columns, column{title: "Active", weight: 1})
+	m.invalidateFunc = invalidateFunc
 	ctx.AddViewMenuItem("DPS Meter", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.AddSidebarItem("DPS", m.OpenMainView)
-	//ctx.SetMainView(m.MainView)
+	ctx.SetMainView(m.MainView)
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	ctx.RegisterUpdate(m.Update)
+	m.startOverlay = m.ctx.Config.OpenOverlay
 	m.combat = newCombat()
 
 	go func() {
@@ -97,6 +110,9 @@ func (m *Module) OpenMainView() {
 
 func (m *Module) Shutdown() {
 	m.stop <- struct{}{}
+	if m.overlay != nil {
+		m.overlay.window.Perform(system.ActionClose)
+	}
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {
@@ -135,7 +151,36 @@ func (m *Module) Update(gtx layout.Context) {
 			}
 		}
 	}
-
+	if m.overlayClick.Clicked(gtx) {
+		if m.overlay == nil {
+			m.OpenOverlay()
+			m.ctx.Config.OpenOverlay = true
+			m.ctx.Config.Save()
+		} else {
+			m.overlay.window.Perform(system.ActionClose)
+			m.ctx.Config.OpenOverlay = false
+			m.ctx.Config.Save()
+		}
+	}
+	select {
+	case <-m.overlayClosed:
+		m.overlay = nil
+		m.invalidateFunc()
+	default:
+	}
+	if m.startOverlay {
+		m.startOverlay = false
+		m.OpenOverlay()
+	}
+}
+func (m *Module) OpenOverlay() {
+	if m.overlay != nil {
+		return
+	}
+	m.overlay = newOverlay(&view.Style)
+	go m.overlay.run(func() {
+		m.overlayClosed <- struct{}{}
+	})
 }
 func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	label := material.Label(
@@ -149,6 +194,7 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	children := make([]layout.FlexChild, 0)
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTableHeader(style, gtx) }))
 	if !m.relay {
 		children = append(children,
@@ -168,6 +214,26 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 		)
 	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+}
+func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			icon := ui.CheckBoxOutline
+			if m.overlay != nil {
+				icon = ui.CheckBox
+			}
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return material.Label(style.Theme, unit.Sp(15), "DPS Tracker").Layout(gtx)
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					link := ui.IconLink(style, &m.overlayClick, icon, "Show Overlay")
+					link.TextAlign = text.End
+					return link.Layout(gtx)
+				}),
+			)
+		})
+	})
 }
 func (m *Module) RenderFight(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	fight := m.combat.history[index]

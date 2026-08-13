@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	LastLogfile string `json:"last_logfile"`
+	OpenOverlay bool   `json:"open_overlay"`
 }
 
 func (c *Config) Save() error {

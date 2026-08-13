@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -19,6 +20,7 @@ type LinkStyle struct {
 	Text  string
 
 	FontWeight font.Weight
+	TextAlign  text.Alignment
 
 	TextColor    color.NRGBA
 	HoverColor   color.NRGBA
@@ -37,27 +39,50 @@ func (l LinkStyle) Layout(gtx layout.Context) layout.Dimensions {
 		label.Color = col
 		label.Font.Weight = l.FontWeight
 		if l.icon == nil {
-			return label.Layout(gtx)
+			tgtx := gtx
+			if l.TextAlign != text.Start {
+				tgtx.Constraints.Min.X = tgtx.Constraints.Max.X
+				label.Alignment = l.TextAlign
+			}
+			return label.Layout(tgtx)
 		}
-		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
-				return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return l.icon.Layout(gtx, col)
-				})
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
-			}),
-		)
+		align := layout.Start
+		switch l.TextAlign {
+		case text.Middle:
+			align = layout.Middle
+		case text.End:
+			align = layout.End
+		}
+		content := func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Alignment: align}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
+					return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return l.icon.Layout(gtx, col)
+					})
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
+				}),
+			)
+		}
+		switch l.TextAlign {
+		case text.End:
+			return layout.E.Layout(gtx, content)
+		case text.Middle:
+			return layout.Center.Layout(gtx, content)
+		default:
+			return content(gtx)
+		}
 	})
 }
-func Link(style *Style, click *widget.Clickable, text string) LinkStyle {
+func Link(style *Style, click *widget.Clickable, str string) LinkStyle {
 	return LinkStyle{
-		style: style,
-		click: click,
-		icon:  nil,
-		Text:  text,
+		style:     style,
+		click:     click,
+		icon:      nil,
+		Text:      str,
+		TextAlign: text.Start,
 
 		Size:       14,
 		FontWeight: font.Normal,
@@ -68,15 +93,16 @@ func Link(style *Style, click *widget.Clickable, text string) LinkStyle {
 	}
 }
 
-func IconLink(style *Style, click *widget.Clickable, icon *widget.Icon, text string) LinkStyle {
+func IconLink(style *Style, click *widget.Clickable, icon *widget.Icon, str string) LinkStyle {
 	return LinkStyle{
 		style: style,
 		click: click,
 		icon:  icon,
-		Text:  text,
+		Text:  str,
 
 		Size:       14,
 		FontWeight: font.Normal,
+		TextAlign:  text.Start,
 
 		TextColor:    style.Palette.Link,
 		HoverColor:   style.Palette.LinkHover,

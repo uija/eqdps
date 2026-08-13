@@ -1,6 +1,6 @@
 package module
 
 type Module interface {
-	Init(*Context) error
+	Init(*Context, func()) error
 	Shutdown()
 }

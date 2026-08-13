@@ -33,7 +33,7 @@ type Module struct {
 	overlay_cancel  widget.Clickable
 }
 
-func (m *Module) Init(ctx *module.Context) error {
+func (m *Module) Init(ctx *module.Context, _ func()) error {
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterStatusWidget(m.Layout)

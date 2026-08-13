@@ -19,6 +19,8 @@ type Config struct {
 	Log          Log            `json:"log"`
 	HideFinished bool           `json:"hide_finished"`
 	HideEmpty    bool           `json:"hide_empty"`
+	HideReady    bool           `json:"hide_ready"`
+	HideWatched  bool           `json:"hide_watched"`
 }
 
 func LoadConfig(path string) (Config, error) {

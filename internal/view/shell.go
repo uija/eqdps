@@ -16,7 +16,7 @@ import (
 	"github.com/uija/eqdps/internal/ui/menu"
 )
 
-var style = ui.Style{
+var Style = ui.Style{
 	Theme: material.NewTheme(),
 	Palette: ui.Palette{
 		Window:   color.NRGBA{R: 18, G: 20, B: 22, A: 255},
@@ -52,7 +52,7 @@ type progress struct {
 
 // Shell is the root application view.
 type Shell struct {
-	style         *ui.Style
+	Style         *ui.Style
 	menuBar       *menu.Bar
 	status        string
 	help          *helpView
@@ -71,24 +71,24 @@ type Shell struct {
 // NewShell constructs the root application view.
 func NewShell(context *module.Context, closeWindow func(), invalidate func()) *Shell {
 	ui.Init()
-	style.Theme.Palette.Bg = style.Palette.Window
-	style.Theme.Palette.Fg = style.Palette.Text
-	style.Palette.Accent = color.NRGBA{
+	Style.Theme.Palette.Bg = Style.Palette.Window
+	Style.Theme.Palette.Fg = Style.Palette.Text
+	Style.Palette.Accent = color.NRGBA{
 		R: 190, G: 155, B: 74, A: 255,
 	}
 
 	result := &Shell{
-		style:            &style,
+		Style:            &Style,
 		status:           "Ready",
-		help:             newHelpView(&style, context),
-		selectHistory:    NewhistorySelection(&style, context.RequestReplay),
+		help:             newHelpView(&Style, context),
+		selectHistory:    NewhistorySelection(&Style, context.RequestReplay),
 		context:          context,
 		invalidateFunc:   invalidate,
 		fileSelectResult: make(chan fileResult, 1),
 		progressUpdate:   make(chan progress, 1),
 	}
 	context.RegisterProgressHandler(result.OnProgress)
-	result.menuBar = menu.NewBar(&style, "EVERQUEST LEGENDS")
+	result.menuBar = menu.NewBar(&Style, "EVERQUEST LEGENDS")
 	fileMenu := result.menuBar.AddMenu("File")
 	fileMenu.AddItem("Open Log", result.OpenLogfile)
 	fileMenu.AddItem("Quit", closeWindow)
@@ -161,7 +161,7 @@ func (s *Shell) OnProgress(title string, value int64, max int64) {
 
 // Layout renders the complete application view.
 func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
-	paint.Fill(gtx.Ops, s.style.Palette.Window)
+	paint.Fill(gtx.Ops, s.Style.Palette.Window)
 	s.update(gtx)
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
@@ -172,16 +172,16 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 					func(gtx layout.Context) layout.Dimensions {
 						children := make([]layout.FlexChild, 0)
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(style.Theme, "").Layout)
+							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(Style.Theme, "").Layout)
 						}))
 						for idx, i := range s.context.SideBarItems {
 							children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								link := ui.Link(s.style, &s.context.SideBarItems[idx].Click, i.Name)
+								link := ui.Link(s.Style, &s.context.SideBarItems[idx].Click, i.Name)
 								link.Size = 16
 								link.FontWeight = font.SemiBold
-								link.TextColor = style.Palette.Muted
+								link.TextColor = Style.Palette.Muted
 								return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.ColoredAccentedRow(gtx, style.Palette.Panel, style.Palette.Accent, false,
+									return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false,
 										func(gtx layout.Context) layout.Dimensions {
 											return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(16), Bottom: unit.Dp(8)}.Layout(gtx, link.Layout)
 										},
@@ -189,14 +189,14 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 								})
 							}))
 						}
-						children = append(children, layout.Flexed(1, material.Body1(style.Theme, " ").Layout))
+						children = append(children, layout.Flexed(1, material.Body1(Style.Theme, " ").Layout))
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							link := ui.Link(s.style, &s.settingsClick, "PREF")
+							link := ui.Link(s.Style, &s.settingsClick, "PREF")
 							link.Size = 16
 							link.FontWeight = font.SemiBold
-							link.TextColor = style.Palette.Muted
+							link.TextColor = Style.Palette.Muted
 							return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredAccentedRow(gtx, style.Palette.Panel, style.Palette.Accent, false,
+								return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false,
 									func(gtx layout.Context) layout.Dimensions {
 										return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(16), Bottom: unit.Dp(8)}.Layout(gtx, link.Layout)
 									},
@@ -206,7 +206,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+								return ui.ColoredRow(gtx, Style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 									return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 										children...,
 									)
@@ -258,11 +258,11 @@ func (s *Shell) update(gtx layout.Context) {
 
 func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return s.context.Layout(s.style, gtx)
+		return s.context.Layout(s.Style, gtx)
 	})
 	/*
 		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return s.context.Layout(s.style, gtx)
+			return s.context.Layout(s.Style, gtx)
 		})
 	*/
 }
@@ -270,17 +270,12 @@ func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {
 func (s *Shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(30))
 	gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
-	ui.Fill(gtx, s.style.Palette.Chrome)
+	ui.Fill(gtx, s.Style.Palette.Chrome)
 
-	items := make([]layout.FlexChild, 0)
-	elements := s.context.CompactStatusElements(s.style, gtx)
-	if len(elements) > 0 {
-		for _, ele := range elements {
-			items = append(items, layout.Flexed(1, ele))
-		}
-	} else {
+	items := s.context.CompactStatusElements(s.Style, gtx)
+	if len(items) == 0 {
 		items = append(items, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{}.Layout(gtx, material.Body1(s.style.Theme, s.status).Layout)
+			return layout.Inset{}.Layout(gtx, material.Body1(s.Style.Theme, s.status).Layout)
 		}))
 	}
 

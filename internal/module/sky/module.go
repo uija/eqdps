@@ -50,7 +50,9 @@ type Module struct {
 	progression_click widget.Clickable
 	inventory_click   widget.Clickable
 
-	status_click widget.Clickable
+	status_click       widget.Clickable
+	ready_turnin_click widget.Clickable
+	watched_click      widget.Clickable
 
 	hide_finished widget.Clickable
 	hide_empty    widget.Clickable
@@ -103,7 +105,7 @@ type ClassStatus struct {
 	Quests []QuestStatus
 }
 
-func (m *Module) Init(ctx *module.Context) error {
+func (m *Module) Init(ctx *module.Context, _ func()) error {
 	ctx.AddViewMenuItem("Plane of Sky Quest Tracker", m.OpenMainView)
 	ctx.AddSidebarItem("PoS", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
@@ -112,7 +114,7 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.RegisterStatusWidget(m.LayoutStatus)
 	ctx.RegisterUpdate(m.Update)
-	ctx.SetMainView(m.Layout)
+	//ctx.SetMainView(m.Layout)
 	ctx.AddHelpItem("Plane of Sky Quest Tracker", m.LayoutHelp)
 	m.ctx = ctx
 	m.db, _ = LoadDatabase()
@@ -256,6 +258,14 @@ func (m *Module) Update(gtx layout.Context) {
 	}
 	if m.status_click.Clicked(gtx) {
 		m.OpenMainView()
+	}
+	if m.ready_turnin_click.Clicked(gtx) {
+		m.config.HideReady = !m.config.HideReady
+		m.config.Save()
+	}
+	if m.watched_click.Clicked(gtx) {
+		m.config.HideWatched = !m.config.HideWatched
+		m.config.Save()
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {

@@ -2,6 +2,7 @@ package module
 
 import (
 	"log"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -134,18 +135,33 @@ func (c *Context) runIndexFile() {
 	})
 	c.readyForFollow <- struct{}{}
 }
-func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []layout.Widget {
-	items := make([]layout.Widget, 0)
+func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []layout.FlexChild {
+	items := make([]layout.FlexChild, 0)
 	if c.parserPath != "" {
-		items = append(items, func(gtx layout.Context) layout.Dimensions {
-			return material.Label(style.Theme, unit.Sp(14), c.parserPath).Layout(gtx)
-		})
+		items = append(items,
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				_, filename := filepath.Split(c.parserPath)
+				return material.Label(style.Theme, unit.Sp(14), filename).Layout(gtx)
+			}),
+		)
 	}
 	for _, f := range c.statusWidgetProvider {
-		items = append(items, func(gtx layout.Context) layout.Dimensions {
-			return f(style, gtx)
-		})
+		items = append(items,
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				return f(style, gtx)
+			}),
+		)
 	}
+	items = append(items,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if c.parserPath == "" {
+				return ui.ColoredLabel(style.Theme, 13, style.Palette.No, "No log").Layout(gtx)
+			} else if c.isReplay {
+				return ui.ColoredLabel(style.Theme, 13, style.Palette.Accent, "Replay").Layout(gtx)
+			}
+			return ui.ColoredLabel(style.Theme, 13, style.Palette.Yes, "Live").Layout(gtx)
+		}),
+	)
 	return items
 }
 func (c *Context) runFollow() {
@@ -265,7 +281,7 @@ func (c *Context) AddHelpItem(name string, layout ui.Widget) {
 }
 
 func (c *Context) RegisterModule(m Module) error {
-	return m.Init(c)
+	return m.Init(c, c.invalidateFunc)
 }
 func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if c.currentMainView != nil {
