@@ -219,7 +219,7 @@ func (m *Module) RecalculateStatus() {
 }
 
 func (m *Module) OpenMainView() {
-	m.ctx.SetMainView(m.MainView)
+	m.ctx.SetMainView(m.Layout)
 }
 
 func (m *Module) Shutdown() {

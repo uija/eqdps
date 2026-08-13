@@ -26,10 +26,11 @@ type Fight struct {
 
 	combatants map[string]*Combatant
 
-	start      time.Time
-	lastUpdate time.Time
-	end        time.Time
-	endReason  string
+	start           time.Time
+	lastUpdate      time.Time
+	lastParticipate time.Time
+	end             time.Time
+	endReason       string
 }
 
 type Combatant struct {
@@ -106,4 +107,71 @@ func (f *Fight) addDamageEvent(e *DamageEvent) {
 		f.combatants[e.NormalizedSource] = combatant
 	}
 	combatant.AddDamageEvent(e)
+	if e.Participation {
+		f.lastParticipate = e.Time
+	}
+}
+
+func (f *Fight) Clone() *Fight {
+	if f == nil {
+		return nil
+	}
+
+	clone := &Fight{
+		name:         f.name,
+		validated:    f.validated,
+		participants: make(map[string]bool, len(f.participants)),
+		combatants:   make(map[string]*Combatant, len(f.combatants)),
+		start:        f.start,
+		lastUpdate:   f.lastUpdate,
+		end:          f.end,
+		endReason:    f.endReason,
+	}
+
+	for name, participant := range f.participants {
+		clone.participants[name] = participant
+	}
+
+	for name, combatant := range f.combatants {
+		clone.combatants[name] = combatant.Clone()
+	}
+
+	return clone
+}
+
+func (c *Combatant) Clone() *Combatant {
+	if c == nil {
+		return nil
+	}
+
+	clone := &Combatant{
+		name:       c.name,
+		normalized: c.normalized,
+		overall:    cloneDamageData(c.overall),
+		categories: make(map[string]CombatDamageCategory, len(c.categories)),
+	}
+
+	for name, category := range c.categories {
+		categoryClone := CombatDamageCategory{
+			overall:   cloneDamageData(category.overall),
+			abilities: make(map[string]*CombatDamageData, len(category.abilities)),
+		}
+
+		for ability, damage := range category.abilities {
+			categoryClone.abilities[ability] = cloneDamageData(damage)
+		}
+
+		clone.categories[name] = categoryClone
+	}
+
+	return clone
+}
+
+func cloneDamageData(data *CombatDamageData) *CombatDamageData {
+	if data == nil {
+		return nil
+	}
+
+	clone := *data
+	return &clone
 }

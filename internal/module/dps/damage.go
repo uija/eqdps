@@ -98,6 +98,7 @@ type DamageEvent struct {
 	Crit             bool
 	IsCast           bool
 	Type             data.LogRowEventType
+	Participation    bool
 }
 
 func (de *DamageEvent) isSpell() bool {
@@ -121,5 +122,6 @@ func NewDamageEvent(ts time.Time, source, target, verb, amount, ability, annotat
 		Crit:             strings.Contains(annotation, "Critical"),
 		IsCast:           false,
 		Type:             t,
+		Participation:    false,
 	}
 }

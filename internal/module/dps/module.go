@@ -39,11 +39,12 @@ type Module struct {
 
 	overlay *Overlay
 
-	relay        atomic.Bool
+	replay       atomic.Bool
 	startOverlay bool
 
-	overlayClick  widget.Clickable
-	overlayClosed chan struct{}
+	overlayClick   widget.Clickable
+	overlayClosed  chan struct{}
+	overlayTimeout time.Time
 
 	invalidateFunc func()
 }
@@ -94,15 +95,50 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 		for {
 			select {
 			case row := <-m.rows:
-				m.combat.AddEvent(row)
+				if m.combat.AddEvent(row) && !m.replay.Load() {
+					m.publishOverlayFight()
+				}
 			case now := <-ticker.C:
-				m.combat.endTimedOutFights(now)
+				if m.combat.endTimedOutFights(now) && !m.replay.Load() {
+					m.publishOverlayFight()
+				}
 			case <-m.stop:
 				return
 			}
 		}
 	}()
 	return nil
+}
+
+func (m *Module) publishOverlayFight() {
+	if m.overlay == nil {
+		return
+	}
+	var snapshot *Fight = nil
+	m.combat.mu.RLock()
+	if len(m.combat.history) == 0 {
+		m.combat.mu.RUnlock()
+		return
+	}
+	active := make([]*Fight, 0)
+	for _, f := range m.combat.history {
+		if f.endReason == "" {
+			active = append(active, f)
+		}
+	}
+	if len(active) == 0 {
+		snapshot = m.combat.history[len(m.combat.history)-1].Clone()
+	} else {
+		sort.Slice(active, func(i, j int) bool {
+			return active[i].lastParticipate.After(active[j].lastParticipate)
+		})
+		snapshot = active[0].Clone()
+	}
+	m.combat.mu.RUnlock()
+	if snapshot != nil {
+		m.overlay.updates <- snapshot
+		m.overlay.window.Invalidate()
+	}
 }
 
 func (m *Module) OpenMainView() {
@@ -120,10 +156,11 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64, 
 
 }
 func (m *Module) OnReplayStart() {
-	m.relay.Store(true)
+	m.replay.Store(true)
 }
 func (m *Module) OnReplayEnd() {
-	m.relay.Store(false)
+	m.replay.Store(false)
+	m.publishOverlayFight()
 }
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	switch event.Type {
@@ -145,7 +182,7 @@ func (m *Module) SelectBacklog() {
 
 }
 func (m *Module) Update(gtx layout.Context) {
-	if !m.relay.Load() {
+	if !m.replay.Load() {
 		m.combat.mu.RLock()
 		for _, f := range m.combat.history {
 			for _, c := range f.combatants {
@@ -204,7 +241,7 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 	children := make([]layout.FlexChild, 0)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTableHeader(style, gtx) }))
-	if !m.relay.Load() {
+	if !m.replay.Load() {
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(style.Theme, &m.table)

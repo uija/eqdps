@@ -40,16 +40,19 @@ func (c *Combat) findUnvalidatedFightFor(name string) (*Fight, bool) {
 	}
 	return nil, false
 }
-func (c *Combat) endTimedOutFights(now time.Time) {
+func (c *Combat) endTimedOutFights(now time.Time) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	changed := false
 	for name, fight := range c.activeFights {
 		if now.Sub(fight.end) > 20*time.Second {
 			fight.endReason = END_REASON_TIMEOUT
 			c.history = append(c.history, fight)
 			delete(c.activeFights, name)
+			changed = true
 		}
 	}
+	return changed
 }
 func (c *Combat) getActiveFight(source string, target string) *Fight {
 	player := source
@@ -129,7 +132,7 @@ func evaluateFightName(name string) string {
 	return name
 }
 
-func (c *Combat) AddEvent(e *data.LogRowEvent) {
+func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -137,7 +140,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) {
 	if ok {
 		fight := c.getActiveFight(event.NormalizedSource, event.NormalizedTarget)
 		fight.addDamageEvent(event)
-		return
+		return true
 	}
 	switch e.Type {
 	case data.LogRowEventTypeCast:
@@ -172,7 +175,10 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) {
 			fight.endReason = "You"
 			delete(c.activeFights, target)
 		}
+	default:
+		return false
 	}
+	return true
 }
 func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*DamageEvent, bool) {
 	if e == nil {
@@ -190,9 +196,15 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*DamageEvent, bool) {
 				elapsed := de.Time.Sub(cs.timestamp)
 				if elapsed >= 0 && elapsed <= 10*time.Second {
 					de.IsCast = true
+					if de.Source == "You" {
+						de.Participation = true
+					}
 				}
 			}
 		} else {
+			if de.Source == "You" {
+				de.Participation = true
+			}
 			de.Ability = de.Verb
 		}
 		return de, true

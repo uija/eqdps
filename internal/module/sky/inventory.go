@@ -8,6 +8,7 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/ui"
@@ -117,7 +118,9 @@ func RenderContainerRow(container []InventoryRow, index int, col color.NRGBA, st
 					return material.Label(style.Theme, unit.Sp(14), item.Name).Layout(gtx)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return ui.ColoredLabel(style.Theme, 14, col, f(&item)).Layout(gtx)
+					label := ui.ColoredLabel(style.Theme, 14, col, f(&item))
+					label.Alignment = text.End
+					return layout.Inset{Right: unit.Dp(32)}.Layout(gtx, label.Layout)
 				}),
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return material.Label(style.Theme, unit.Sp(14), item.Hint).Layout(gtx)
