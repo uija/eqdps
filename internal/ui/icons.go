@@ -13,6 +13,7 @@ var DelBox *widget.Icon
 var Timer *widget.Icon
 var Help *widget.Icon
 var Priority *widget.Icon
+var Arrows *widget.Icon
 
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
@@ -23,6 +24,7 @@ func Init() {
 	Timer = loadIcon(icons.ImageTimer)
 	Help = loadIcon(icons.ActionHelpOutline)
 	Priority = loadIcon(icons.NotificationPriorityHigh)
+	Arrows = loadIcon(icons.ActionOpenWith)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

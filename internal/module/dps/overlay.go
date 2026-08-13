@@ -24,6 +24,8 @@ type Overlay struct {
 	fightMu sync.RWMutex
 	fight   *Fight
 	done    chan struct{}
+
+	decorations widget.Decorations
 }
 
 func newOverlay(source *ui.Style) *Overlay {
@@ -86,11 +88,29 @@ func (o *Overlay) handleUpdates() {
 }
 
 func (o *Overlay) Layout(gtx layout.Context) layout.Dimensions {
+	ui.Fill(gtx, o.style.Palette.Window)
+	return layout.Stack{}.Layout(
+		gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			return o.RenderMainView(gtx)
+		}),
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = gtx.Constraints.Max
+			return layout.NE.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return o.decorations.LayoutMove(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.Arrows.Layout(gtx, o.style.Palette.Text)
+					})
+				})
+			})
+		}),
+	)
+}
+func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 	o.fightMu.RLock()
 	fight := o.fight
 	o.fightMu.RUnlock()
 
-	ui.Fill(gtx, o.style.Palette.Window)
 	children := make([]layout.FlexChild, 0)
 	// TODO: Timer
 

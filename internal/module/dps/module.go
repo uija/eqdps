@@ -374,7 +374,12 @@ func (m *Module) GenerateFightDetailsRow(intent int, name string, d *CombatDamag
 		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, fmt.Sprintf("%d", d.crits)))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[5].weight), func(gtx layout.Context) layout.Dimensions {
-		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, fmt.Sprintf("%v", d.lastUpdate.Sub(d.start))))
+		dur := d.lastUpdate.Sub(d.start)
+		minutes := int(dur.Minutes())
+		seconds := int(dur.Seconds()) % 60
+		label := material.Body1(style.Theme, fmt.Sprintf("%02d:%02d", minutes, seconds))
+		label.Color = style.Palette.Accent
+		return ui.RightAlignLabel(gtx, label)
 	}))
 	// each row gets its own padding
 	return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(4), Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -430,7 +435,10 @@ func (m *Module) RenderFightHeader(fight *Fight, style *ui.Style, gtx layout.Con
 					return layout.Inset{Top: unit.Dp(4), Right: unit.Dp(8)}.Layout(gtx, label.Layout)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					label := material.Body1(style.Theme, fmt.Sprintf("%v", fight.end.Sub(fight.start)))
+					dur := fight.end.Sub(fight.start)
+					minutes := int(dur.Minutes())
+					seconds := int(dur.Seconds()) % 60
+					label := material.Body1(style.Theme, fmt.Sprintf("%02d:%02d", minutes, seconds))
 					return ui.RightAlignLabel(gtx, label)
 				}),
 			)
