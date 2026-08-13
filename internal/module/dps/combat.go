@@ -2,7 +2,6 @@ package dps
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -206,7 +205,6 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 		}
 	case data.LogRowEventTypeSomeoneDied:
 		target := normalizeName(e.Data[1])
-		log.Printf("Something died: %s", target)
 		if fight, ok := c.activeFights[target]; ok {
 			fight.end = e.Timestamp
 			fight.endReason = "Unknown"

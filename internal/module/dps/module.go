@@ -153,6 +153,7 @@ func (m *Module) Shutdown() {
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
+	m.combat = newCombat()
 	return true
 }
 func (m *Module) OnReplayStart() {
