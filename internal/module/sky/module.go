@@ -50,6 +50,8 @@ type Module struct {
 	progression_click widget.Clickable
 	inventory_click   widget.Clickable
 
+	status_click widget.Clickable
+
 	hide_finished widget.Clickable
 	hide_empty    widget.Clickable
 }
@@ -103,10 +105,12 @@ type ClassStatus struct {
 
 func (m *Module) Init(ctx *module.Context) error {
 	ctx.AddViewMenuItem("Plane of Sky Quest Tracker", m.OpenMainView)
+	ctx.AddSidebarItem("PoS", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
+	ctx.RegisterStatusWidget(m.LayoutStatus)
 	ctx.RegisterUpdate(m.Update)
 	ctx.SetMainView(m.Layout)
 	ctx.AddHelpItem("Plane of Sky Quest Tracker", m.LayoutHelp)
@@ -249,6 +253,9 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.hide_finished.Clicked(gtx) {
 		m.config.HideFinished = !m.config.HideFinished
 		m.config.Save()
+	}
+	if m.status_click.Clicked(gtx) {
+		m.OpenMainView()
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {

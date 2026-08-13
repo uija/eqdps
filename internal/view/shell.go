@@ -4,9 +4,11 @@ import (
 	"image/color"
 	"log"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
@@ -30,6 +32,10 @@ var style = ui.Style{
 		Border:   color.NRGBA{R: 200, G: 200, B: 200, A: 255},
 		Yes:      color.NRGBA{R: 190, G: 242, B: 199, A: 255},
 		No:       color.NRGBA{R: 242, G: 190, B: 191, A: 255},
+
+		Link:        color.NRGBA{R: 225, G: 226, B: 222, A: 255},
+		LinkHover:   color.NRGBA{R: 63, G: 189, B: 224, A: 255},
+		LinkClicked: color.NRGBA{R: 149, G: 123, B: 189, A: 255},
 	},
 }
 
@@ -58,6 +64,8 @@ type Shell struct {
 	invalidateFunc   func()
 	fileSelectResult chan fileResult
 	progressUpdate   chan progress
+
+	settingsClick widget.Clickable
 }
 
 // NewShell constructs the root application view.
@@ -160,7 +168,54 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min = gtx.Constraints.Max
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(s.menuBar.LayoutBar),
-				layout.Flexed(1, s.layoutMain),
+				layout.Flexed(1,
+					func(gtx layout.Context) layout.Dimensions {
+						children := make([]layout.FlexChild, 0)
+						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(style.Theme, "").Layout)
+						}))
+						for idx, i := range s.context.SideBarItems {
+							children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								link := ui.Link(s.style, &s.context.SideBarItems[idx].Click, i.Name)
+								link.Size = 16
+								link.FontWeight = font.SemiBold
+								link.TextColor = style.Palette.Muted
+								return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return ui.ColoredAccentedRow(gtx, style.Palette.Panel, style.Palette.Accent, false,
+										func(gtx layout.Context) layout.Dimensions {
+											return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(16), Bottom: unit.Dp(8)}.Layout(gtx, link.Layout)
+										},
+									)
+								})
+							}))
+						}
+						children = append(children, layout.Flexed(1, material.Body1(style.Theme, " ").Layout))
+						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							link := ui.Link(s.style, &s.settingsClick, "PREF")
+							link.Size = 16
+							link.FontWeight = font.SemiBold
+							link.TextColor = style.Palette.Muted
+							return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return ui.ColoredAccentedRow(gtx, style.Palette.Panel, style.Palette.Accent, false,
+									func(gtx layout.Context) layout.Dimensions {
+										return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(16), Bottom: unit.Dp(8)}.Layout(gtx, link.Layout)
+									},
+								)
+							})
+						}))
+
+						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+									return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+										children...,
+									)
+								})
+							}),
+							layout.Flexed(1, s.layoutMain),
+						)
+					},
+				),
 				layout.Rigid(s.layoutStatus),
 			)
 		}),
@@ -186,6 +241,14 @@ func (s *Shell) update(gtx layout.Context) {
 			s.progress = &p
 		}
 	default:
+	}
+	for idx := range s.context.SideBarItems {
+		if s.context.SideBarItems[idx].Click.Clicked(gtx) {
+			s.context.SideBarItems[idx].Action()
+		}
+	}
+	if s.settingsClick.Clicked(gtx) {
+		// TODO: Open settings
 	}
 	s.context.Update(gtx)
 	s.menuBar.Update(gtx)

@@ -7,6 +7,7 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/eqlog"
@@ -20,6 +21,11 @@ type MenuItem struct {
 type HelpItem struct {
 	Name   string
 	Layout ui.Widget
+}
+type SidebarItem struct {
+	Name   string
+	Action UIActionFunc
+	Click  widget.Clickable
 }
 
 type UIActionFunc func()
@@ -37,6 +43,7 @@ type Context struct {
 	currentMainView ui.Widget
 	ViewMenuItems   []MenuItem
 	ToolsMenuItems  []MenuItem
+	SideBarItems    []SidebarItem
 
 	progressHandler ProgressHandler
 
@@ -89,6 +96,7 @@ func NewContext(invalidateFunc func()) *Context {
 		statusWidgetProvider:  make([]ui.Widget, 0),
 		overlayWidgetProvider: make([]ui.Widget, 0),
 		HelpItems:             make([]HelpItem, 0),
+		SideBarItems:          make([]SidebarItem, 0),
 		updateListener:        make([]UpdateListener, 0),
 
 		readyForFollow:  make(chan struct{}, 1),
@@ -221,6 +229,9 @@ func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 }
 func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
 	c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})
+}
+func (c *Context) AddSidebarItem(name string, action UIActionFunc) {
+	c.SideBarItems = append(c.SideBarItems, SidebarItem{Name: name, Action: action})
 }
 func (c *Context) AddToolsMenuItem(name string, action UIActionFunc) {
 	c.ToolsMenuItems = append(c.ToolsMenuItems, MenuItem{Name: name, Action: action})

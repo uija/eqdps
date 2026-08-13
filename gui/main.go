@@ -20,8 +20,8 @@ func main() {
 		window := new(app.Window)
 		context := module.NewContext(window.Invalidate)
 		context.RegisterModule(dps.NewModule())
-		context.RegisterModule(sky.NewModule())
 		context.RegisterModule(&xphour.Module{})
+		context.RegisterModule(sky.NewModule())
 
 		window.Option(
 			app.Title("eqdps"),

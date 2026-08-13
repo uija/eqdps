@@ -66,6 +66,7 @@ func (m *Module) Init(ctx *module.Context) error {
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
+	ctx.AddSidebarItem("DPS", m.OpenMainView)
 	//ctx.SetMainView(m.MainView)
 	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
@@ -105,7 +106,7 @@ func (m *Module) OnReplayStart() {
 	m.relay = true
 }
 func (m *Module) OnReplayEnd() {
-	m.relay = true
+	m.relay = false
 }
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	switch event.Type {
@@ -343,7 +344,7 @@ func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.D
 			)
 		}))
 	}
-	return layout.Inset{Right: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return layout.Inset{Right: unit.Dp(10), Top: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(
 			gtx, columns...,
 		)

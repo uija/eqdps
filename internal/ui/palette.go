@@ -19,4 +19,8 @@ type Palette struct {
 
 	Yes color.NRGBA
 	No  color.NRGBA
+
+	Link        color.NRGBA
+	LinkHover   color.NRGBA
+	LinkClicked color.NRGBA
 }

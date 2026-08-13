@@ -140,12 +140,6 @@ func (v *helpView) layoutContent(gtx layout.Context) layout.Dimensions {
 
 func (v *helpView) layoutLink(index int, item module.HelpItem) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return v.links[index].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Top: unit.Dp(6), Bottom: unit.Dp(6)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := material.Label(v.style.Theme, unit.Sp(15), item.Name)
-				label.Color = v.style.Palette.Text
-				return label.Layout(gtx)
-			})
-		})
+		return layout.Inset{Top: unit.Dp(12), Bottom: unit.Dp(12)}.Layout(gtx, ui.IconLink(v.style, &v.links[index], ui.Help, item.Name).Layout)
 	}
 }
