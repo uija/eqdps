@@ -97,8 +97,17 @@ func (f *Fight) hasParticipant(name string) bool {
 func (f *Fight) addDamageEvent(e *DamageEvent) {
 	if f.start.IsZero() {
 		f.start = e.Time
+		f.end = e.Time
 	}
-	f.end = e.Time
+	switch e.Type {
+	case data.LogRowEventTypeDamageOverTime,
+		data.LogRowEventTypeYourDamageOverTime,
+		data.LogRowEventTypeDamageShield,
+		data.LogRowEventTypeYourDamageShield:
+	default:
+		f.end = e.Time
+
+	}
 	f.participants[e.NormalizedSource] = true
 	f.participants[e.NormalizedTarget] = true
 	combatant, ok := f.combatants[e.NormalizedSource]

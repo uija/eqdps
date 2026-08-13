@@ -15,10 +15,12 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/gen2brain/beeep"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/view"
+	"golang.org/x/exp/shiny/materialdesign/icons"
 )
 
 var categories = []string{}
@@ -95,8 +97,13 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 		for {
 			select {
 			case row := <-m.rows:
-				if m.combat.AddEvent(row) && !m.replay.Load() {
-					m.publishOverlayFight()
+				if m.replay.Load() {
+					m.combat.endTimedOutFights(row.Timestamp)
+				}
+				if m.combat.AddEvent(row) {
+					if !m.replay.Load() {
+						m.publishOverlayFight()
+					}
 				}
 			case now := <-ticker.C:
 				if !m.replay.Load() && m.combat.endTimedOutFights(now) {
@@ -179,6 +186,14 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		data.LogRowEventTypeYouSlain:
 
 		m.rows <- event
+	}
+	switch event.Type {
+	case data.LogRowEventTypeSlainBy,
+		data.LogRowEventTypeYouSlain,
+		data.LogRowEventTypeSomeoneDied:
+		if !m.replay.Load() {
+			beeep.Notify("Death", fmt.Sprintf("%s died!", event.Data[1]), icons.NotificationAirlineSeatFlat)
+		}
 	}
 }
 func (m *Module) SelectBacklog() {
@@ -428,6 +443,8 @@ func (m *Module) RenderFightHeader(fight *Fight, style *ui.Style, gtx layout.Con
 					cnt := ""
 					if fight.endReason != "" {
 						cnt = fmt.Sprintf("Killed %s", fight.end.Format("2006-01-02 15:04"))
+					} else {
+						cnt = fmt.Sprintf("Started %s", fight.start.Format("2006-01-02 15:04"))
 					}
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					label := material.Body1(style.Theme, cnt)

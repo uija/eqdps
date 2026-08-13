@@ -150,6 +150,71 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 	return c.activeFights[fight_name]
 }
 
+// getActiveFightLegacy selects the fight using the endpoint rules from the
+// legacy FightTracker.mobForEvent implementation. Unlike getActiveFight, it
+// never searches active fights by participant: each event is assigned to the
+// fight keyed by the endpoint that was identified as the mob.
+func (c *Combat) getActiveFightLegacy(source string, target string) *Fight {
+	sourceFightName := c.legacyFightName(source)
+	targetFightName := c.legacyFightName(target)
+	sourceIsMob := c.activeFights[sourceFightName] != nil
+	targetIsMob := c.activeFights[targetFightName] != nil
+	sourceIsPlayer := c.knownPlayers[source]
+	targetIsPlayer := c.knownPlayers[target]
+
+	mob := target
+	switch {
+	case target == "you":
+		mob = source
+	case source == "you":
+		mob = target
+	case sourceIsMob && !targetIsMob:
+		mob = source
+	case targetIsMob:
+		mob = target
+	case sourceIsPlayer && !targetIsPlayer:
+		mob = target
+	case targetIsPlayer:
+		mob = source
+	}
+
+	if mob == source {
+		if !targetIsMob {
+			c.knownPlayers[target] = true
+		}
+	} else if !sourceIsMob {
+		c.knownPlayers[source] = true
+	}
+
+	fightName := c.legacyFightName(mob)
+	if fight := c.activeFights[fightName]; fight != nil {
+		return fight
+	}
+
+	fight := newFight(true)
+	fight.name = fightName
+	c.activeFights[fightName] = fight
+	c.history = append(c.history, fight)
+	return fight
+}
+
+// legacyFightName mirrors FightTracker.mobIdentity. Names ending in " pet"
+// always identify their owner. Possessive pet names identify their owner only
+// while that owner's fight is active.
+func (c *Combat) legacyFightName(name string) string {
+	trimmed := strings.TrimSpace(name)
+	if owner, ok := strings.CutSuffix(trimmed, " pet"); ok && owner != "" {
+		return strings.TrimSpace(owner)
+	}
+	for _, separator := range []string{"`s ", "'s "} {
+		owner, petName, ok := strings.Cut(trimmed, separator)
+		if ok && owner != "" && petName != "" && c.activeFights[owner] != nil {
+			return owner
+		}
+	}
+	return trimmed
+}
+
 func evaluateFightName(name string) string {
 	if ret, ok := strings.CutSuffix(name, " pet"); ok {
 		return ret
@@ -166,7 +231,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 
 	event, ok := c.damageFromLogRow(e)
 	if ok {
-		fight := c.getActiveFight(event.NormalizedSource, event.NormalizedTarget)
+		fight := c.getActiveFightLegacy(event.NormalizedSource, event.NormalizedTarget)
 		fight.addDamageEvent(event)
 		return true
 	}
