@@ -247,9 +247,13 @@ func (p *Parser) Replay(lookback Loopback, handler EventHandler, onProgress Repl
 			return fmt.Errorf("rewind logfile for replay: %w", err)
 		}
 	}
+	var offset int64
+	if lookback.ByteOffset > 0 && lookback.ByteOffset < info.Size() {
+		file.Seek(lookback.ByteOffset, io.SeekStart)
+		offset = lookback.ByteOffset
+	}
 	p.resetReplayState()
 	reader := bufio.NewReader(io.LimitReader(file, info.Size()))
-	var offset int64
 	lines := 0
 	if onProgress != nil {
 		onProgress(ReplayProgress{Total: info.Size()})

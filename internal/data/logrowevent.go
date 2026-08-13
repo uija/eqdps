@@ -30,6 +30,7 @@ const (
 	LogRowEventTypeWho
 	LogRowEventTypeAnonymousWho
 	LogRowEventTypeInventoryExport
+	LogRowEventTypeSomeoneDied
 )
 
 type LogLandmark struct {

@@ -1,6 +1,7 @@
 package sky
 
 import (
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -9,9 +10,10 @@ import (
 )
 
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
-	//if !event.Timestamp.After(m.config.Log.LastTimestamp) {
-	//	return
-	//}
+	if !m.readyToRead && !m.replay {
+		log.Printf("Message while we are not ready to read")
+		return
+	}
 	if event.Offset <= m.config.Log.Offset {
 		return
 	}

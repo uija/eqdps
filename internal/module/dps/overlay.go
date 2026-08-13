@@ -2,6 +2,7 @@ package dps
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 
 	"gioui.org/app"
@@ -126,10 +127,13 @@ func (o *Overlay) Layout(gtx layout.Context) layout.Dimensions {
 		})
 	}))
 	if fight != nil {
-		names := make([]string, 0)
-		for name, _ := range fight.combatants {
-			names = append(names, name)
+		cb := make([]*Combatant, 0)
+		for _, c := range fight.combatants {
+			cb = append(cb, c)
 		}
+		sort.Slice(cb, func(i, j int) bool {
+			return cb[i].overall.DPS() < cb[j].overall.DPS()
+		})
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(o.style.Theme, &o.list)
@@ -139,7 +143,7 @@ func (o *Overlay) Layout(gtx layout.Context) layout.Dimensions {
 					size,
 					func(gtx layout.Context, index int) layout.Dimensions {
 						return layout.Inset{Top: unit.Dp(8), Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return o.RenderCombatRow(fight, names[index], gtx)
+							return o.RenderCombatRow(cb[index], gtx)
 						})
 					},
 				)
@@ -153,23 +157,23 @@ func (o *Overlay) Layout(gtx layout.Context) layout.Dimensions {
 		}),
 	)
 }
-func (o *Overlay) RenderCombatRow(fight *Fight, name string, gtx layout.Context) layout.Dimensions {
+func (o *Overlay) RenderCombatRow(cb *Combatant, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-			return material.Label(o.style.Theme, unit.Sp(13), fight.combatants[name].name).Layout(gtx)
+			return material.Label(o.style.Theme, unit.Sp(13), cb.name).Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%d", fight.combatants[name].overall.damage))
+			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%d", cb.overall.damage))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%.0f", fight.combatants[name].overall.DPS()))
+			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%.0f", cb.overall.DPS()))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			dur := fight.combatants[name].overall.lastUpdate.Sub(fight.combatants[name].overall.start)
+			dur := cb.overall.lastUpdate.Sub(cb.overall.start)
 			minutes := int(dur.Minutes())
 			seconds := int(dur.Seconds()) % 60
 			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%02d:%02d", minutes, seconds))

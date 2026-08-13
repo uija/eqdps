@@ -130,13 +130,14 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return dims
 }
 
-func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) {
+func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.latestLog = time.Time{}
 	m.lastCombat = time.Time{}
 	m.activeBetween = 0
 	m.xpReceived = 0
+	return true
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	m.mu.Lock()

@@ -152,8 +152,8 @@ func (m *Module) Shutdown() {
 	}
 }
 
-func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {
-
+func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
+	return true
 }
 func (m *Module) OnReplayStart() {
 	m.replay.Store(true)
@@ -173,6 +173,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		data.LogRowEventTypeAggroClear,
 		data.LogRowEventTypeZoneChange,
 		data.LogRowEventTypeSlainBy,
+		data.LogRowEventTypeSomeoneDied,
 		data.LogRowEventTypeYouSlain:
 
 		m.rows <- event

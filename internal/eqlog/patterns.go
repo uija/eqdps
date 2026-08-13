@@ -32,6 +32,7 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeAggroClear, regexp.MustCompile(`^Your enemies have forgotten you!$`), []string{"Your enemies have forgotten you!"}},
 	{data.LogRowEventTypeYouSlain, regexp.MustCompile(`^You have slain (.+)!$`), []string{"You have slain ", "!"}},
 	{data.LogRowEventTypeSlainBy, regexp.MustCompile(`^(.+) has been slain by (.+)!$`), []string{" has been slain by ", "!"}},
+	{data.LogRowEventTypeSomeoneDied, regexp.MustCompile(`^(.+) died\.$`), []string{" died"}},
 	{data.LogRowEventTypeZoneChange, zoneChangeExpression, []string{"You have entered "}},
 	{data.LogRowEventTypeLoot, regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`), []string{"--You have looted ", " from ", "'s corpse.--"}},
 	{data.LogRowEventTypeLootResult, regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`), []string{"You looted ", " from ", "'s corpse "}},

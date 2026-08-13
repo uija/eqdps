@@ -2,6 +2,7 @@ package dps
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -87,6 +88,17 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 			validated = true
 		}
 	}
+	if player == "you" {
+		if c.knownPlayers[npc] {
+			delete(c.knownPlayers, npc)
+			for name, f := range c.activeFights {
+				if name != npc && f.hasParticipant(npc) && f.validated {
+					c.activeFights[name].validated = false
+				}
+			}
+		}
+	}
+
 	fight_name := evaluateFightName(npc)
 	if validated {
 		c.knownPlayers[player] = true
@@ -173,6 +185,14 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 		if fight, ok := c.activeFights[target]; ok {
 			fight.end = e.Timestamp
 			fight.endReason = "You"
+			delete(c.activeFights, target)
+		}
+	case data.LogRowEventTypeSomeoneDied:
+		target := normalizeName(e.Data[1])
+		log.Printf("Something died: %s", target)
+		if fight, ok := c.activeFights[target]; ok {
+			fight.end = e.Timestamp
+			fight.endReason = "Unknown"
 			delete(c.activeFights, target)
 		}
 	default:

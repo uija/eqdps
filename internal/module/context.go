@@ -2,6 +2,7 @@ package module
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sync/atomic"
@@ -31,7 +32,7 @@ type SidebarItem struct {
 }
 
 type UIActionFunc func()
-type LogOpenListener func(characterName string, serverName string, filesize int64, path string)
+type LogOpenListener func(characterName string, serverName string, filesize int64, path string) bool
 type LogRowListener func(event *data.LogRowEvent)
 type ReplayStartListener func()
 type ReplayEndListener func()
@@ -71,6 +72,7 @@ type Context struct {
 	isReplay        atomic.Bool
 	readyForFollow  chan struct{}
 	requestedReplay chan eqlog.Loopback
+	indexingDone    chan struct{}
 }
 
 type ReplayRequest struct {
@@ -103,18 +105,13 @@ func NewContext(invalidateFunc func()) *Context {
 
 		readyForFollow:  make(chan struct{}, 1),
 		requestedReplay: make(chan eqlog.Loopback, 1),
+		indexingDone:    make(chan struct{}, 1),
 		invalidateFunc:  invalidateFunc,
 		Config:          config,
 	}
 }
 func (c *Context) ParserLogFileOpened(path string) {
 	// Extract Character and Servername
-	exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
-	if fields := exp.FindStringSubmatch(path); fields != nil {
-		for _, f := range c.logOpenListener {
-			f(fields[2], fields[3], 0, path)
-		}
-	}
 	c.parserPath = path
 	c.startParser(path, c.runIndexFile)
 }
@@ -134,7 +131,7 @@ func (c *Context) runIndexFile() {
 		default:
 		}
 	})
-	c.readyForFollow <- struct{}{}
+	c.indexingDone <- struct{}{}
 }
 func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	items := make([]layout.FlexChild, 0)
@@ -190,6 +187,25 @@ func (c *Context) Update(gtx layout.Context) {
 		}
 		c.replayLoopback = rr
 		c.startParser(c.parserPath, c.runReplay)
+	case <-c.indexingDone:
+		info, err := os.Stat(c.parserPath)
+		if err != nil {
+			return
+		}
+		exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
+		follow := true
+		if fields := exp.FindStringSubmatch(c.parserPath); fields != nil {
+			// find size of file
+			for _, f := range c.logOpenListener {
+				if !f(fields[2], fields[3], info.Size(), c.parserPath) {
+					follow = false
+				}
+			}
+		}
+		if follow {
+			c.readyForFollow <- struct{}{}
+		}
+		c.invalidateFunc()
 	case <-c.readyForFollow:
 		c.startParser(c.parserPath, c.runFollow)
 		c.invalidateFunc()

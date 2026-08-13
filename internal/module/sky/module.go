@@ -13,6 +13,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
@@ -38,7 +39,8 @@ type Module struct {
 
 	mainView ui.Widget
 
-	replay bool
+	replay      bool
+	readyToRead bool
 
 	configPath string
 
@@ -268,23 +270,30 @@ func (m *Module) Update(gtx layout.Context) {
 		m.config.Save()
 	}
 }
-func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) {
+func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
 	// Extract path
 	base_path := filepath.Dir(path)
 	m.configPath = fmt.Sprintf("%s/eqdps_%s_%s_PoS.json", base_path, characterName, serverName)
 	config, err := LoadConfig(m.configPath)
 	if err != nil {
 		log.Printf("Error loading pos file at %s, %v", m.configPath, err)
-		return
+		return false
 	}
 	m.config = config
+	if size > m.config.Log.Offset {
+		log.Printf("We are behind, requesting replay: %d", size-m.config.Log.Offset)
+		m.ctx.RequestReplay(eqlog.Loopback{ByteOffset: m.config.Log.Offset})
+		return false
+	}
 	m.RecalculateStatus()
+	return true
 }
 func (m *Module) OnReplayStart() {
 	m.replay = true
 }
 func (m *Module) OnReplayEnd() {
 	m.replay = false
+	m.readyToRead = true
 	if err := m.config.Save(); err != nil {
 		log.Printf("Unable to save config. %v", err)
 	}
