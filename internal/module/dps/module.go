@@ -157,6 +157,7 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64, 
 }
 func (m *Module) OnReplayStart() {
 	m.replay.Store(true)
+	m.combat = newCombat()
 }
 func (m *Module) OnReplayEnd() {
 	m.replay.Store(false)

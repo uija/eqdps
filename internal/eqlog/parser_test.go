@@ -64,7 +64,7 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 func TestReplayBuildsMetadataAndOffsets(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
 	rows := []string{
-		"[Sun Jul 26 12:00:00 2026] A line with no shared type.",
+		"[Sun Jul 26 12:00:00 2026] You gain experience! (1%)",
 		"[Sun Jul 26 12:00:01 2026] [50 PAL/DRU/MNK] Wyrmberg (Dwarf) <Guild> ZONE:",
 		"[Sun Jul 26 12:00:02 2026] You pierce an elemental visier for 44 points of damage.",
 		"[Sun Jul 26 12:00:03 2026] You have gained a level! Welcome to level 51!",
@@ -94,7 +94,7 @@ func TestReplayBuildsMetadataAndOffsets(t *testing.T) {
 	if len(events) != len(rows) {
 		t.Fatalf("events = %d, want %d", len(events), len(rows))
 	}
-	if events[0].Type != data.LogRowEventTypeUnknown {
+	if events[0].Type != data.LogRowEventTypeExperience {
 		t.Fatalf("first type = %v", events[0].Type)
 	}
 	if events[0].Metadata.CharacterName != "Wyrmberg" || events[0].Metadata.ServerName != "rivervale" {
@@ -138,9 +138,9 @@ func TestReplayBuildsMetadataAndOffsets(t *testing.T) {
 func TestReplayUsesLookbackFromLatestLogTimestamp(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
 	rows := []string{
-		"[Sun Jul 26 12:00:00 2026] First.",
-		"[Sun Jul 26 12:05:00 2026] Second.",
-		"[Sun Jul 26 12:10:00 2026] Third.",
+		"[Sun Jul 26 12:00:00 2026] You gain experience! (1%)",
+		"[Sun Jul 26 12:05:00 2026] You gain experience! (2%)",
+		"[Sun Jul 26 12:10:00 2026] You gain experience! (3%)",
 	}
 	content := ""
 	for _, row := range rows {
@@ -161,7 +161,7 @@ func TestReplayUsesLookbackFromLatestLogTimestamp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(events) != 2 || events[0].Message != "Second." || events[1].Message != "Third." {
+	if len(events) != 2 || events[0].Message != "You gain experience! (2%)" || events[1].Message != "You gain experience! (3%)" {
 		t.Fatalf("events = %#v", events)
 	}
 	if events[1].Offset != int64(len(content)) {

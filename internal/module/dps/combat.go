@@ -18,6 +18,7 @@ type CastSpell struct {
 type Combat struct {
 	activeFights  map[string]*Fight
 	knownPlayers  map[string]bool
+	blockedNames  map[string]bool
 	lastCastSpell map[string]CastSpell
 	history       []*Fight
 
@@ -28,11 +29,20 @@ func newCombat() Combat {
 	return Combat{
 		activeFights:  make(map[string]*Fight),
 		knownPlayers:  make(map[string]bool),
+		blockedNames:  make(map[string]bool),
 		lastCastSpell: make(map[string]CastSpell),
 		history:       make([]*Fight, 0),
 	}
 }
 
+func (c *Combat) findFightFor(name string) (*Fight, bool) {
+	for _, fight := range c.activeFights {
+		if fight.hasParticipant(name) {
+			return fight, true
+		}
+	}
+	return nil, false
+}
 func (c *Combat) findUnvalidatedFightFor(name string) (*Fight, bool) {
 	for _, fight := range c.activeFights {
 		if !fight.validated && fight.hasParticipant(name) {
@@ -48,7 +58,6 @@ func (c *Combat) endTimedOutFights(now time.Time) bool {
 	for name, fight := range c.activeFights {
 		if now.Sub(fight.end) > 20*time.Second {
 			fight.endReason = END_REASON_TIMEOUT
-			c.history = append(c.history, fight)
 			delete(c.activeFights, name)
 			changed = true
 		}
@@ -81,14 +90,19 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 		if source_words == 1 && target_words > 1 {
 			player = source
 			npc = target
-			validated = true
+			if !c.blockedNames[player] {
+				validated = true
+			}
 		} else if target_words == 1 && source_words > 1 {
 			player = target
 			npc = source
-			validated = true
+			if !c.blockedNames[player] {
+				validated = true
+			}
 		}
 	}
 	if player == "you" {
+		c.blockedNames[npc] = true
 		if c.knownPlayers[npc] {
 			delete(c.knownPlayers, npc)
 			for name, f := range c.activeFights {
@@ -108,7 +122,7 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 			return fight
 		}
 		// see if we find a fight, that is not validated that contains the target
-		fight, ok = c.findUnvalidatedFightFor(npc)
+		fight, ok = c.findUnvalidatedFightFor(fight_name)
 		if ok {
 			// we have a fight thats under the wrong name
 			delete(c.activeFights, fight.name)
@@ -125,7 +139,10 @@ func (c *Combat) getActiveFight(source string, target string) *Fight {
 	if fight, ok := c.activeFights[fight_name]; ok {
 		return fight
 	}
-	if fight, ok := c.activeFights[fight_name]; ok {
+	if fight, ok := c.findFightFor(fight_name); ok {
+		return fight
+	}
+	if fight, ok := c.findFightFor(player); ok {
 		return fight
 	}
 	c.activeFights[fight_name] = newFight(false)
