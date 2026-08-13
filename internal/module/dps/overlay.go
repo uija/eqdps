@@ -13,21 +13,31 @@ type Overlay struct {
 	updates chan Fight
 	style   *ui.Style
 	window  *app.Window
+
+	fight *Fight
 }
 
-func newOverlay(style *ui.Style) *Overlay {
+func newOverlay(source *ui.Style) *Overlay {
+
+	overlayStyle := *source
+	overlayStyle.Theme = material.NewTheme()
+	overlayStyle.Theme.Palette = source.Theme.Palette
+	overlayStyle.Theme.TextSize = source.Theme.TextSize
+	overlayStyle.Theme.Face = source.Theme.Face
+	overlayStyle.Theme.FingerSize = source.Theme.FingerSize
+
 	window := new(app.Window)
 	window.Option(
-		app.Title("eqdps - Current Fight"),
-		app.Size(unit.Dp(300), unit.Dp(180)),
-		app.MinSize(unit.Dp(380), unit.Dp(220)),
+		app.Title("eqdps — Current Fight"),
+		app.Size(unit.Dp(360), unit.Dp(200)),
+		app.MinSize(unit.Dp(360), unit.Dp(200)),
 		app.Decorated(false),
 		app.TopMost(true),
 	)
 	return &Overlay{
 		window:  window,
 		updates: make(chan Fight, 1),
-		style:   style,
+		style:   &overlayStyle,
 	}
 }
 
@@ -52,9 +62,13 @@ func (o *Overlay) Layout(gtx layout.Context) layout.Dimensions {
 
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return ui.ColoredRow(gtx, o.style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Constraints.Max.X
-				return material.Label(o.style.Theme, unit.Sp(13), "Dps").Layout(gtx)
+				if o.fight == nil {
+					return material.Label(o.style.Theme, unit.Sp(13), "Waiting for data").Layout(gtx)
+				} else {
+					return material.Label(o.style.Theme, unit.Sp(13), o.fight.name).Layout(gtx)
+				}
 			})
 		})
 	}))

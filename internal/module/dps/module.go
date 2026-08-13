@@ -5,6 +5,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"gioui.org/font"
@@ -38,7 +39,7 @@ type Module struct {
 
 	overlay *Overlay
 
-	relay        bool
+	relay        atomic.Bool
 	startOverlay bool
 
 	overlayClick  widget.Clickable
@@ -52,7 +53,7 @@ func NewModule() *Module {
 		rows:          make(chan *data.LogRowEvent, 1024),
 		stop:          make(chan struct{}, 1),
 		columns:       make([]column, 0),
-		overlayClosed: make(chan struct{}, 0),
+		overlayClosed: make(chan struct{}, 1),
 	}
 }
 
@@ -119,10 +120,10 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64, 
 
 }
 func (m *Module) OnReplayStart() {
-	m.relay = true
+	m.relay.Store(true)
 }
 func (m *Module) OnReplayEnd() {
-	m.relay = false
+	m.relay.Store(false)
 }
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	switch event.Type {
@@ -144,12 +145,16 @@ func (m *Module) SelectBacklog() {
 
 }
 func (m *Module) Update(gtx layout.Context) {
-	for _, f := range m.combat.history {
-		for _, c := range f.combatants {
-			if c.click.Clicked(gtx) {
-				c.open = !c.open
+	if !m.relay.Load() {
+		m.combat.mu.RLock()
+		for _, f := range m.combat.history {
+			for _, c := range f.combatants {
+				if c.click.Clicked(gtx) {
+					c.open = !c.open
+				}
 			}
 		}
+		m.combat.mu.RUnlock()
 	}
 	if m.overlayClick.Clicked(gtx) {
 		if m.overlay == nil {
@@ -193,10 +198,13 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 }
 
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	m.combat.mu.RLock()
+	defer m.combat.mu.RUnlock()
+
 	children := make([]layout.FlexChild, 0)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTableHeader(style, gtx) }))
-	if !m.relay {
+	if !m.relay.Load() {
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(style.Theme, &m.table)

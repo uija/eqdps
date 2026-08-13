@@ -4,6 +4,7 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"sync/atomic"
 	"time"
 
 	"gioui.org/layout"
@@ -67,7 +68,7 @@ type Context struct {
 	invalidateFunc func()
 
 	parserPath      string
-	isReplay        bool
+	isReplay        atomic.Bool
 	readyForFollow  chan struct{}
 	requestedReplay chan eqlog.Loopback
 }
@@ -156,7 +157,7 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			if c.parserPath == "" {
 				return ui.ColoredLabel(style.Theme, 13, style.Palette.No, "No log").Layout(gtx)
-			} else if c.isReplay {
+			} else if c.isReplay.Load() {
 				return ui.ColoredLabel(style.Theme, 13, style.Palette.Accent, "Replay").Layout(gtx)
 			}
 			return ui.ColoredLabel(style.Theme, 13, style.Palette.Yes, "Live").Layout(gtx)
@@ -168,7 +169,7 @@ func (c *Context) runFollow() {
 	c.Parser.Follow(c.ParserNewLogEvent)
 }
 func (c *Context) runReplay() {
-	c.isReplay = true
+	c.isReplay.Store(true)
 	started := time.Now()
 	for _, f := range c.replayStartListener {
 		f()
@@ -178,7 +179,7 @@ func (c *Context) runReplay() {
 		f()
 	}
 	log.Printf("Replay took: %v", time.Since(started))
-	c.isReplay = false
+	c.isReplay.Store(false)
 	c.readyForFollow <- struct{}{}
 }
 func (c *Context) Update(gtx layout.Context) {
@@ -239,7 +240,7 @@ func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 	for _, f := range c.logRowListener {
 		f(row)
 	}
-	if !c.isReplay {
+	if !c.isReplay.Load() {
 		c.invalidateFunc()
 	}
 }

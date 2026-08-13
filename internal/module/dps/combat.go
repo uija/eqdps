@@ -3,6 +3,7 @@ package dps
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/uija/eqdps/internal/data"
@@ -18,6 +19,8 @@ type Combat struct {
 	knownPlayers  map[string]bool
 	lastCastSpell map[string]CastSpell
 	history       []*Fight
+
+	mu sync.RWMutex
 }
 
 func newCombat() Combat {
@@ -38,6 +41,8 @@ func (c *Combat) findUnvalidatedFightFor(name string) (*Fight, bool) {
 	return nil, false
 }
 func (c *Combat) endTimedOutFights(now time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for name, fight := range c.activeFights {
 		if now.Sub(fight.end) > 20*time.Second {
 			fight.endReason = END_REASON_TIMEOUT
@@ -125,6 +130,9 @@ func evaluateFightName(name string) string {
 }
 
 func (c *Combat) AddEvent(e *data.LogRowEvent) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	event, ok := c.damageFromLogRow(e)
 	if ok {
 		fight := c.getActiveFight(event.NormalizedSource, event.NormalizedTarget)

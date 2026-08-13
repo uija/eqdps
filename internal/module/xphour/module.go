@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"strconv"
+	"sync"
 	"time"
 
 	"gioui.org/layout"
@@ -18,6 +19,7 @@ import (
 )
 
 type Module struct {
+	mu  sync.RWMutex
 	ctx *module.Context
 
 	lastCombat    time.Time
@@ -78,6 +80,8 @@ func (m *Module) LayoutOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 	})
 }
 func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	var dims layout.Dimensions
 	if m.latestLog.IsZero() || m.xpReceived == 0 {
 		dims = m.statusbar_click.Layout(gtx,
@@ -127,12 +131,17 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.latestLog = time.Time{}
 	m.lastCombat = time.Time{}
 	m.activeBetween = 0
 	m.xpReceived = 0
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.latestLog = e.Timestamp
 
 	switch e.Type {
