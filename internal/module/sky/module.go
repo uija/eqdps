@@ -281,7 +281,6 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64, 
 	}
 	m.config = config
 	if size > m.config.Log.Offset {
-		log.Printf("We are behind, requesting replay: %d", size-m.config.Log.Offset)
 		m.ctx.RequestReplay(eqlog.Loopback{ByteOffset: m.config.Log.Offset})
 		return false
 	}
