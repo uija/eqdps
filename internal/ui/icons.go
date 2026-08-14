@@ -19,6 +19,14 @@ var NoData *widget.Icon
 var Replay *widget.Icon
 var Live *widget.Icon
 
+var Book *widget.Icon
+var Clock *widget.Icon
+var Text *widget.Icon
+var RegExp *widget.Icon
+
+var Close *widget.Icon
+var Check *widget.Icon
+
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
 	CheckBox = loadIcon(icons.ToggleCheckBox)
@@ -33,6 +41,13 @@ func Init() {
 	Replay = loadIcon(icons.AVFastForward)
 	Live = loadIcon(icons.HardwareKeyboardArrowRight)
 	NoData = loadIcon(icons.NavigationClose)
+
+	Book = loadIcon(icons.AVLibraryBooks)
+	Clock = loadIcon(icons.ImageTimer10)
+	Text = loadIcon(icons.EditorTextFields)
+	RegExp = loadIcon(icons.ActionSearch)
+	Close = loadIcon(icons.NavigationClose)
+	Check = loadIcon(icons.NavigationCheck)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

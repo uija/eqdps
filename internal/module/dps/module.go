@@ -83,8 +83,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.AddSidebarItem("DPS", m.OpenMainView)
-	ctx.SetMainView(m.MainView)
-	ctx.AddToolsMenuItem("Load Combat History", m.SelectBacklog)
+	//ctx.SetMainView(m.MainView)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	ctx.RegisterUpdate(m.Update)
 	m.startOverlay = m.ctx.Config.OpenOverlay

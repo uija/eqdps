@@ -111,6 +111,12 @@ func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string)
 	l.Color = col
 	return l
 }
+func Icon(gtx layout.Context, col color.NRGBA, icon *widget.Icon) layout.Dimensions {
+	gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
+	return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return icon.Layout(gtx, col)
+	})
+}
 func IconLabel(gtx layout.Context, th *material.Theme, size float32, icon *widget.Icon, txt string) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -137,6 +143,29 @@ func ColoredIconLabel(gtx layout.Context, th *material.Theme, size float32, icon
 			label := material.Label(th, unit.Sp(size), txt)
 			label.Color = col
 			return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
+		}),
+	)
+}
+
+func TextField(editor *widget.Editor, hint string, style *Style, gtx layout.Context) layout.Dimensions {
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			Fill(gtx, style.Palette.Border)
+			return layout.Dimensions{}
+		}),
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X = min(gtx.Dp(unit.Dp(500)), gtx.Constraints.Max.X)
+			return layout.UniformInset(unit.Dp(1)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Background{}.Layout(gtx,
+					func(gtx layout.Context) layout.Dimensions {
+						Fill(gtx, style.Palette.Window)
+						return layout.Dimensions{Size: gtx.Constraints.Min}
+					},
+					func(gtx layout.Context) layout.Dimensions {
+						return layout.UniformInset(unit.Dp(7)).Layout(gtx, material.Editor(style.Theme, editor, hint).Layout)
+					},
+				)
+			})
 		}),
 	)
 }

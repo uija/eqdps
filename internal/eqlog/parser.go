@@ -437,7 +437,7 @@ func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowE
 	}
 
 	eventType, eventData, known := classify(message)
-	if !known {
+	if !known && !live {
 		return nil, false
 	}
 	timestamp, err := time.Parse(timestampLayout, timestampText)

@@ -10,6 +10,7 @@ import (
 	"gioui.org/unit"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/module/dps"
+	"github.com/uija/eqdps/internal/module/events"
 	"github.com/uija/eqdps/internal/module/sky"
 	"github.com/uija/eqdps/internal/module/xphour"
 	"github.com/uija/eqdps/internal/view"
@@ -20,8 +21,9 @@ func main() {
 		window := new(app.Window)
 		context := module.NewContext(window.Invalidate)
 		context.RegisterModule(dps.NewModule())
-		context.RegisterModule(&xphour.Module{})
+		context.RegisterModule(xphour.NewModule())
 		context.RegisterModule(sky.NewModule())
+		context.RegisterModule(events.NewModule())
 
 		window.Option(
 			app.Title("eqdps"),

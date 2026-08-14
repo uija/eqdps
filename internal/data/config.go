@@ -6,9 +6,35 @@ import (
 	"path/filepath"
 )
 
+type EventType int8
+
+const (
+	EventTypeUndefined = -1
+	EventTypeString    = iota
+	EventTypeRegexp
+	EventTypeSpell
+	EventTypeTimer
+)
+
+type EventConfig struct {
+	Type                EventType `json:"type"`
+	Title               string    `json:"title"`
+	Class               string    `json:"class,omitempty"`
+	Spell               string    `json:"spell,omitempty"`
+	Expression          string    `json:"expression"`
+	ExpressionOthers    string    `json:"expression_others"`
+	FullExpression      bool      `json:"full_expression"`
+	Duration            int       `json:"duration,omitempty"`
+	Notification        string    `json:"notification"`
+	PersistNotification bool      `json:"persist_notification"`
+	Sound               string    `json:"sound"`
+	Active              bool      `json:"active"`
+}
+
 type Config struct {
 	LastLogfile string `json:"last_logfile"`
 	OpenOverlay bool   `json:"open_overlay"`
+	Events      []EventConfig
 }
 
 func (c *Config) Save() error {
@@ -25,7 +51,9 @@ func (c *Config) Save() error {
 }
 
 func GetConfig() (*Config, error) {
-	config := &Config{}
+	config := &Config{
+		Events: make([]EventConfig, 0),
+	}
 	path, err := appDataPath("config.json")
 	if err != nil {
 		return nil, err

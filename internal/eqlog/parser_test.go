@@ -61,6 +61,29 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 	}
 }
 
+func TestParseRowEmitsUnknownRowsOnlyWhenLive(t *testing.T) {
+	const row = "[Thu Aug 13 23:55:24 2026] Your Charm spell has worn off of a Teir`Dal rogue."
+	parser := NewParser(0)
+
+	if event, ok := parser.ParseRow(row, int64(len(row)), false); ok || event != nil {
+		t.Fatalf("unknown replay row was emitted: %#v", event)
+	}
+
+	event, ok := parser.ParseRow(row, int64(len(row)), true)
+	if !ok || event == nil {
+		t.Fatal("unknown live row was not emitted")
+	}
+	if event.Type != data.LogRowEventTypeUnknown {
+		t.Fatalf("type = %v, want %v", event.Type, data.LogRowEventTypeUnknown)
+	}
+	if !event.Live {
+		t.Fatal("unknown followed row was not marked live")
+	}
+	if event.Message != "Your Charm spell has worn off of a Teir`Dal rogue." {
+		t.Fatalf("message = %q", event.Message)
+	}
+}
+
 func TestReplayBuildsMetadataAndOffsets(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
 	rows := []string{

@@ -9,11 +9,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/uija/eqdps/legacy/internal/catalog"
+	"github.com/uija/eqdps/internal/module/events"
 )
 
 const (
@@ -44,7 +45,7 @@ var classNames = []string{
 	"Berserker",
 }
 
-type spell = catalog.Spell
+type spell = events.Spell
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -175,11 +176,13 @@ func readSpells(r io.Reader, fades map[string]string, maxLevel int) ([]spell, er
 			)
 		}
 
+		name := fields[spellNameField]
 		spells = append(spells, spell{
-			Name:        fields[spellNameField],
-			FadeMessage: fade,
-			Classes:     classes,
-			IconID:      iconID,
+			Name:              name,
+			FadeMessage:       fade,
+			FadeMessageOthers: fadeMessageOthers(name),
+			Classes:           classes,
+			IconID:            iconID,
 		})
 		return nil
 	})
@@ -187,6 +190,10 @@ func readSpells(r io.Reader, fades map[string]string, maxLevel int) ([]spell, er
 		return nil, err
 	}
 	return spells, nil
+}
+
+func fadeMessageOthers(spellName string) string {
+	return `^Your ` + regexp.QuoteMeta(spellName) + ` spell has worn off of .+\.$`
 }
 
 func scanLines(r io.Reader, visit func(lineNumber int, line string) error) error {
