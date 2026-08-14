@@ -135,6 +135,19 @@ func (c *Context) runIndexFile() {
 }
 func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	items := make([]layout.FlexChild, 0)
+	items = append(items,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			var label material.LabelStyle
+			if c.parserPath == "" {
+				label = ui.ColoredLabel(style.Theme, 14, style.Palette.No, "No log")
+			} else if c.isReplay.Load() {
+				label = ui.ColoredLabel(style.Theme, 14, style.Palette.Accent, "Replay")
+			} else {
+				label = ui.ColoredLabel(style.Theme, 14, style.Palette.Yes, "Live")
+			}
+			return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, label.Layout)
+		}),
+	)
 	if c.parserPath != "" {
 		items = append(items,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -150,16 +163,6 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 			}),
 		)
 	}
-	items = append(items,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			if c.parserPath == "" {
-				return ui.ColoredLabel(style.Theme, 13, style.Palette.No, "No log").Layout(gtx)
-			} else if c.isReplay.Load() {
-				return ui.ColoredLabel(style.Theme, 13, style.Palette.Accent, "Replay").Layout(gtx)
-			}
-			return ui.ColoredLabel(style.Theme, 13, style.Palette.Yes, "Live").Layout(gtx)
-		}),
-	)
 	return items
 }
 func (c *Context) runFollow() {

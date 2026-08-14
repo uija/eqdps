@@ -17,7 +17,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	if event.Offset <= m.config.Log.Offset {
 		return
 	}
-	changed := false
+	changed := true
 	switch event.Type {
 	case data.LogRowEventTypeExperience:
 	case data.LogRowEventTypeKillExperienceReward:
@@ -106,8 +106,6 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		}
 		m.config.Quests[quest_name]++
 		m.tradeIn = nil
-	default:
-		return
 	}
 	if changed {
 		m.config.Log.LastTimestamp = event.Timestamp

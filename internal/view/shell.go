@@ -180,12 +180,12 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 								link.Size = 16
 								link.FontWeight = font.SemiBold
 								link.TextColor = Style.Palette.Muted
+								link.Padding[ui.PADDING_BOTTOM] = 8
+								link.Padding[ui.PADDING_TOP] = 16
+								link.Padding[ui.PADDING_LEFT] = 16
+								link.Padding[ui.PADDING_RIGHT] = 16
 								return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false,
-										func(gtx layout.Context) layout.Dimensions {
-											return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(16), Bottom: unit.Dp(8)}.Layout(gtx, link.Layout)
-										},
-									)
+									return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false, link.Layout)
 								})
 							}))
 						}
@@ -195,12 +195,12 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 							link.Size = 16
 							link.FontWeight = font.SemiBold
 							link.TextColor = Style.Palette.Muted
+							link.Padding[ui.PADDING_BOTTOM] = 8
+							link.Padding[ui.PADDING_TOP] = 16
+							link.Padding[ui.PADDING_LEFT] = 16
+							link.Padding[ui.PADDING_RIGHT] = 16
 							return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false,
-									func(gtx layout.Context) layout.Dimensions {
-										return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(16), Bottom: unit.Dp(8)}.Layout(gtx, link.Layout)
-									},
-								)
+								return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false, link.Layout)
 							})
 						}))
 

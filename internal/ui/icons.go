@@ -15,6 +15,10 @@ var Help *widget.Icon
 var Priority *widget.Icon
 var Arrows *widget.Icon
 
+var NoData *widget.Icon
+var Replay *widget.Icon
+var Live *widget.Icon
+
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
 	CheckBox = loadIcon(icons.ToggleCheckBox)
@@ -25,6 +29,10 @@ func Init() {
 	Help = loadIcon(icons.ActionHelpOutline)
 	Priority = loadIcon(icons.NotificationPriorityHigh)
 	Arrows = loadIcon(icons.ActionOpenWith)
+
+	Replay = loadIcon(icons.AVFastForward)
+	Live = loadIcon(icons.HardwareKeyboardArrowRight)
+	NoData = loadIcon(icons.NavigationClose)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

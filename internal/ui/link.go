@@ -12,6 +12,13 @@ import (
 	"gioui.org/widget/material"
 )
 
+const (
+	PADDING_TOP    = 0
+	PADDING_RIGHT  = 1
+	PADDING_BOTTOM = 2
+	PADDING_LEFT   = 3
+)
+
 type LinkStyle struct {
 	style *Style
 	click *widget.Clickable
@@ -21,6 +28,7 @@ type LinkStyle struct {
 
 	FontWeight font.Weight
 	TextAlign  text.Alignment
+	Padding    []float32
 
 	TextColor    color.NRGBA
 	HoverColor   color.NRGBA
@@ -44,7 +52,7 @@ func (l LinkStyle) Layout(gtx layout.Context) layout.Dimensions {
 				tgtx.Constraints.Min.X = tgtx.Constraints.Max.X
 				label.Alignment = l.TextAlign
 			}
-			return label.Layout(tgtx)
+			return layout.Inset{Top: unit.Dp(l.Padding[0]), Right: unit.Dp(l.Padding[1]), Bottom: unit.Dp(l.Padding[2]), Left: unit.Dp(l.Padding[3])}.Layout(gtx, label.Layout)
 		}
 		align := layout.Start
 		switch l.TextAlign {
@@ -54,16 +62,20 @@ func (l LinkStyle) Layout(gtx layout.Context) layout.Dimensions {
 			align = layout.End
 		}
 		content := func(gtx layout.Context) layout.Dimensions {
-			return layout.Flex{Axis: layout.Horizontal, Alignment: align}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
-					return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return l.icon.Layout(gtx, col)
-					})
-				}),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
-				}),
+			return layout.Inset{Top: unit.Dp(l.Padding[0]), Right: unit.Dp(l.Padding[1]), Bottom: unit.Dp(l.Padding[2]), Left: unit.Dp(l.Padding[3])}.Layout(gtx,
+				func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal, Alignment: align}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
+							return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return l.icon.Layout(gtx, col)
+							})
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
+						}),
+					)
+				},
 			)
 		}
 		switch l.TextAlign {
@@ -86,6 +98,7 @@ func Link(style *Style, click *widget.Clickable, str string) LinkStyle {
 
 		Size:       14,
 		FontWeight: font.Normal,
+		Padding:    make([]float32, 4),
 
 		TextColor:    style.Palette.Link,
 		HoverColor:   style.Palette.LinkHover,
@@ -103,6 +116,7 @@ func IconLink(style *Style, click *widget.Clickable, icon *widget.Icon, str stri
 		Size:       14,
 		FontWeight: font.Normal,
 		TextAlign:  text.Start,
+		Padding:    make([]float32, 4),
 
 		TextColor:    style.Palette.Link,
 		HoverColor:   style.Palette.LinkHover,

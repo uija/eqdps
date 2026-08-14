@@ -111,7 +111,6 @@ func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string)
 	l.Color = col
 	return l
 }
-
 func IconLabel(gtx layout.Context, th *material.Theme, size float32, icon *widget.Icon, txt string) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
