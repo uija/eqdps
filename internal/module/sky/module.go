@@ -13,6 +13,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/gen2brain/beeep"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
@@ -29,7 +30,10 @@ type InventoryRow struct {
 	Have int
 	Hint string
 }
-
+type Notification struct {
+	Text string
+	Ends time.Time
+}
 type Module struct {
 	ctx       *module.Context
 	db        Database
@@ -58,15 +62,20 @@ type Module struct {
 
 	hide_finished widget.Clickable
 	hide_empty    widget.Clickable
+
+	notification *Notification
+
+	invalidFunc func()
 }
 
 func NewModule() *Module {
 	return &Module{
-		config:    Config{},
-		status:    make([]ClassStatus, 0),
-		tradeIn:   nil,
-		mainView:  func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
-		inventory: make([]InventoryRow, 0),
+		config:      Config{},
+		status:      make([]ClassStatus, 0),
+		tradeIn:     nil,
+		mainView:    func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
+		inventory:   make([]InventoryRow, 0),
+		invalidFunc: func() {},
 	}
 }
 
@@ -107,7 +116,8 @@ type ClassStatus struct {
 	Quests []QuestStatus
 }
 
-func (m *Module) Init(ctx *module.Context, _ func()) error {
+func (m *Module) Init(ctx *module.Context, invalidate func()) error {
+	m.invalidFunc = invalidate
 	ctx.AddViewMenuItem("Plane of Sky Quest Tracker", m.OpenMainView)
 	ctx.AddSidebarItem("PoS", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
@@ -124,6 +134,7 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	m.inventorylist.Axis = layout.Vertical
 	m.BuildStatusFromDatabase()
 	m.mainView = m.MainView
+
 	return nil
 }
 
@@ -165,7 +176,10 @@ func (m *Module) BuildStatusFromDatabase() {
 	}
 }
 func (m *Module) RecalculateStatus() {
-	items := make(map[string]InventoryRow)
+	readyBefore := 0
+	for _, c := range m.status {
+		readyBefore += c.QuestsReady
+	}
 	for cidx := range m.status {
 		c := &m.status[cidx]
 		c.QuestsDone = 0
@@ -191,6 +205,14 @@ func (m *Module) RecalculateStatus() {
 			}
 		}
 	}
+	readyAfter := 0
+	for _, c := range m.status {
+		readyAfter += c.QuestsReady
+	}
+	if readyAfter > readyBefore && !m.replay {
+		m.Notify(readyAfter - readyBefore)
+	}
+	items := make(map[string]InventoryRow)
 	for _, c := range m.status {
 		for _, q := range c.Quests {
 			for _, i := range q.Items {
@@ -218,6 +240,19 @@ func (m *Module) RecalculateStatus() {
 	sort.Slice(m.inventory, func(i, j int) bool {
 		return m.inventory[i].Hint < m.inventory[j].Hint
 	})
+}
+
+func (m *Module) Notify(num int) {
+	beeep.AppName = "eqDps"
+	err := beeep.Notify("Plane of Sky", fmt.Sprintf("%d new Quests ready to turn in", num), "dialog-information")
+	if err != nil {
+		log.Printf("Unable to start notification %v", err)
+	}
+	m.notification = &Notification{
+		Text: fmt.Sprintf("%d new Quests", num),
+		Ends: time.Now().Add(5 * time.Second),
+	}
+	m.invalidFunc()
 }
 
 func (m *Module) OpenMainView() {

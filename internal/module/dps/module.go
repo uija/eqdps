@@ -329,7 +329,6 @@ func (m *Module) GenerateFightCombatantDetails(c *Combatant, idx int, style *ui.
 	if idx%2 == 0 {
 		color = style.Palette.Window
 	}
-	//return layout.Rigid(func(gtx layout.Context) layout.Dimensions
 	rows = append(rows,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return c.click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
