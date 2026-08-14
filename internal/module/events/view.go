@@ -61,12 +61,12 @@ func (m *Module) RenderDeleteOverlay(style *ui.Style, gtx layout.Context) layout
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return layout.E.Layout(gtx, ui.Link(style, &m.do_delete_click, "Delete it!").Layout)
+										return layout.E.Layout(gtx, ui.IconLink(style, &m.do_delete_click, ui.Check, "Delete it!").Layout)
 									})
 								}),
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return layout.W.Layout(gtx, ui.Link(style, &m.cancel_delete_click, "Cancel").Layout)
+										return layout.W.Layout(gtx, ui.IconLink(style, &m.cancel_delete_click, ui.Close, "Cancel").Layout)
 									})
 								}),
 							)
@@ -233,6 +233,7 @@ func (m *Module) RenderEventsTableList(style *ui.Style, gtx layout.Context) layo
 	size := len(m.ctx.Config.Events)
 	if size != len(m.row_click) {
 		m.row_click = make([]widget.Clickable, size)
+		m.activate_click = make([]widget.Clickable, size)
 	}
 	list := material.List(style.Theme, &m.events_list)
 	return list.Layout(
@@ -265,7 +266,9 @@ func (m *Module) RenderEventsTableRow(index int, style *ui.Style, gtx layout.Con
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ui.Icon(gtx, icon_color, icon)
+						link := ui.IconLink(style, &m.activate_click[index], icon, "")
+						link.TextColor = icon_color
+						return link.Layout(gtx)
 					})
 				})
 			}),

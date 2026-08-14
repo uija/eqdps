@@ -5,6 +5,7 @@ import (
 	"image/color"
 
 	"gioui.org/font"
+	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -52,6 +53,7 @@ func (l LinkStyle) Layout(gtx layout.Context) layout.Dimensions {
 				tgtx.Constraints.Min.X = tgtx.Constraints.Max.X
 				label.Alignment = l.TextAlign
 			}
+			pointer.CursorPointer.Add(gtx.Ops)
 			return layout.Inset{Top: unit.Dp(l.Padding[0]), Right: unit.Dp(l.Padding[1]), Bottom: unit.Dp(l.Padding[2]), Left: unit.Dp(l.Padding[3])}.Layout(gtx, label.Layout)
 		}
 		align := layout.Start
@@ -78,6 +80,7 @@ func (l LinkStyle) Layout(gtx layout.Context) layout.Dimensions {
 				},
 			)
 		}
+		pointer.CursorPointer.Add(gtx.Ops)
 		switch l.TextAlign {
 		case text.End:
 			return layout.E.Layout(gtx, content)

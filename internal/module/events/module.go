@@ -34,7 +34,8 @@ type Module struct {
 
 	spells []Spell
 
-	row_click []widget.Clickable
+	row_click      []widget.Clickable
+	activate_click []widget.Clickable
 
 	event_form         *form.Form
 	title_field        *widget.Editor
@@ -182,6 +183,10 @@ func (m *Module) Update(gtx layout.Context) {
 			m.SelectToEdit(idx)
 			m.create_type = data.EventTypeUndefined
 			m.event_form.Focus(gtx, "title")
+		}
+		if m.activate_click[idx].Clicked(gtx) {
+			m.ctx.Config.Events[idx].Active = !m.ctx.Config.Events[idx].Active
+			m.ctx.Config.Save()
 		}
 	}
 	if m.do_delete_click.Clicked(gtx) {
