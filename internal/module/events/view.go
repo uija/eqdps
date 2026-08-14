@@ -1,8 +1,11 @@
 package events
 
 import (
+	"fmt"
+
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -17,9 +20,62 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if m.edit_index >= 0 && m.edit_index < len(m.ctx.Config.Events) || m.create_type != data.EventTypeUndefined {
 		stacks = append(stacks, layout.Expanded(func(gtx layout.Context) layout.Dimensions { return m.RenderOverlay(style, gtx) }))
 	}
+	if m.delete_id >= 0 && m.delete_id < len(m.ctx.Config.Events) {
+		stacks = append(stacks, layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			return m.RenderDeleteOverlay(style, gtx)
+		}))
+	}
 	return layout.Stack{}.Layout(gtx,
 		stacks...,
 	)
+}
+func (m *Module) RenderDeleteOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		width := min(gtx.Dp(unit.Dp(400)), gtx.Constraints.Max.X)
+		gtx.Constraints.Max.X = width
+		gtx.Constraints.Min.X = width
+
+		ui.FillOverlay(gtx, style.Palette.Accent, style.Palette.Border)
+
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
+				return layout.Dimensions{Size: gtx.Constraints.Min}
+			}),
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							label := material.Label(style.Theme, 18, "Delete Event")
+							label.Font.Weight = font.SemiBold
+							label.Alignment = text.Middle
+							return label.Layout(gtx)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							str := fmt.Sprintf("Do you really want to delete the event \"%s\"", m.ctx.Config.Events[m.delete_id].Title)
+							return layout.Inset{Top: unit.Dp(16), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return material.Label(style.Theme, 14, str).Layout(gtx)
+							})
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return layout.E.Layout(gtx, ui.Link(style, &m.do_delete_click, "Delete it!").Layout)
+									})
+								}),
+								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return layout.W.Layout(gtx, ui.Link(style, &m.cancel_delete_click, "Cancel").Layout)
+									})
+								}),
+							)
+						}),
+					)
+				})
+			}),
+		)
+	})
 }
 func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	m.event_form.LayoutInputLayer(gtx)
@@ -101,7 +157,13 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, material.Button(style.Theme, &m.close_button_click, "Cancel").Layout)
 				}),
-				layout.Flexed(1, material.Body1(style.Theme, "").Layout),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					if m.edit_index >= 0 {
+						return layout.E.Layout(gtx, material.Button(style.Theme, &m.delete_button_click, "Delete").Layout)
+					} else {
+						return material.Body1(style.Theme, "").Layout(gtx)
+					}
+				}),
 			)
 		}),
 	)

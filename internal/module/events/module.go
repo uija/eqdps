@@ -30,6 +30,7 @@ type Module struct {
 	edit_index    int
 	create_type   data.EventType
 	overlay_close widget.Clickable
+	delete_id     int
 
 	spells []Spell
 
@@ -47,8 +48,12 @@ type Module struct {
 	spell_select       *form.SelectBox
 	target_select      *form.SelectBox
 
-	close_button_click widget.Clickable
-	save_button_click  widget.Clickable
+	close_button_click  widget.Clickable
+	save_button_click   widget.Clickable
+	delete_button_click widget.Clickable
+
+	do_delete_click     widget.Clickable
+	cancel_delete_click widget.Clickable
 }
 
 func NewModule() *Module {
@@ -67,6 +72,7 @@ func NewModule() *Module {
 		spell_select:  form.NewSelectBox([]string{}, 0),
 		target_select: form.NewSelectBox([]string{"Self", "Others", "Both"}, 0),
 		edit_index:    -1,
+		delete_id:     -1,
 		create_type:   data.EventTypeUndefined,
 	}
 	mustRegister := func(err error) {
@@ -177,6 +183,24 @@ func (m *Module) Update(gtx layout.Context) {
 			m.create_type = data.EventTypeUndefined
 			m.event_form.Focus(gtx, "title")
 		}
+	}
+	if m.do_delete_click.Clicked(gtx) {
+		if m.delete_id < 0 || m.delete_id >= len(m.ctx.Config.Events) {
+			m.delete_id = -1
+			m.edit_index = -1
+			return
+		}
+		m.ctx.Config.Events = slices.Delete(m.ctx.Config.Events, m.delete_id, m.delete_id+1)
+		m.delete_id = -1
+		m.edit_index = -1
+		m.ctx.Config.Save()
+	}
+	if m.cancel_delete_click.Clicked(gtx) {
+		m.delete_id = -1
+		m.edit_index = -1
+	}
+	if m.delete_button_click.Clicked(gtx) {
+		m.delete_id = m.edit_index
 	}
 }
 func (m *Module) PrepareToCreate(t data.EventType) {
