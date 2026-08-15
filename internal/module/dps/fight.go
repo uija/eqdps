@@ -10,6 +10,7 @@ import (
 
 const END_REASON_ZONED = "Zonedout"
 const END_REASON_TIMEOUT = "Timeout"
+const END_REASON_FD = "Feign Death"
 
 const CATEGORY_MELEE = "Melee"
 const CATEGORY_SPELLS = "Spells"

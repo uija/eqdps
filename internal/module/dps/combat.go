@@ -242,16 +242,17 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 			name:      e.Data[2],
 			timestamp: e.Timestamp,
 		}
-	// You begin casting Fireball.
 	case data.LogRowEventTypeAggroClear:
-		// Your enemies have forgotten you!
+		for _, fight := range c.activeFights {
+			fight.end = e.Timestamp
+			fight.endReason = END_REASON_FD
+		}
 	case data.LogRowEventTypeZoneChange:
 		for _, fight := range c.activeFights {
 			fight.end = e.Timestamp
 			fight.endReason = END_REASON_ZONED
 		}
 		c.activeFights = make(map[string]*Fight)
-	// You have entered The Plane of Sky.
 	case data.LogRowEventTypeSlainBy:
 		target := normalizeName(e.Data[1])
 		if fight, ok := c.activeFights[target]; ok {
@@ -259,9 +260,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 			fight.endReason = e.Data[2]
 			delete(c.activeFights, target)
 		}
-		// <a mob name> has been slain by <a player name>!
 	case data.LogRowEventTypeYouSlain:
-		// You have slain <a mob name>!
 		target := normalizeName(e.Data[1])
 		if fight, ok := c.activeFights[target]; ok {
 			fight.end = e.Timestamp
