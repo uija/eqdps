@@ -31,6 +31,7 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeLevelUp, levelUpExpression, []string{"You have gained a level! Welcome to level "}},
 	{data.LogRowEventTypeAggroClear, regexp.MustCompile(`^Your enemies have forgotten you!$`), []string{"Your enemies have forgotten you!"}},
 	{data.LogRowEventTypeYouSlain, regexp.MustCompile(`^You have slain (.+)!$`), []string{"You have slain ", "!"}},
+	{data.LogRowEventTypeSlainBy, regexp.MustCompile(`^(You) have been slain by (.+)!$`), []string{"You have been slain by ", "!"}},
 	{data.LogRowEventTypeSlainBy, regexp.MustCompile(`^(.+) has been slain by (.+)!$`), []string{" has been slain by ", "!"}},
 	{data.LogRowEventTypeSomeoneDied, regexp.MustCompile(`^(.+) died\.$`), []string{" died"}},
 	{data.LogRowEventTypeZoneChange, zoneChangeExpression, []string{"You have entered "}},

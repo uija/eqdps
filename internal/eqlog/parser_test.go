@@ -30,6 +30,7 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 		{"level up", "You have gained a level! Welcome to level 43!", data.LogRowEventTypeLevelUp},
 		{"aggro clear", "Your enemies have forgotten you!", data.LogRowEventTypeAggroClear},
 		{"you slain", "You have slain a fire giant warrior!", data.LogRowEventTypeYouSlain},
+		{"player slain", "You have been slain by a fire giant warrior!", data.LogRowEventTypeSlainBy},
 		{"slain by", "A fire giant warrior has been slain by Wyrmberg!", data.LogRowEventTypeSlainBy},
 		{"zone", "You have entered The Plane of Sky.", data.LogRowEventTypeZoneChange},
 		{"loot", "--You have looted a Wind Rune Caza from a thunder spirit's corpse.--", data.LogRowEventTypeLoot},
@@ -58,6 +59,24 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 				t.Fatalf("regexp data = %#v", event.Data)
 			}
 		})
+	}
+}
+
+func TestParseRowPlayerDeathPreservesVictimAndKiller(t *testing.T) {
+	const row = "[Sun Jul 26 12:00:00 2026] You have been slain by a fire giant warrior!"
+
+	event, ok := NewParser(0).ParseRow(row, int64(len(row)), true)
+	if !ok {
+		t.Fatal("player death row was not parsed")
+	}
+	if event.Type != data.LogRowEventTypeSlainBy {
+		t.Fatalf("type = %v, want %v", event.Type, data.LogRowEventTypeSlainBy)
+	}
+	if got, want := event.Data[1], "You"; got != want {
+		t.Fatalf("victim = %q, want %q", got, want)
+	}
+	if got, want := event.Data[2], "a fire giant warrior"; got != want {
+		t.Fatalf("killer = %q, want %q", got, want)
 	}
 }
 

@@ -117,6 +117,8 @@ func (m *Module) RenderFightHeader(fight *Fight, style *ui.Style, gtx layout.Con
 									cnt = "timeout"
 								case END_REASON_FD:
 									cnt = "feign death"
+								case END_REASON_DEATH:
+									cnt = "you died"
 								default:
 									cnt = fmt.Sprintf("Killed by %s", fight.endReason)
 								}

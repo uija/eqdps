@@ -93,8 +93,8 @@ Relevant legacy files:
 The rewrite supports basic concurrent fights and damage breakdowns, but its
 combat implementation does not yet include several mature legacy behaviors:
 
-- `Your enemies have forgotten you!` does not end the active fights;
-- player death does not close every active fight;
+- ~~`Your enemies have forgotten you!` does not end the active fights;~~
+- ~~player death does not close every active fight;~~
 - the idle timeout is hardcoded to 20 seconds;
 - there is no death-grace period for same-timestamp or delayed DoT damage;
 - there is no retained-fight handling for DoTs after Feign Death;
@@ -217,4 +217,3 @@ Legacy locations:
 
 - `legacy/tui`
 - `legacy/tools/logtest`
-

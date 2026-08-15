@@ -247,6 +247,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 			fight.end = e.Timestamp
 			fight.endReason = END_REASON_FD
 		}
+		c.activeFights = make(map[string]*Fight)
 	case data.LogRowEventTypeZoneChange:
 		for _, fight := range c.activeFights {
 			fight.end = e.Timestamp
@@ -255,10 +256,18 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 		c.activeFights = make(map[string]*Fight)
 	case data.LogRowEventTypeSlainBy:
 		target := normalizeName(e.Data[1])
-		if fight, ok := c.activeFights[target]; ok {
-			fight.end = e.Timestamp
-			fight.endReason = e.Data[2]
-			delete(c.activeFights, target)
+		if target == "you" {
+			for _, fight := range c.activeFights {
+				fight.end = e.Timestamp
+				fight.endReason = END_REASON_DEATH
+			}
+			c.activeFights = make(map[string]*Fight)
+		} else {
+			if fight, ok := c.activeFights[target]; ok {
+				fight.end = e.Timestamp
+				fight.endReason = e.Data[2]
+				delete(c.activeFights, target)
+			}
 		}
 	case data.LogRowEventTypeYouSlain:
 		target := normalizeName(e.Data[1])
@@ -269,10 +278,18 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 		}
 	case data.LogRowEventTypeSomeoneDied:
 		target := normalizeName(e.Data[1])
-		if fight, ok := c.activeFights[target]; ok {
-			fight.end = e.Timestamp
-			fight.endReason = "Unknown"
-			delete(c.activeFights, target)
+		if target == "you" {
+			for _, fight := range c.activeFights {
+				fight.end = e.Timestamp
+				fight.endReason = END_REASON_DEATH
+			}
+			c.activeFights = make(map[string]*Fight)
+		} else {
+			if fight, ok := c.activeFights[target]; ok {
+				fight.end = e.Timestamp
+				fight.endReason = "Unknown"
+				delete(c.activeFights, target)
+			}
 		}
 	default:
 		return false
