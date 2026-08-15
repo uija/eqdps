@@ -80,12 +80,10 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 
 		// find the quest
 		var quest *Quest = nil
-		var class_name = ""
 		for _, c := range m.db.Classes {
 			for _, q := range c.Quests {
 				if m.match(q) {
 					quest = &q
-					class_name = c.Name
 					break
 				}
 			}
@@ -94,8 +92,6 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 			//log.Printf("Didn't fine a quest for that! %#v", m.tradeIn)
 			return
 		}
-		quest_name := QuestName(quest.Name, class_name)
-
 		for item := range m.tradeIn.Given {
 			lname := strings.ToLower(item)
 			if m.config.QuestItems[lname] > 1 {
@@ -104,7 +100,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 				delete(m.config.QuestItems, lname)
 			}
 		}
-		m.config.Quests[quest_name]++
+		m.config.Quests[quest.Name]++
 		m.tradeIn = nil
 	}
 	if changed {

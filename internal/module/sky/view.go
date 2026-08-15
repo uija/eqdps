@@ -141,7 +141,7 @@ func (m *Module) RenderReadyToTurnIn(style *ui.Style, gtx layout.Context) layout
 			if cl.QuestsReady > 0 {
 				for qidx, qs := range cl.Quests {
 					if !qs.Done && qs.MissingItems == 0 {
-						rows = append(rows, m.RenderQuest(cidx, qidx, style, gtx)...)
+						rows = append(rows, m.RenderQuest(cidx, qidx, true, style, gtx)...)
 					}
 				}
 			}
@@ -191,12 +191,12 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 func (m *Module) RenderClassQuests(index int, style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	rows := make([]layout.FlexChild, 0)
 	for qidx := range m.status[index].Quests {
-		rows = append(rows, m.RenderQuest(index, qidx, style, gtx)...)
+		rows = append(rows, m.RenderQuest(index, qidx, false, style, gtx)...)
 	}
 	return rows
 }
 
-func (m *Module) RenderQuest(index int, qidx int, style *ui.Style, gtx layout.Context) []layout.FlexChild {
+func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	rows := make([]layout.FlexChild, 0)
 	quest := m.status[index].Quests[qidx]
 
@@ -214,13 +214,17 @@ func (m *Module) RenderQuest(index int, qidx int, style *ui.Style, gtx layout.Co
 	} else if quest.MissingItems == len(quest.Items) && m.config.HideEmpty {
 		show = false
 	}
+	quest_name := quest.Name
+	if fullname {
+		quest_name = fmt.Sprintf("%s - %s", m.status[index].Name, quest.Name)
+	}
 	if show {
 		rows = append(rows,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-							label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest.Name)
+							label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest_name)
 							label.Font.Weight = font.SemiBold
 							return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, label.Layout)
 						}),

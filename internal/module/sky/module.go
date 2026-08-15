@@ -94,6 +94,7 @@ type ItemStatus struct {
 
 type QuestStatus struct {
 	Name       string
+	Key        string
 	QuestGiver string
 	Reward     string
 	Done       bool
@@ -150,6 +151,7 @@ func (m *Module) BuildStatusFromDatabase() {
 		for _, q := range c.Quests {
 			qs := QuestStatus{
 				Name:       QuestName(q.Name, c.Name),
+				Key:        q.Name,
 				QuestGiver: q.QuestGiver,
 				Reward:     q.Rewards[0],
 				Done:       false,
@@ -186,7 +188,7 @@ func (m *Module) RecalculateStatus() {
 		c.QuestsReady = 0
 		for qidx := range c.Quests {
 			q := &c.Quests[qidx]
-			if m.config.Quests[q.Name] > 0 {
+			if m.config.Quests[q.Key] > 0 {
 				q.Done = true
 				c.QuestsDone++
 			} else {
@@ -319,6 +321,7 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64, 
 		m.ctx.RequestReplay(eqlog.Loopback{ByteOffset: m.config.Log.Offset})
 		return false
 	}
+	m.readyToRead = true
 	m.RecalculateStatus()
 	return true
 }

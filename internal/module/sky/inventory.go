@@ -40,6 +40,12 @@ func (m *Module) InventoryView(style *ui.Style, gtx layout.Context) layout.Dimen
 				container.others = append(container.others, ir)
 			}
 		}
+		sort.Slice(container.missing, func(i, j int) bool {
+			if container.missing[i].Hint == container.missing[j].Hint {
+				return container.missing[i].Name < container.missing[j].Name
+			}
+			return container.missing[i].Hint < container.missing[j].Hint
+		})
 		sort.Slice(container.others, func(i, j int) bool {
 			return container.others[i].Name < container.others[j].Name
 		})

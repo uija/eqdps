@@ -1,7 +1,6 @@
 package dps
 
 import (
-	"fmt"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -11,12 +10,10 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"github.com/gen2brain/beeep"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/view"
-	"golang.org/x/exp/shiny/materialdesign/icons"
 )
 
 var categories = []string{}
@@ -181,14 +178,6 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		data.LogRowEventTypeYouSlain:
 
 		m.rows <- event
-	}
-	switch event.Type {
-	case data.LogRowEventTypeSlainBy,
-		data.LogRowEventTypeYouSlain,
-		data.LogRowEventTypeSomeoneDied:
-		if !m.replay.Load() {
-			beeep.Notify("Death", fmt.Sprintf("%s died!", event.Data[1]), icons.NotificationAirlineSeatFlat)
-		}
 	}
 }
 func (m *Module) SelectBacklog() {

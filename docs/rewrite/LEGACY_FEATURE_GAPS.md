@@ -96,8 +96,8 @@ combat implementation does not yet include several mature legacy behaviors:
 - ~~`Your enemies have forgotten you!` does not end the active fights;~~
 - ~~player death does not close every active fight;~~
 - the idle timeout is hardcoded to 20 seconds;
-- there is no death-grace period for same-timestamp or delayed DoT damage;
-- there is no retained-fight handling for DoTs after Feign Death;
+- ~~there is no death-grace period for same-timestamp or delayed DoT damage;~~
+- ~~there is no retained-fight handling for DoTs after Feign Death;~~
 - there is no completed-fight history limit;
 - pet damage is not merged into the owner's displayed combatant row;
 - engaged/shared DPS behavior is not equivalent;
