@@ -9,28 +9,36 @@ import (
 	"github.com/uija/eqdps/internal/data"
 )
 
+const GRACE_PERIOD_TIME = 8 * time.Second
+
 type CastSpell struct {
 	name      string
 	timestamp time.Time
 }
+type GracePeriod struct {
+	Ends  time.Time
+	Fight *Fight
+}
 
 type Combat struct {
-	activeFights  map[string]*Fight
-	knownPlayers  map[string]bool
-	blockedNames  map[string]bool
-	lastCastSpell map[string]CastSpell
-	history       []*Fight
+	activeFights      map[string]*Fight
+	gracePeriodFights map[string]GracePeriod
+	knownPlayers      map[string]bool
+	blockedNames      map[string]bool
+	lastCastSpell     map[string]CastSpell
+	history           []*Fight
 
 	mu sync.RWMutex
 }
 
 func newCombat() Combat {
 	return Combat{
-		activeFights:  make(map[string]*Fight),
-		knownPlayers:  make(map[string]bool),
-		blockedNames:  make(map[string]bool),
-		lastCastSpell: make(map[string]CastSpell),
-		history:       make([]*Fight, 0),
+		activeFights:      make(map[string]*Fight),
+		gracePeriodFights: make(map[string]GracePeriod),
+		knownPlayers:      make(map[string]bool),
+		blockedNames:      make(map[string]bool),
+		lastCastSpell:     make(map[string]CastSpell),
+		history:           make([]*Fight, 0),
 	}
 }
 
@@ -63,104 +71,53 @@ func (c *Combat) endTimedOutFights(now time.Time) bool {
 	}
 	return changed
 }
-func (c *Combat) getActiveFight(source string, target string) *Fight {
-	player := source
-	npc := target
-	validated := false
-	if source == "you" {
-		player = source
-		npc = target
-		validated = true
-	} else if target == "you" {
-		player = target
-		npc = source
-		validated = true
-	} else if _, ok := c.knownPlayers[source]; ok {
-		player = source
-		npc = target
-		validated = true
-	} else if _, ok := c.knownPlayers[target]; ok {
-		player = target
-		npc = source
-		validated = true
-	} else {
-		source_words := len(strings.Split(source, " "))
-		target_words := len(strings.Split(target, " "))
-		if source_words == 1 && target_words > 1 {
-			player = source
-			npc = target
-			if !c.blockedNames[player] {
-				validated = true
-			}
-		} else if target_words == 1 && source_words > 1 {
-			player = target
-			npc = source
-			if !c.blockedNames[player] {
-				validated = true
-			}
-		}
-	}
-	if player == "you" {
-		c.blockedNames[npc] = true
-		if c.knownPlayers[npc] {
-			delete(c.knownPlayers, npc)
-			for name, f := range c.activeFights {
-				if name != npc && f.hasParticipant(npc) && f.validated {
-					c.activeFights[name].validated = false
-				}
-			}
-		}
-	}
-
-	fight_name := evaluateFightName(npc)
-	if validated {
-		c.knownPlayers[player] = true
-		fight, ok := c.activeFights[fight_name]
-		if ok {
-			fight.validated = true
-			return fight
-		}
-		// see if we find a fight, that is not validated that contains the target
-		fight, ok = c.findUnvalidatedFightFor(fight_name)
-		if ok {
-			// we have a fight thats under the wrong name
-			delete(c.activeFights, fight.name)
-			fight.name = fight_name
-			fight.validated = true
-			c.activeFights[fight_name] = fight
-			return fight
-		}
-		c.activeFights[fight_name] = newFight(true)
-		c.activeFights[fight_name].name = fight_name
-		c.history = append(c.history, c.activeFights[fight_name])
-		return c.activeFights[fight_name]
-	}
-	if fight, ok := c.activeFights[fight_name]; ok {
-		return fight
-	}
-	if fight, ok := c.findFightFor(fight_name); ok {
-		return fight
-	}
-	if fight, ok := c.findFightFor(player); ok {
-		return fight
-	}
-	c.activeFights[fight_name] = newFight(false)
-	c.activeFights[fight_name].name = fight_name
-	c.history = append(c.history, c.activeFights[fight_name])
-	return c.activeFights[fight_name]
-}
 
 // getActiveFightLegacy selects the fight using the endpoint rules from the
 // legacy FightTracker.mobForEvent implementation. Unlike getActiveFight, it
 // never searches active fights by participant: each event is assigned to the
 // fight keyed by the endpoint that was identified as the mob.
-func (c *Combat) getActiveFightLegacy(source string, target string) *Fight {
+func (c *Combat) getActiveFightLegacy(event *DamageEvent) *Fight {
+	source := event.NormalizedSource
+	target := event.NormalizedTarget
 	sourceFightName := c.legacyFightName(source)
 	targetFightName := c.legacyFightName(target)
 	sourceIsMob := c.activeFights[sourceFightName] != nil
 	targetIsMob := c.activeFights[targetFightName] != nil
 	sourceIsPlayer := c.knownPlayers[source]
 	targetIsPlayer := c.knownPlayers[target]
+
+	if gp, ok := c.gracePeriodFights[sourceFightName]; ok {
+		if gp.Fight.end.Equal(event.Time) {
+			return gp.Fight
+		}
+	}
+	if gp, ok := c.gracePeriodFights[targetFightName]; ok {
+		if gp.Fight.end.Equal(event.Time) {
+			return gp.Fight
+		}
+	}
+
+	switch event.Type {
+	case data.LogRowEventTypeDamageOverTime,
+		data.LogRowEventTypeDamageShield:
+		if gp, ok := c.gracePeriodFights[sourceFightName]; ok {
+			gp.Ends = event.Time.Add(GRACE_PERIOD_TIME)
+			c.gracePeriodFights[sourceFightName] = gp
+			return gp.Fight
+		}
+		if gp, ok := c.gracePeriodFights[targetFightName]; ok {
+			gp.Ends = event.Time.Add(GRACE_PERIOD_TIME)
+			c.gracePeriodFights[targetFightName] = gp
+			return gp.Fight
+		}
+	default:
+		if _, ok := c.gracePeriodFights[sourceFightName]; ok {
+			delete(c.gracePeriodFights, sourceFightName)
+		}
+		if _, ok := c.gracePeriodFights[targetFightName]; ok {
+			delete(c.gracePeriodFights, targetFightName)
+		}
+	}
 
 	mob := target
 	switch {
@@ -229,9 +186,15 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	for name := range c.gracePeriodFights {
+		if e.Timestamp.After(c.gracePeriodFights[name].Ends) {
+			delete(c.gracePeriodFights, name)
+		}
+	}
+
 	event, ok := c.damageFromLogRow(e)
 	if ok {
-		fight := c.getActiveFightLegacy(event.NormalizedSource, event.NormalizedTarget)
+		fight := c.getActiveFightLegacy(event)
 		fight.addDamageEvent(event)
 		return true
 	}
@@ -243,23 +206,35 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 			timestamp: e.Timestamp,
 		}
 	case data.LogRowEventTypeAggroClear:
-		for _, fight := range c.activeFights {
+		for name, fight := range c.activeFights {
 			fight.end = e.Timestamp
 			fight.endReason = END_REASON_FD
+			c.gracePeriodFights[name] = GracePeriod{
+				Fight: fight,
+				Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+			}
 		}
 		c.activeFights = make(map[string]*Fight)
 	case data.LogRowEventTypeZoneChange:
-		for _, fight := range c.activeFights {
+		for name, fight := range c.activeFights {
 			fight.end = e.Timestamp
 			fight.endReason = END_REASON_ZONED
+			c.gracePeriodFights[name] = GracePeriod{
+				Fight: fight,
+				Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+			}
 		}
 		c.activeFights = make(map[string]*Fight)
 	case data.LogRowEventTypeSlainBy:
 		target := normalizeName(e.Data[1])
 		if target == "you" {
-			for _, fight := range c.activeFights {
+			for name, fight := range c.activeFights {
 				fight.end = e.Timestamp
 				fight.endReason = END_REASON_DEATH
+				c.gracePeriodFights[name] = GracePeriod{
+					Fight: fight,
+					Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+				}
 			}
 			c.activeFights = make(map[string]*Fight)
 		} else {
@@ -267,6 +242,10 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 				fight.end = e.Timestamp
 				fight.endReason = e.Data[2]
 				delete(c.activeFights, target)
+				c.gracePeriodFights[target] = GracePeriod{
+					Fight: fight,
+					Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+				}
 			}
 		}
 	case data.LogRowEventTypeYouSlain:
@@ -275,13 +254,21 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 			fight.end = e.Timestamp
 			fight.endReason = "You"
 			delete(c.activeFights, target)
+			c.gracePeriodFights[target] = GracePeriod{
+				Fight: fight,
+				Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+			}
 		}
 	case data.LogRowEventTypeSomeoneDied:
 		target := normalizeName(e.Data[1])
 		if target == "you" {
-			for _, fight := range c.activeFights {
+			for name, fight := range c.activeFights {
 				fight.end = e.Timestamp
 				fight.endReason = END_REASON_DEATH
+				c.gracePeriodFights[name] = GracePeriod{
+					Fight: fight,
+					Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+				}
 			}
 			c.activeFights = make(map[string]*Fight)
 		} else {
@@ -289,6 +276,10 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 				fight.end = e.Timestamp
 				fight.endReason = "Unknown"
 				delete(c.activeFights, target)
+				c.gracePeriodFights[target] = GracePeriod{
+					Fight: fight,
+					Ends:  e.Timestamp.Add(GRACE_PERIOD_TIME),
+				}
 			}
 		}
 	default:
