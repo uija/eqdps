@@ -100,7 +100,10 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 				delete(m.config.QuestItems, lname)
 			}
 		}
-		m.config.Quests[quest.Name]++
+		if m.config.RedoQuests[quest.Name].IsZero() || event.Timestamp.After(m.config.RedoQuests[quest.Name]) {
+			m.config.Quests[quest.Name]++
+			delete(m.config.RedoQuests, quest.Name)
+		}
 		m.tradeIn = nil
 	}
 	if changed {

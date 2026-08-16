@@ -118,7 +118,7 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 		t = m.ctx.Config.Events[m.edit_index].Type
 	}
 	children := make([]layout.FlexChild, 0)
-	children = append(children, layout.Rigid(m.TextFieldRow(m.title_field, "Title", "the title", style, gtx)))
+	children = append(children, layout.Rigid(m.TextFieldRow(m.title_field, "Title", "", style, gtx)))
 	if t == data.EventTypeSpell || t == data.EventTypeTimer {
 		children = append(children, layout.Rigid(m.SelectBoxRow(m.class_select, "Class", style, gtx)))
 		children = append(children, layout.Rigid(m.SelectBoxRow(m.spell_select, "Spell", style, gtx)))
@@ -131,21 +131,21 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 	}
 	switch t {
 	case data.EventTypeString:
-		children = append(children, layout.Rigid(m.TextFieldRow(m.text_field, "Text", "the text", style, gtx)))
+		children = append(children, layout.Rigid(m.TextFieldRow(m.text_field, "Text", "", style, gtx)))
 		children = append(children, layout.Rigid(m.CheckBoxRow(m.full_message_check, "", "Full message match", style, gtx)))
 	case data.EventTypeRegexp:
-		children = append(children, layout.Rigid(m.TextFieldRow(m.text_field, "RegExp", "the text", style, gtx)))
+		children = append(children, layout.Rigid(m.TextFieldRow(m.text_field, "RegExp", "", style, gtx)))
 		m.event_form.SetVisible("full", false)
 	default:
 		m.event_form.SetVisible("text", false)
 		m.event_form.SetVisible("full", false)
 	}
 	if t == data.EventTypeTimer {
-		children = append(children, layout.Rigid(m.TextFieldRow(m.duration_field, "Duration", "the duration", style, gtx)))
+		children = append(children, layout.Rigid(m.TextFieldRow(m.duration_field, "Duration", "", style, gtx)))
 	} else {
 		m.event_form.SetVisible("duration", false)
 	}
-	children = append(children, layout.Rigid(m.TextFieldRow(m.notification_field, "Notification", "the notification", style, gtx)))
+	children = append(children, layout.Rigid(m.TextFieldRow(m.notification_field, "Notification", "", style, gtx)))
 	children = append(children, layout.Rigid(m.CheckBoxRow(m.persistent_check, "", "Request persistent notification", style, gtx)))
 	children = append(children, layout.Rigid(m.SelectBoxRow(m.sound_select, "Sound", style, gtx)))
 	children = append(children,

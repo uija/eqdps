@@ -12,6 +12,7 @@ import (
 	"github.com/uija/eqdps/internal/module/dps"
 	"github.com/uija/eqdps/internal/module/events"
 	"github.com/uija/eqdps/internal/module/sky"
+	"github.com/uija/eqdps/internal/module/statistics"
 	"github.com/uija/eqdps/internal/module/xphour"
 	"github.com/uija/eqdps/internal/view"
 )
@@ -24,6 +25,7 @@ func main() {
 		context.RegisterModule(xphour.NewModule())
 		context.RegisterModule(sky.NewModule())
 		context.RegisterModule(events.NewModule())
+		context.RegisterModule(statistics.NewModule())
 
 		window.Option(
 			app.Title("eqdps"),

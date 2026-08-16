@@ -229,10 +229,18 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 							return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, label.Layout)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							text := "Watch"
+							if quest.Done {
+								if m.config.RedoQuests[quest.Key].IsZero() {
+									text = "Redo Quest"
+								} else {
+									text = "Cancel Redo"
+								}
+							}
 							if !quest.Watched {
-								return m.status[index].Quests[qidx].WatchClick.Layout(gtx,
-									ui.ColoredLabel(style.Theme, RowSize, highlight_color, "Watch").Layout,
-								)
+								link := ui.Link(style, &m.status[index].Quests[qidx].WatchClick, text)
+								link.TextColor = highlight_color
+								return link.Layout(gtx)
 							} else {
 								return ui.ColoredLabel(style.Theme, RowSize, highlight_color, "   ").Layout(gtx)
 							}

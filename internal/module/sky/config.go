@@ -14,13 +14,14 @@ type Log struct {
 }
 
 type Config struct {
-	QuestItems   map[string]int `json:"quest_items"`
-	Quests       map[string]int `json:"quests"`
-	Log          Log            `json:"log"`
-	HideFinished bool           `json:"hide_finished"`
-	HideEmpty    bool           `json:"hide_empty"`
-	HideReady    bool           `json:"hide_ready"`
-	HideWatched  bool           `json:"hide_watched"`
+	QuestItems   map[string]int       `json:"quest_items"`
+	Quests       map[string]int       `json:"quests"`
+	RedoQuests   map[string]time.Time `json:"redo_quests"`
+	Log          Log                  `json:"log"`
+	HideFinished bool                 `json:"hide_finished"`
+	HideEmpty    bool                 `json:"hide_empty"`
+	HideReady    bool                 `json:"hide_ready"`
+	HideWatched  bool                 `json:"hide_watched"`
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -28,6 +29,7 @@ func LoadConfig(path string) (Config, error) {
 	config := Config{
 		QuestItems: make(map[string]int),
 		Quests:     make(map[string]int),
+		RedoQuests: make(map[string]time.Time),
 		Log: Log{
 			Path:          path,
 			Offset:        0,
@@ -43,6 +45,9 @@ func LoadConfig(path string) (Config, error) {
 	err = json.Unmarshal(bytes, &config)
 	if err != nil {
 		return config, err
+	}
+	if config.RedoQuests == nil {
+		config.RedoQuests = make(map[string]time.Time)
 	}
 	return config, nil
 }

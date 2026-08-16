@@ -188,7 +188,7 @@ func (m *Module) RecalculateStatus() {
 		c.QuestsReady = 0
 		for qidx := range c.Quests {
 			q := &c.Quests[qidx]
-			if m.config.Quests[q.Key] > 0 {
+			if m.config.Quests[q.Key] > 0 && m.config.RedoQuests[q.Key].IsZero() {
 				q.Done = true
 				c.QuestsDone++
 			} else {
@@ -269,12 +269,21 @@ func (m *Module) Update(gtx layout.Context) {
 		if m.status[cidx].ToggleClick.Clicked(gtx) {
 			m.status[cidx].Visible = !m.status[cidx].Visible
 		}
-		for qidx := range m.status[cidx].Quests {
+		for qidx, quest := range m.status[cidx].Quests {
 			if m.status[cidx].Quests[qidx].RewardClick.Clicked(gtx) {
 				log.Printf("%s clicked", m.status[cidx].Quests[qidx].Reward)
 			}
 			if m.status[cidx].Quests[qidx].WatchClick.Clicked(gtx) {
-				m.status[cidx].Quests[qidx].Watched = true
+				if quest.Done {
+					if m.config.RedoQuests[quest.Key].IsZero() {
+						m.config.RedoQuests[quest.Key] = time.Now()
+					} else {
+						delete(m.config.RedoQuests, quest.Key)
+					}
+					m.config.Save()
+				} else {
+					m.status[cidx].Quests[qidx].Watched = true
+				}
 			}
 			if m.status[cidx].Quests[qidx].UnwatchClick.Clicked(gtx) {
 				m.status[cidx].Quests[qidx].Watched = false

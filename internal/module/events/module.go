@@ -3,6 +3,7 @@ package events
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/gen2brain/beeep"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
@@ -159,6 +161,9 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.class_select.Changed() {
 		m.UpdateSpellsAndClasses()
 	}
+	if m.spell_select.Changed() {
+		m.title_field.SetText(m.spell_select.Value())
+	}
 	if m.add_spell_click.Clicked(gtx) {
 		m.PrepareToCreate(data.EventTypeSpell)
 		m.event_form.Focus(gtx, "title")
@@ -218,7 +223,9 @@ func (m *Module) PrepareToCreate(t data.EventType) {
 	m.target_select.SetSelected(0)
 	m.text_field.SetText("")
 	m.full_message_check.Value = false
-	m.notification_field.SetText("")
+	if t == data.EventTypeSpell {
+		m.notification_field.SetText("%s faded.")
+	}
 	m.persistent_check.Value = false
 	m.sound_select.SetSelected(0)
 }
@@ -331,7 +338,49 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	if m.replay.Load() {
 		return
 	}
-
+	if len(m.ctx.Config.Events) == 0 {
+		return
+	}
+	for idx, event := range m.ctx.Config.Events {
+		if !event.Active {
+			continue
+		}
+		switch event.Type {
+		case data.EventTypeString,
+			data.EventTypeSpell:
+			if event.FullExpression && strings.EqualFold(event.Expression, e.Message) {
+				Notify(event)
+			} else if strings.Contains(e.Message, event.Expression) {
+				Notify(event)
+			}
+		case data.EventTypeRegexp:
+			if event.Expression != "" && event.RegExp == nil {
+				m.ctx.Config.Events[idx].RegExp = regexp.MustCompile(event.Expression)
+			}
+			if event.ExpressionOthers != "" && event.RegExpOthers == nil {
+				m.ctx.Config.Events[idx].RegExpOthers = regexp.MustCompile(event.ExpressionOthers)
+			}
+			if event.RegExp != nil {
+				if event.RegExp.Match([]byte(e.Message)) {
+					Notify(event)
+				}
+			}
+			if event.RegExpOthers != nil {
+				if event.RegExpOthers.Match([]byte(e.Message)) {
+					Notify(event)
+				}
+			}
+		}
+	}
+}
+func Notify(event data.EventConfig) {
+	if event.Notification != "" {
+		not := event.Notification
+		if strings.Contains(not, "%s") {
+			not = fmt.Sprintf(not, event.Title)
+		}
+		beeep.Notify(event.Title, not, "")
+	}
 }
 func (m *Module) OnReplayStart() {
 	m.replay.Store(true)

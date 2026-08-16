@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 type EventType int8
@@ -29,6 +30,8 @@ type EventConfig struct {
 	PersistNotification bool      `json:"persist_notification"`
 	Sound               string    `json:"sound"`
 	Active              bool      `json:"active"`
+	RegExp              *regexp.Regexp
+	RegExpOthers        *regexp.Regexp
 }
 
 type Config struct {
