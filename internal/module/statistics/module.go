@@ -44,6 +44,8 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 func (m *Module) Update(gtx layout.Context) {
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	switch e.Type {
 	case data.LogRowEventTypeYouSlain,
 		data.LogRowEventTypeSlainBy:
@@ -66,11 +68,14 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if m.replay.Load() {
 		return layout.Dimensions{}
 	}
-	mobs := m.mobs
-	names := make([]string, 0)
-	for name := range mobs {
+	names := make([]string, len(m.mobs))
+	mobs := make(map[string]int, len(m.mobs))
+	m.mu.RLock()
+	for name, count := range mobs {
 		names = append(names, name)
+		mobs[name] = count
 	}
+	m.mu.RUnlock()
 	sort.Slice(names, func(i, j int) bool {
 		if mobs[names[i]] == mobs[names[j]] {
 			return names[i] < names[j]
