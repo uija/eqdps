@@ -12,6 +12,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/audio"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/ui"
@@ -73,6 +74,8 @@ type Context struct {
 	readyForFollow  chan struct{}
 	requestedReplay chan eqlog.Loopback
 	indexingDone    chan struct{}
+
+	Playback *audio.Playback
 }
 
 type ReplayRequest struct {
@@ -88,7 +91,7 @@ func NewContext(invalidateFunc func()) *Context {
 		log.Printf("Unable to create config. %v", err)
 		config = &data.Config{}
 	}
-	return &Context{
+	ctx := &Context{
 		ParserSession:         0,
 		Parser:                nil,
 		ViewMenuItems:         make([]MenuItem, 0),
@@ -109,6 +112,12 @@ func NewContext(invalidateFunc func()) *Context {
 		invalidateFunc:  invalidateFunc,
 		Config:          config,
 	}
+	p, err := audio.NewPlayback("")
+	if err != nil {
+		panic("Unable to initialize audio playback")
+	}
+	ctx.Playback = p
+	return ctx
 }
 func (c *Context) ParserLogFileOpened(path string) {
 	// Extract Character and Servername

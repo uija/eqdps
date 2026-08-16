@@ -147,7 +147,13 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 	}
 	children = append(children, layout.Rigid(m.TextFieldRow(m.notification_field, "Notification", "", style, gtx)))
 	children = append(children, layout.Rigid(m.CheckBoxRow(m.persistent_check, "", "Request persistent notification", style, gtx)))
-	children = append(children, layout.Rigid(m.SelectBoxRow(m.sound_select, "Sound", style, gtx)))
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Rigid(m.SelectBoxRow(m.sound_select, "Sound", style, gtx)),
+			layout.Rigid(material.Button(style.Theme, &m.play_sound_click, "Play").Layout),
+			layout.Flexed(1, material.Body1(style.Theme, "").Layout),
+		)
+	}))
 	children = append(children,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
@@ -214,8 +220,25 @@ func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, s
 func (m *Module) RenderMainPage(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderVolumeRow(style, gtx) }),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderEventsTable(style, gtx) }),
 	)
+}
+func (m *Module) RenderVolumeRow(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(6), Right: unit.Dp(16)}.Layout(gtx, material.Body1(style.Theme, "Notification Volume:").Layout)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = min(300, gtx.Constraints.Max.X)
+				return material.Slider(style.Theme, &m.volume).Layout(gtx)
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(6)}.Layout(gtx, material.Body1(style.Theme, fmt.Sprintf("%.02f%%", m.ctx.Config.Volume)).Layout)
+			}),
+		)
+	})
 }
 func (m *Module) RenderEventsTable(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -286,7 +309,7 @@ func (m *Module) RenderEventsTableRow(index int, style *ui.Style, gtx layout.Con
 					})
 				})
 			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(14), sound).Layout)
 			}),
 		)
@@ -323,7 +346,7 @@ func (m *Module) RenderEventsTableHeader(style *ui.Style, gtx layout.Context) la
 					)
 				},
 			),
-			layout.Flexed(1,
+			layout.Flexed(2,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
 						material.Label(style.Theme, unit.Sp(14), "SOUND").Layout,

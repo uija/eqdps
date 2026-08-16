@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/gen2brain/beeep"
+	"github.com/uija/eqdps/internal/audio"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
@@ -57,6 +59,9 @@ type Module struct {
 
 	do_delete_click     widget.Clickable
 	cancel_delete_click widget.Clickable
+
+	volume           widget.Float
+	play_sound_click widget.Clickable
 }
 
 func NewModule() *Module {
@@ -68,15 +73,13 @@ func NewModule() *Module {
 		notification_field: &widget.Editor{SingleLine: true},
 		full_message_check: &widget.Bool{},
 		persistent_check:   &widget.Bool{},
-		sound_select: form.NewSelectBox([]string{
-			"Sound1", "Sound2", "Sound3",
-		}, 0),
-		class_select:  form.NewSelectBox([]string{}, 0),
-		spell_select:  form.NewSelectBox([]string{}, 0),
-		target_select: form.NewSelectBox([]string{"Self", "Others", "Both"}, 0),
-		edit_index:    -1,
-		delete_id:     -1,
-		create_type:   data.EventTypeUndefined,
+		sound_select:       form.NewSelectBox([]string{}, 0),
+		class_select:       form.NewSelectBox([]string{}, 0),
+		spell_select:       form.NewSelectBox([]string{}, 0),
+		target_select:      form.NewSelectBox([]string{"Self", "Others", "Both"}, 0),
+		edit_index:         -1,
+		delete_id:          -1,
+		create_type:        data.EventTypeUndefined,
 	}
 	mustRegister := func(err error) {
 		if err != nil {
@@ -96,6 +99,14 @@ func NewModule() *Module {
 	mustRegister(m.event_form.AddButton("save", &m.save_button_click, m.OnSave))
 	mustRegister(m.event_form.AddButton("cancel", &m.close_button_click, m.OnCancel))
 
+	sounds, err := audio.EmbeddedSounds()
+	if err == nil {
+		list := make([]string, 0)
+		for _, s := range sounds {
+			list = append(list, s.ID)
+		}
+		m.sound_select.SetOptions(list)
+	}
 	return m
 }
 
@@ -103,7 +114,7 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	m.ctx = ctx
 	ctx.AddViewMenuItem("Events", m.OpenMainView)
 	ctx.AddSidebarItem("Events", m.OpenMainView)
-	ctx.SetMainView(m.Layout)
+	//ctx.SetMainView(m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterStatusWidget(m.LayoutStatus)
@@ -117,6 +128,7 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	m.spells = spells
 	m.events_list.Axis = layout.Vertical
 	m.UpdateSpellsAndClasses()
+	m.volume.Value = m.ctx.Config.Volume
 	return nil
 }
 func (m *Module) OpenMainView() {
@@ -211,6 +223,18 @@ func (m *Module) Update(gtx layout.Context) {
 	}
 	if m.delete_button_click.Clicked(gtx) {
 		m.delete_id = m.edit_index
+	}
+	if m.play_sound_click.Clicked(gtx) {
+		sound := m.sound_select.Value()
+		if sound != "" {
+			m.ctx.Playback.Play(context.Background(), sound, float64(m.ctx.Config.Volume), func(err error) {
+				log.Printf("Unable to play sound: %v", err)
+			})
+		}
+	}
+	if m.volume.Dragging() {
+		m.ctx.Config.Volume = m.volume.Value
+		m.ctx.Config.Save()
 	}
 }
 func (m *Module) PrepareToCreate(t data.EventType) {
@@ -314,6 +338,7 @@ func (m *Module) OnSave() {
 	}
 	val.Notification = m.notification_field.Text()
 	val.PersistNotification = m.persistent_check.Value
+	val.Sound = m.sound_select.Value()
 	if m.edit_index >= 0 {
 		m.ctx.Config.Events[m.edit_index] = *val
 	} else {
@@ -349,9 +374,9 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 		case data.EventTypeString,
 			data.EventTypeSpell:
 			if event.FullExpression && strings.EqualFold(event.Expression, e.Message) {
-				Notify(event)
+				m.Notify(event)
 			} else if strings.Contains(e.Message, event.Expression) {
-				Notify(event)
+				m.Notify(event)
 			}
 		case data.EventTypeRegexp:
 			if event.Expression != "" && event.RegExp == nil {
@@ -362,24 +387,29 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 			}
 			if event.RegExp != nil {
 				if event.RegExp.Match([]byte(e.Message)) {
-					Notify(event)
+					m.Notify(event)
 				}
 			}
 			if event.RegExpOthers != nil {
 				if event.RegExpOthers.Match([]byte(e.Message)) {
-					Notify(event)
+					m.Notify(event)
 				}
 			}
 		}
 	}
 }
-func Notify(event data.EventConfig) {
+func (m *Module) Notify(event data.EventConfig) {
 	if event.Notification != "" {
 		not := event.Notification
 		if strings.Contains(not, "%s") {
 			not = fmt.Sprintf(not, event.Title)
 		}
 		beeep.Notify(event.Title, not, "")
+	}
+	if event.Sound != "" {
+		m.ctx.Playback.Play(context.Background(), event.Sound, float64(m.ctx.Config.Volume), func(err error) {
+			log.Printf("Unable to play sound. %v", err)
+		})
 	}
 }
 func (m *Module) OnReplayStart() {

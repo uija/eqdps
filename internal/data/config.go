@@ -35,9 +35,10 @@ type EventConfig struct {
 }
 
 type Config struct {
-	LastLogfile string `json:"last_logfile"`
-	OpenOverlay bool   `json:"open_overlay"`
-	Events      []EventConfig
+	LastLogfile string        `json:"last_logfile"`
+	OpenOverlay bool          `json:"open_overlay"`
+	Events      []EventConfig `json:"events"`
+	Volume      float32       `json:"volume"`
 }
 
 func (c *Config) Save() error {
@@ -56,6 +57,7 @@ func (c *Config) Save() error {
 func GetConfig() (*Config, error) {
 	config := &Config{
 		Events: make([]EventConfig, 0),
+		Volume: 0.5,
 	}
 	path, err := appDataPath("config.json")
 	if err != nil {
