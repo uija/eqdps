@@ -123,8 +123,8 @@ choices in `internal/view/historyselection.go`.
 It does not yet provide:
 
 - fight-name filtering;
-- a Now action that returns to a fresh live session;
-- explicit combat and XP reset;
+- ~~a Now action that returns to a fresh live session;~~
+- ~~explicit combat and XP reset;~~
 - cancellable replay;
 - recent-log selection;
 - replay error presentation;

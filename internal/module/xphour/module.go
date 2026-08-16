@@ -30,6 +30,7 @@ type Module struct {
 	overlay bool
 
 	statusbar_click widget.Clickable
+	overlay_now     widget.Clickable
 	overlay_level   widget.Clickable
 	overlay_zone    widget.Clickable
 	overlay_cancel  widget.Clickable
@@ -70,6 +71,10 @@ func (m *Module) Update(gtx layout.Context) {
 		}
 		m.overlay = false
 	}
+	if m.overlay_now.Clicked(gtx) {
+		m.ctx.RequestReplay(eqlog.Loopback{Skip: true})
+		m.overlay = false
+	}
 }
 func (m *Module) OnReplayStart() {
 	m.mu.Lock()
@@ -83,6 +88,9 @@ func (m *Module) LayoutOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 	ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
 	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return m.overlay_now.Layout(gtx, material.Body1(style.Theme, "From now on").Layout)
+			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return m.overlay_level.Layout(gtx, material.Body1(style.Theme, "Since last levelup").Layout)
 			}),
@@ -122,7 +130,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	}
 	if m.overlay {
 		width := gtx.Dp(unit.Dp(220))
-		height := gtx.Dp(unit.Dp(60))
+		height := gtx.Dp(unit.Dp(90))
 
 		recording := op.Record(gtx.Ops)
 
@@ -166,10 +174,7 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 		data.LogRowEventTypeYourDamageShield:
 
 		if !m.lastCombat.IsZero() && e.Timestamp.After(m.lastCombat) {
-			gap := e.Timestamp.Sub(m.lastCombat)
-			if gap > time.Minute {
-				gap = time.Minute
-			}
+			gap := min(e.Timestamp.Sub(m.lastCombat), time.Minute)
 			m.activeBetween += gap
 		}
 		m.lastCombat = e.Timestamp
