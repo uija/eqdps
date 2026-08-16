@@ -35,6 +35,7 @@ func NewhistorySelection(style *ui.Style, callback LoadHistoryCallback) *history
 		entries:  make([]historyEntry, 0),
 	}
 
+	result.entries = append(result.entries, historyEntry{caption: "live", loopback: eqlog.Loopback{Skip: true}})
 	result.entries = append(result.entries, historyEntry{caption: "last Hour", loopback: eqlog.Loopback{TimeOffset: time.Hour}})
 	result.entries = append(result.entries, historyEntry{caption: "last 4 Hours", loopback: eqlog.Loopback{TimeOffset: 4 * time.Hour}})
 	result.entries = append(result.entries, historyEntry{caption: "last 8 Hours", loopback: eqlog.Loopback{TimeOffset: 8 * time.Hour}})

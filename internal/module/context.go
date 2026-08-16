@@ -174,7 +174,9 @@ func (c *Context) runReplay() {
 	for _, f := range c.replayStartListener {
 		f()
 	}
-	c.Parser.Replay(c.replayLoopback, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	if !c.replayLoopback.Skip {
+		c.Parser.Replay(c.replayLoopback, c.ParserNewLogEvent, c.ParserOnReplayProgress)
+	}
 	for _, f := range c.replayEndListener {
 		f()
 	}

@@ -31,8 +31,8 @@ type Combat struct {
 	mu sync.RWMutex
 }
 
-func newCombat() Combat {
-	return Combat{
+func newCombat() *Combat {
+	return &Combat{
 		activeFights:      make(map[string]*Fight),
 		gracePeriodFights: make(map[string]GracePeriod),
 		knownPlayers:      make(map[string]bool),

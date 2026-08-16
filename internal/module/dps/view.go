@@ -15,8 +15,9 @@ import (
 )
 
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	m.combat.mu.RLock()
-	defer m.combat.mu.RUnlock()
+	combat := m.combat
+	combat.mu.RLock()
+	defer combat.mu.RUnlock()
 
 	children := make([]layout.FlexChild, 0)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))

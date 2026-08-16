@@ -25,7 +25,7 @@ type column struct {
 
 type Module struct {
 	ctx    *module.Context
-	combat Combat
+	combat *Combat
 	rows   chan *data.LogRowEvent
 	stop   chan struct{}
 
@@ -46,6 +46,7 @@ type Module struct {
 
 func NewModule() *Module {
 	return &Module{
+		combat:        newCombat(),
 		rows:          make(chan *data.LogRowEvent, 1024),
 		stop:          make(chan struct{}, 1),
 		columns:       make([]column, 0),
@@ -114,26 +115,27 @@ func (m *Module) publishOverlayFight() {
 		return
 	}
 	var snapshot *Fight = nil
-	m.combat.mu.RLock()
+	combat := m.combat
+	combat.mu.RLock()
 	if len(m.combat.history) == 0 {
-		m.combat.mu.RUnlock()
+		combat.mu.RUnlock()
 		return
 	}
 	active := make([]*Fight, 0)
-	for _, f := range m.combat.history {
+	for _, f := range combat.history {
 		if f.endReason == "" {
 			active = append(active, f)
 		}
 	}
 	if len(active) == 0 {
-		snapshot = m.combat.history[len(m.combat.history)-1].Clone()
+		snapshot = combat.history[len(combat.history)-1].Clone()
 	} else {
 		sort.Slice(active, func(i, j int) bool {
 			return active[i].lastParticipate.After(active[j].lastParticipate)
 		})
 		snapshot = active[0].Clone()
 	}
-	m.combat.mu.RUnlock()
+	combat.mu.RUnlock()
 	if snapshot != nil {
 		m.overlay.updates <- snapshot
 		m.overlay.window.Invalidate()
@@ -185,15 +187,16 @@ func (m *Module) SelectBacklog() {
 }
 func (m *Module) Update(gtx layout.Context) {
 	if !m.replay.Load() {
-		m.combat.mu.RLock()
-		for _, f := range m.combat.history {
+		combat := m.combat
+		combat.mu.RLock()
+		for _, f := range combat.history {
 			for _, c := range f.combatants {
 				if c.click.Clicked(gtx) {
 					c.open = !c.open
 				}
 			}
 		}
-		m.combat.mu.RUnlock()
+		combat.mu.RUnlock()
 	}
 	if m.overlayClick.Clicked(gtx) {
 		if m.overlay == nil {

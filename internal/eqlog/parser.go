@@ -58,6 +58,7 @@ type Loopback struct {
 	ByteOffset int64
 	TimeOffset time.Duration
 	Timestamp  time.Time
+	Skip       bool
 }
 
 func NewParser(session uint64) *Parser {

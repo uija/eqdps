@@ -99,7 +99,7 @@ combat implementation does not yet include several mature legacy behaviors:
 - ~~there is no death-grace period for same-timestamp or delayed DoT damage;~~
 - ~~there is no retained-fight handling for DoTs after Feign Death;~~
 - there is no completed-fight history limit;
-- pet damage is not merged into the owner's displayed combatant row;
+- (conscious decision) ~~pet damage is not merged into the owner's displayed combatant row;~~
 - engaged/shared DPS behavior is not equivalent;
 - min/max damage is collected but not displayed;
 - the SDPS column is absent.

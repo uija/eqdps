@@ -44,6 +44,7 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterStatusWidget(m.Layout)
 	ctx.RegisterOverlayWidget(m.LayoutOverlay)
+	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterUpdate(m.Update)
 	m.ctx = ctx
 	return nil
@@ -69,6 +70,14 @@ func (m *Module) Update(gtx layout.Context) {
 		}
 		m.overlay = false
 	}
+}
+func (m *Module) OnReplayStart() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.latestLog = time.Time{}
+	m.lastCombat = time.Time{}
+	m.activeBetween = 0
+	m.xpReceived = 0
 }
 func (m *Module) LayoutOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
