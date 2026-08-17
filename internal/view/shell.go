@@ -57,6 +57,7 @@ type Shell struct {
 	status        string
 	help          *helpView
 	selectHistory *historySelection
+	preferences   *Preferences
 	context       *module.Context
 
 	progress *progress
@@ -82,6 +83,7 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 		status:           "Ready",
 		help:             newHelpView(&Style, context),
 		selectHistory:    NewhistorySelection(&Style, context.RequestReplay),
+		preferences:      NewPreferences(context),
 		context:          context,
 		invalidateFunc:   invalidate,
 		fileSelectResult: make(chan fileResult, 1),
@@ -109,7 +111,9 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 		}
 	}
 	toolsMenu.AddSeparator()
-	toolsMenu.AddItem("Preferences", func() {})
+	toolsMenu.AddItem("Preferences", func() {
+		result.context.SetMainView(result.preferences.Layout)
+	})
 	result.menuBar.AddAction("Help", result.help.Open)
 
 	// check if there is a logfile to open
@@ -248,7 +252,7 @@ func (s *Shell) update(gtx layout.Context) {
 		}
 	}
 	if s.settingsClick.Clicked(gtx) {
-		// TODO: Open settings
+		s.context.SetMainView(s.preferences.Layout)
 	}
 	s.context.Update(gtx)
 	s.menuBar.Update(gtx)

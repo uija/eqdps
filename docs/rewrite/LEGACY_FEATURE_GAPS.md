@@ -29,7 +29,7 @@ The legacy implementation also provided:
 - (no user yet) ~~embedded and user-provided MP3/WAV playback;~~
 - ~~shared sound volume control;~~
 - extraction and selection of EverQuest spell-icon sets;
-- spell icons in desktop notifications;
+- ~~spell icons in desktop notifications;~~
 - runtime error handling and regular-expression validation.
 
 Relevant legacy packages:
@@ -163,15 +163,15 @@ turn-in handling under `internal/module/sky`.
 
 The following legacy behavior is missing or incomplete:
 
-- first-use consent before scanning existing history;
-- cancellable initial scan and checkpoint catch-up;
-- safe handling of replaced or truncated logfiles;
-- correct partial-line checkpoint handling;
-- restricting collected loot to Plane of Sky zones;
 - removing destroyed items from holdings;
 - handling rejected trades;
 - persistent watched quests;
 - rendering the watched section, which currently always reports zero;
+- ~~(NOT in first release)first-use consent before scanning existing history;~~
+- ~~(We are so fast, no cancel) cancellable initial scan and checkpoint catch-up;~~
+- ~~(NOT in first release) safe handling of replaced or truncated logfiles;~~
+- correct partial-line checkpoint handling;
+- ~~(Does lead to bugs. Not needed) restricting collected loot to Plane of Sky zones;~~
 - opening quest reward links instead of only logging the click;
 - EQLDB upload of quest and rune events.
 

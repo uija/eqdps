@@ -399,12 +399,29 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	}
 }
 func (m *Module) Notify(event data.EventConfig) {
+
 	if event.Notification != "" {
 		not := event.Notification
 		if strings.Contains(not, "%s") {
 			not = fmt.Sprintf(not, event.Title)
 		}
-		beeep.Notify(event.Title, not, "")
+		iconId := -1
+		if event.Spell != "" {
+			for _, s := range m.spells {
+				if strings.EqualFold(s.Name, event.Spell) {
+					iconId = s.IconID
+					break
+				}
+			}
+		}
+		iconPath := ""
+		if iconId >= 0 {
+			path, err := data.AppDataPath(fmt.Sprintf("spell-icons/spell_%d.png", iconId))
+			if err == nil {
+				iconPath = path
+			}
+		}
+		beeep.Notify(event.Title, not, iconPath)
 	}
 	if event.Sound != "" {
 		m.ctx.Playback.Play(context.Background(), event.Sound, float64(m.ctx.Config.Volume), func(err error) {

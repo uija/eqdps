@@ -310,7 +310,6 @@ func (c *Context) SetMainView(f ui.Widget) {
 func (c *Context) AddHelpItem(name string, layout ui.Widget) {
 	c.HelpItems = append(c.HelpItems, HelpItem{Name: name, Layout: layout})
 }
-
 func (c *Context) RegisterModule(m Module) error {
 	return m.Init(c, c.invalidateFunc)
 }

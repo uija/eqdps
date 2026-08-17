@@ -33,16 +33,22 @@ type EventConfig struct {
 	RegExp              *regexp.Regexp
 	RegExpOthers        *regexp.Regexp
 }
+type EQLDbConfig struct {
+	UploadProfile             bool   `json:"upload_profile"`
+	ContributeKillAndLootData bool   `json:"contribute"`
+	AccessToken               string `json:"access_token"`
+}
 
 type Config struct {
 	LastLogfile string        `json:"last_logfile"`
 	OpenOverlay bool          `json:"open_overlay"`
 	Events      []EventConfig `json:"events"`
 	Volume      float32       `json:"volume"`
+	EQLDbConfig EQLDbConfig   `json:"eqldb"`
 }
 
 func (c *Config) Save() error {
-	path, err := appDataPath("config.json")
+	path, err := AppDataPath("config.json")
 	if err != nil {
 		return err
 	}
@@ -59,7 +65,7 @@ func GetConfig() (*Config, error) {
 		Events: make([]EventConfig, 0),
 		Volume: 0.5,
 	}
-	path, err := appDataPath("config.json")
+	path, err := AppDataPath("config.json")
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +84,7 @@ func GetConfig() (*Config, error) {
 	return config, nil
 }
 
-func appDataPath(filename string) (string, error) {
+func AppDataPath(filename string) (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
