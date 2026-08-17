@@ -5,13 +5,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
+	"github.com/uija/eqdps/internal/overlay"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/view"
 )
@@ -31,8 +31,6 @@ type Module struct {
 
 	table   widget.List
 	columns []column
-
-	overlay *Overlay
 
 	replay       atomic.Bool
 	startOverlay bool
@@ -111,34 +109,34 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 }
 
 func (m *Module) publishOverlayFight() {
-	if m.overlay == nil {
+	if m.ctx.Overlay == nil {
 		return
 	}
-	var snapshot *Fight = nil
+	var fight *data.Fight
 	combat := m.combat
 	combat.mu.RLock()
 	if len(m.combat.history) == 0 {
 		combat.mu.RUnlock()
 		return
 	}
-	active := make([]*Fight, 0)
+	active := make([]*data.Fight, 0)
 	for _, f := range combat.history {
-		if f.endReason == "" {
+		if f.EndReason == "" {
 			active = append(active, f)
 		}
 	}
 	if len(active) == 0 {
-		snapshot = combat.history[len(combat.history)-1].Clone()
+		fight = combat.history[len(combat.history)-1].Clone()
 	} else {
 		sort.Slice(active, func(i, j int) bool {
-			return active[i].lastParticipate.After(active[j].lastParticipate)
+			return active[i].LastParticipate.After(active[j].LastParticipate)
 		})
-		snapshot = active[0].Clone()
+		fight = active[0].Clone()
 	}
 	combat.mu.RUnlock()
-	if snapshot != nil {
-		m.overlay.updates <- snapshot
-		m.overlay.window.Invalidate()
+	if fight != nil {
+		m.ctx.Overlay.Updates <- fight
+		m.ctx.Overlay.Invalidate()
 	}
 }
 
@@ -148,8 +146,8 @@ func (m *Module) OpenMainView() {
 
 func (m *Module) Shutdown() {
 	m.stop <- struct{}{}
-	if m.overlay != nil {
-		m.overlay.window.Perform(system.ActionClose)
+	if m.ctx.Overlay != nil {
+		m.ctx.Overlay.Close()
 	}
 }
 
@@ -190,28 +188,28 @@ func (m *Module) Update(gtx layout.Context) {
 		combat := m.combat
 		combat.mu.RLock()
 		for _, f := range combat.history {
-			for _, c := range f.combatants {
-				if c.click.Clicked(gtx) {
-					c.open = !c.open
+			for _, c := range f.Combatants {
+				if c.Click.Clicked(gtx) {
+					c.Open = !c.Open
 				}
 			}
 		}
 		combat.mu.RUnlock()
 	}
 	if m.overlayClick.Clicked(gtx) {
-		if m.overlay == nil {
+		if m.ctx.Overlay == nil {
 			m.OpenOverlay()
 			m.ctx.Config.OpenOverlay = true
 			m.ctx.Config.Save()
 		} else {
-			m.overlay.window.Perform(system.ActionClose)
+			m.ctx.Overlay.Close()
 			m.ctx.Config.OpenOverlay = false
 			m.ctx.Config.Save()
 		}
 	}
 	select {
 	case <-m.overlayClosed:
-		m.overlay = nil
+		m.ctx.Overlay = nil
 		m.invalidateFunc()
 	default:
 	}
@@ -221,11 +219,11 @@ func (m *Module) Update(gtx layout.Context) {
 	}
 }
 func (m *Module) OpenOverlay() {
-	if m.overlay != nil {
+	if m.ctx.Overlay != nil {
 		return
 	}
-	m.overlay = newOverlay(&view.Style)
-	go m.overlay.run(func() {
+	m.ctx.Overlay = overlay.NewOverlay(&view.Style)
+	go m.ctx.Overlay.Run(func() {
 		m.overlayClosed <- struct{}{}
 	})
 }

@@ -6,9 +6,12 @@ import (
 	"log"
 	"regexp"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"gioui.org/layout"
 	"gioui.org/widget"
@@ -62,6 +65,11 @@ type Module struct {
 
 	volume           widget.Float
 	play_sound_click widget.Clickable
+
+	stop              chan struct{}
+	gracePeriodTimers map[string]data.TimerTracker
+	runningTimers     map[string]data.TimerTracker
+	tmu               sync.RWMutex
 }
 
 func NewModule() *Module {
@@ -80,6 +88,9 @@ func NewModule() *Module {
 		edit_index:         -1,
 		delete_id:          -1,
 		create_type:        data.EventTypeUndefined,
+		stop:               make(chan struct{}),
+		gracePeriodTimers:  make(map[string]data.TimerTracker),
+		runningTimers:      make(map[string]data.TimerTracker),
 	}
 	mustRegister := func(err error) {
 		if err != nil {
@@ -102,6 +113,7 @@ func NewModule() *Module {
 	sounds, err := audio.EmbeddedSounds()
 	if err == nil {
 		list := make([]string, 0)
+		list = append(list, "")
 		for _, s := range sounds {
 			list = append(list, s.ID)
 		}
@@ -129,7 +141,51 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	m.events_list.Axis = layout.Vertical
 	m.UpdateSpellsAndClasses()
 	m.volume.Value = m.ctx.Config.Volume
+
+	go m.TimerRun()
+
 	return nil
+}
+func (m *Module) TimerRun() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			m.tmu.Lock()
+			// move spells that are not interrupted anymore
+			now := time.Now()
+			for name, tt := range m.gracePeriodTimers {
+				if now.After(tt.CancelableUntil) {
+					m.runningTimers[name] = tt
+					delete(m.gracePeriodTimers, name)
+				}
+			}
+			for name, tt := range m.runningTimers {
+				if tt.StopsAt.Before(now) {
+					m.Notify(tt.Event)
+					delete(m.runningTimers, name)
+				}
+			}
+			m.tmu.Unlock()
+		case <-m.stop:
+			return
+		default:
+			if m.ctx.Overlay != nil {
+				timers := make([]data.TimerTracker, 0)
+				for _, tt := range m.runningTimers {
+					timers = append(timers, tt)
+				}
+				if len(timers) > 0 {
+					sort.Slice(timers, func(i, j int) bool {
+						return timers[i].Event.Spell < timers[j].Event.Spell
+					})
+				}
+				m.ctx.Overlay.Updates <- timers
+			}
+		}
+	}
 }
 func (m *Module) OpenMainView() {
 	m.ctx.SetMainView(m.Layout)
@@ -393,6 +449,22 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 			if event.RegExpOthers != nil {
 				if event.RegExpOthers.Match([]byte(e.Message)) {
 					m.Notify(event)
+				}
+			}
+		case data.EventTypeTimer:
+			switch e.Type {
+			case data.LogRowEventTypeCast:
+				if e.Data[1] == "You" {
+					spell := e.Data[2]
+					if strings.Contains(spell, event.Spell) {
+						now := time.Now()
+						m.gracePeriodTimers[event.Spell] = data.TimerTracker{
+							Started:         now,
+							CancelableUntil: now.Add(time.Second),
+							StopsAt:         now.Add(time.Second * time.Duration(event.Duration)),
+							Event:           event,
+						}
+					}
 				}
 			}
 		}

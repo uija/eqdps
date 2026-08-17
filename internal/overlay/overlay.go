@@ -1,35 +1,43 @@
-package dps
+package overlay
 
 import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"gioui.org/app"
+	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/ui"
 )
 
+type OverlayUpdate struct {
+	Timers []*data.TimerTracker
+}
+
 type Overlay struct {
-	updates chan *Fight
-	style   *ui.Style
-	window  *app.Window
-	list    widget.List
+	style  *ui.Style
+	window *app.Window
+	list   widget.List
 
 	fightMu sync.RWMutex
-	fight   *Fight
+	fight   *data.Fight
+	timers  []data.TimerTracker
 	done    chan struct{}
+
+	Updates chan any
 
 	decorations widget.Decorations
 }
 
-func newOverlay(source *ui.Style) *Overlay {
-
+func NewOverlay(source *ui.Style) *Overlay {
 	overlayStyle := *source
 	overlayStyle.Theme = material.NewTheme()
 	overlayStyle.Theme.Palette = source.Theme.Palette
@@ -47,15 +55,17 @@ func newOverlay(source *ui.Style) *Overlay {
 	)
 	o := &Overlay{
 		window:  window,
-		updates: make(chan *Fight, 1),
+		Updates: make(chan any, 1),
 		style:   &overlayStyle,
 		done:    make(chan struct{}),
 	}
 	o.list.Axis = layout.Vertical
 	return o
 }
-
-func (o *Overlay) run(onEnd func()) {
+func (o *Overlay) Invalidate() {
+	o.window.Invalidate()
+}
+func (o *Overlay) Run(onEnd func()) {
 	go o.handleUpdates()
 
 	var ops op.Ops
@@ -72,13 +82,20 @@ func (o *Overlay) run(onEnd func()) {
 		}
 	}
 }
-
+func (o *Overlay) Close() {
+	o.window.Perform(system.ActionClose)
+}
 func (o *Overlay) handleUpdates() {
 	for {
 		select {
-		case fight := <-o.updates:
+		case d := <-o.Updates:
 			o.fightMu.Lock()
-			o.fight = fight
+			switch a := d.(type) {
+			case *data.Fight:
+				o.fight = a
+			case []data.TimerTracker:
+				o.timers = a
+			}
 			o.fightMu.Unlock()
 			o.window.Invalidate()
 		case <-o.done:
@@ -112,7 +129,30 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 	o.fightMu.RUnlock()
 
 	children := make([]layout.FlexChild, 0)
-	// TODO: Timer
+	if len(o.timers) > 0 {
+
+		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ui.ColoredRow(gtx, o.style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					rows := make([]layout.FlexChild, 0)
+					for _, tt := range o.timers {
+						dur := time.Until(tt.StopsAt)
+						minutes := int(dur.Minutes())
+						seconds := int(dur.Seconds()) % 60
+						rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+								layout.Rigid(material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%02d:%02d", minutes, seconds)).Layout),
+								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(o.style.Theme, unit.Sp(13), tt.Event.Spell).Layout)
+								}),
+							)
+						}))
+					}
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx, rows...)
+				})
+			})
+		}))
+	}
 
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return ui.ColoredRow(gtx, o.style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
@@ -121,7 +161,7 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 				if fight == nil {
 					return material.Label(o.style.Theme, unit.Sp(13), "Waiting for data").Layout(gtx)
 				} else {
-					return material.Label(o.style.Theme, unit.Sp(13), fight.name).Layout(gtx)
+					return material.Label(o.style.Theme, unit.Sp(13), fight.Name).Layout(gtx)
 				}
 			})
 		})
@@ -147,17 +187,17 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 		})
 	}))
 	if fight != nil {
-		cb := make([]*Combatant, 0)
-		for _, c := range fight.combatants {
+		cb := make([]*data.Combatant, 0)
+		for _, c := range fight.Combatants {
 			cb = append(cb, c)
 		}
 		sort.Slice(cb, func(i, j int) bool {
-			return cb[i].overall.DPS() < cb[j].overall.DPS()
+			return cb[i].Overall.DPS() < cb[j].Overall.DPS()
 		})
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(o.style.Theme, &o.list)
-				size := len(fight.combatants)
+				size := len(fight.Combatants)
 				return list.Layout(
 					gtx,
 					size,
@@ -177,23 +217,23 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 		}),
 	)
 }
-func (o *Overlay) RenderCombatRow(cb *Combatant, gtx layout.Context) layout.Dimensions {
+func (o *Overlay) RenderCombatRow(cb *data.Combatant, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-			return material.Label(o.style.Theme, unit.Sp(13), cb.name).Layout(gtx)
+			return material.Label(o.style.Theme, unit.Sp(13), cb.Name).Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%d", cb.overall.damage))
+			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%d", cb.Overall.Damage))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%.0f", cb.overall.DPS()))
+			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%.0f", cb.Overall.DPS()))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			dur := cb.overall.lastUpdate.Sub(cb.overall.start)
+			dur := cb.Overall.LastUpdate.Sub(cb.Overall.Start)
 			minutes := int(dur.Minutes())
 			seconds := int(dur.Seconds()) % 60
 			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%02d:%02d", minutes, seconds))

@@ -15,6 +15,7 @@ import (
 	"github.com/uija/eqdps/internal/audio"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/eqlog"
+	"github.com/uija/eqdps/internal/overlay"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -76,6 +77,8 @@ type Context struct {
 	indexingDone    chan struct{}
 
 	Playback *audio.Playback
+
+	Overlay *overlay.Overlay
 }
 
 type ReplayRequest struct {
