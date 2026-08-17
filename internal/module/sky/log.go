@@ -19,6 +19,21 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	}
 	changed := true
 	switch event.Type {
+	case data.LogRowEventTypeItemDestroyed:
+		_, item := normalizeItemName(event.Data[2])
+		count, err := strconv.Atoi(event.Data[1])
+		if err != nil {
+			return
+		}
+		item = strings.ToLower(item)
+		if _, ok := m.config.QuestItems[item]; ok {
+			if m.config.QuestItems[item] > count {
+				m.config.QuestItems[item] -= count
+			} else {
+				delete(m.config.QuestItems, item)
+			}
+			m.config.Save()
+		}
 	case data.LogRowEventTypeExperience:
 	case data.LogRowEventTypeKillExperienceReward:
 		if m.tradeIn != nil {
@@ -32,8 +47,10 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		}
 	case data.LogRowEventTypeLootResult:
 		quantity, item := normalizeItemName(event.Data[1])
-		if m.HandleLootedItems(quantity, item) {
-			changed = true
+		if strings.Contains(event.Data[3], "and stored") {
+			if m.HandleLootedItems(quantity, item) {
+				changed = true
+			}
 		}
 	case data.LogRowEventTypeTradeOffer:
 		amount, err := strconv.Atoi(event.Data[1])
