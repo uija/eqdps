@@ -163,7 +163,7 @@ turn-in handling under `internal/module/sky`.
 
 The following legacy behavior is missing or incomplete:
 
-- removing destroyed items from holdings;
+- ~~removing destroyed items from holdings;~~
 - handling rejected trades;
 - persistent watched quests;
 - rendering the watched section, which currently always reports zero;
@@ -194,7 +194,7 @@ It does not yet provide:
 - configurable idle timeout;
 - removal of a retained completed fight after the timeout;
 - stable intentional-target selection during rapid or incidental combat;
-- a completed fight timer (`overlay.go` still contains `TODO: Timer`);
+- ~~a completed fight timer (`overlay.go` still contains `TODO: Timer`);~~
 - native Windows opacity and position restoration;
 - Wayland compositor guidance.
 
