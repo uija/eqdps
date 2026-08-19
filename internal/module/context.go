@@ -1,6 +1,7 @@
 package module
 
 import (
+	"image/color"
 	"log"
 	"os"
 	"path/filepath"
@@ -39,6 +40,8 @@ type LogRowListener func(event *data.LogRowEvent)
 type ReplayStartListener func()
 type ReplayEndListener func()
 
+type GeneralStatusFunc func(style *ui.Style) (string, color.NRGBA)
+
 type ProgressHandler func(title string, current int64, max int64)
 type UpdateListener func(layout.Context)
 
@@ -52,14 +55,15 @@ type Context struct {
 
 	progressHandler ProgressHandler
 
-	logOpenListener       []LogOpenListener
-	logRowListener        []LogRowListener
-	replayStartListener   []ReplayStartListener
-	replayEndListener     []ReplayEndListener
-	statusWidgetProvider  []ui.Widget
-	overlayWidgetProvider []ui.Widget
-	HelpItems             []HelpItem
-	updateListener        []UpdateListener
+	logOpenListener        []LogOpenListener
+	logRowListener         []LogRowListener
+	replayStartListener    []ReplayStartListener
+	replayEndListener      []ReplayEndListener
+	statusWidgetProvider   []ui.Widget
+	generalStatusProviders []GeneralStatusFunc
+	overlayWidgetProvider  []ui.Widget
+	HelpItems              []HelpItem
+	updateListener         []UpdateListener
 
 	Config *data.Config
 
@@ -95,19 +99,20 @@ func NewContext(invalidateFunc func()) *Context {
 		config = &data.Config{}
 	}
 	ctx := &Context{
-		ParserSession:         0,
-		Parser:                nil,
-		ViewMenuItems:         make([]MenuItem, 0),
-		progressHandler:       func(title string, current int64, max int64) {},
-		logOpenListener:       make([]LogOpenListener, 0),
-		logRowListener:        make([]LogRowListener, 0),
-		replayStartListener:   make([]ReplayStartListener, 0),
-		replayEndListener:     make([]ReplayEndListener, 0),
-		statusWidgetProvider:  make([]ui.Widget, 0),
-		overlayWidgetProvider: make([]ui.Widget, 0),
-		HelpItems:             make([]HelpItem, 0),
-		SideBarItems:          make([]SidebarItem, 0),
-		updateListener:        make([]UpdateListener, 0),
+		ParserSession:          0,
+		Parser:                 nil,
+		ViewMenuItems:          make([]MenuItem, 0),
+		progressHandler:        func(title string, current int64, max int64) {},
+		logOpenListener:        make([]LogOpenListener, 0),
+		logRowListener:         make([]LogRowListener, 0),
+		replayStartListener:    make([]ReplayStartListener, 0),
+		replayEndListener:      make([]ReplayEndListener, 0),
+		statusWidgetProvider:   make([]ui.Widget, 0),
+		generalStatusProviders: make([]GeneralStatusFunc, 0),
+		overlayWidgetProvider:  make([]ui.Widget, 0),
+		HelpItems:              make([]HelpItem, 0),
+		SideBarItems:           make([]SidebarItem, 0),
+		updateListener:         make([]UpdateListener, 0),
 
 		readyForFollow:  make(chan struct{}, 1),
 		requestedReplay: make(chan eqlog.Loopback, 1),
@@ -145,28 +150,46 @@ func (c *Context) runIndexFile() {
 	})
 	c.indexingDone <- struct{}{}
 }
+func (c *Context) RegisterGeneralStatus(f GeneralStatusFunc) {
+	c.generalStatusProviders = append(c.generalStatusProviders, f)
+}
 func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	items := make([]layout.FlexChild, 0)
 	items = append(items,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			var label material.LabelStyle
-			if c.parserPath == "" {
-				label = ui.ColoredLabel(style.Theme, 14, style.Palette.No, "No log")
-			} else if c.isReplay.Load() {
-				label = ui.ColoredLabel(style.Theme, 14, style.Palette.Accent, "Replay")
-			} else {
-				label = ui.ColoredLabel(style.Theme, 14, style.Palette.Yes, "Live")
-			}
-			return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, label.Layout)
+			return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				var label material.LabelStyle
+				if c.parserPath == "" {
+					label = ui.ColoredLabel(style.Theme, 14, style.Palette.No, "No log")
+				} else if c.isReplay.Load() {
+					label = ui.ColoredLabel(style.Theme, 14, style.Palette.Accent, "Replay")
+				} else {
+					label = ui.ColoredLabel(style.Theme, 14, style.Palette.Yes, "Live")
+				}
+				return label.Layout(gtx)
+			})
 		}),
 	)
-	if c.parserPath != "" {
-		items = append(items,
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				_, filename := filepath.Split(c.parserPath)
-				return material.Label(style.Theme, unit.Sp(14), filename).Layout(gtx)
-			}),
-		)
+	str, col := func() (string, color.NRGBA) {
+		for _, f := range c.generalStatusProviders {
+			str, col := f(style)
+			if str != "" {
+				return str, col
+			}
+		}
+		return "", style.Palette.Text
+	}()
+	if str != "" {
+		items = append(items, layout.Flexed(1, ui.ColoredLabel(style.Theme, 14, col, str).Layout))
+	} else {
+		if c.parserPath != "" {
+			items = append(items,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					_, filename := filepath.Split(c.parserPath)
+					return material.Label(style.Theme, unit.Sp(14), filename).Layout(gtx)
+				}),
+			)
+		}
 	}
 	for _, f := range c.statusWidgetProvider {
 		items = append(items,

@@ -75,7 +75,7 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.RegisterLogOpen(m.OnLogOpen)
-	ctx.RegisterStatusWidget(m.LayoutStatus)
+	ctx.RegisterGeneralStatus(m.GeneralStatus)
 	ctx.AddSidebarItem("eqldb", func() {
 		ctx.SetMainView(m.Layout)
 	})

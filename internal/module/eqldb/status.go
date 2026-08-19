@@ -1,24 +1,24 @@
 package eqldb
 
 import (
-	"gioui.org/layout"
-	"gioui.org/unit"
+	"image/color"
+
 	"github.com/uija/eqdps/internal/ui"
 )
 
-func (m *Module) LayoutStatus(style *ui.Style, gtx layout.Context) layout.Dimensions {
+func (m *Module) GeneralStatus(style *ui.Style) (string, color.NRGBA) {
 	if m.upload_status >= 0 {
 		switch m.upload_status {
 		case upload_detected:
-			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Yes, "Inventory file detected").Layout)
+			return "Inventory file detected", style.Palette.Yes
 		case upload_uploading:
-			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Yes, "Uploading inventory file...").Layout)
+			return "Uploading inventory file...", style.Palette.Yes
 		case upload_success:
-			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.Yes, "Upload success!").Layout)
+			return "Upload success!", style.Palette.Yes
 		case upload_error:
-			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.ColoredLabel(style.Theme, 15, style.Palette.No, "Upload failed!").Layout)
+			return "Upload failed!", style.Palette.No
 		default:
 		}
 	}
-	return layout.Dimensions{}
+	return "", style.Palette.Yes
 }
