@@ -3,23 +3,23 @@ module github.com/uija/eqdps
 go 1.26.4
 
 require (
-	gioui.org v0.10.1
+	gioui.org v0.10.2
 	github.com/ebitengine/oto/v3 v3.5.0-alpha.8
 	github.com/gen2brain/beeep v0.11.2
+	github.com/glebarez/go-sqlite v1.23.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/ncruces/zenity v0.10.14
 	golang.org/x/exp/shiny v0.0.0-20250408133849-7e4ce0ab07d0
 )
 
 require (
-	gioui.org/shader v1.0.8 // indirect
+	gioui.org/shader v1.0.9 // indirect
 	git.sr.ht/~jackmordaunt/go-toast v1.1.2 // indirect
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/dchest/jsmin v0.0.0-20220218165748-59f39799265f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
-	github.com/glebarez/go-sqlite v1.23.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect

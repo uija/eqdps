@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
@@ -168,4 +169,10 @@ func TextField(editor *widget.Editor, hint string, style *Style, gtx layout.Cont
 			})
 		}),
 	)
+}
+
+func PageTitle(style *Style, title string, gtx layout.Context) material.LabelStyle {
+	label := material.Label(style.Theme, unit.Sp(18), title)
+	label.Font.Weight = font.SemiBold
+	return label
 }

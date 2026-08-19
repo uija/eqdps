@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 )
 
 type EventType int8
@@ -34,9 +35,10 @@ type EventConfig struct {
 	RegExpOthers        *regexp.Regexp
 }
 type EQLDbConfig struct {
-	UploadProfile             bool   `json:"upload_profile"`
-	ContributeKillAndLootData bool   `json:"contribute"`
-	AccessToken               string `json:"access_token"`
+	UploadProfile             bool      `json:"upload_profile"`
+	ContributeKillAndLootData bool      `json:"contribute"`
+	AccessToken               string    `json:"access_token"`
+	AuthorizationTime         time.Time `json:"authorization_time"`
 }
 
 type Config struct {

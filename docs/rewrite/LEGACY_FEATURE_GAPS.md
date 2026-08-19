@@ -24,7 +24,7 @@ regular-expression, and timer events therefore do not trigger yet.
 
 The legacy implementation also provided:
 
-- compiled event matching;
+- ~~compiled event matching;~~
 - ~~non-blocking notification and sound queues;~~
 - (no user yet) ~~embedded and user-provided MP3/WAV playback;~~
 - ~~shared sound volume control;~~

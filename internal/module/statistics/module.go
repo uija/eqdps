@@ -16,8 +16,7 @@ import (
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
-
-	_ "github.com/glebarez/go-sqlite"
+	//_ "github.com/glebarez/go-sqlite"
 )
 
 var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)

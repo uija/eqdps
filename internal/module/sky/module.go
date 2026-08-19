@@ -16,6 +16,7 @@ import (
 	"github.com/gen2brain/beeep"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
+	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -271,7 +272,8 @@ func (m *Module) Update(gtx layout.Context) {
 		}
 		for qidx, quest := range m.status[cidx].Quests {
 			if m.status[cidx].Quests[qidx].RewardClick.Clicked(gtx) {
-				log.Printf("%s clicked", m.status[cidx].Quests[qidx].Reward)
+				url := fmt.Sprintf("https://www.eqlwiki.com/%s", m.status[cidx].Quests[qidx].Reward)
+				native.OpenURL(url)
 			}
 			if m.status[cidx].Quests[qidx].WatchClick.Clicked(gtx) {
 				if quest.Done {
