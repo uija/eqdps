@@ -3,7 +3,6 @@ package eqldb
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -115,15 +114,11 @@ func (m *Module) CheckUploadData() {
 			}
 			m.mu.Lock()
 			if m.last_export != nil {
-				log.Printf("Now: %v", now)
-				log.Printf("I have am export %v", m.last_export.Timestamp)
 				if m.last_who_result != nil {
-					log.Printf("I have a who result")
 					m.UploadFile()
 					m.last_export = nil
 					m.last_who_result = nil
 				} else if m.last_export.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
-					log.Printf("Timeout, uploading without who")
 					m.UploadFile()
 					m.last_export = nil
 					m.last_who_result = nil

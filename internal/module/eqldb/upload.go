@@ -75,7 +75,6 @@ func (m *Module) UploadFile() {
 		}
 		m.upload_status = upload_success
 		m.invalidate()
-		log.Printf("EQLDB inventory uploaded for %s on %s", result.Character, result.Server)
 	}()
 }
 
