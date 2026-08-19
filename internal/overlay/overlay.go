@@ -27,6 +27,8 @@ type Overlay struct {
 	window *app.Window
 	list   widget.List
 
+	config *data.Config
+
 	fightMu sync.RWMutex
 	fight   *data.Fight
 	timers  []data.TimerTracker
@@ -37,7 +39,7 @@ type Overlay struct {
 	decorations widget.Decorations
 }
 
-func NewOverlay(source *ui.Style) *Overlay {
+func NewOverlay(source *ui.Style, cfg *data.Config) *Overlay {
 	overlayStyle := *source
 	overlayStyle.Theme = material.NewTheme()
 	overlayStyle.Theme.Palette = source.Theme.Palette
@@ -58,6 +60,7 @@ func NewOverlay(source *ui.Style) *Overlay {
 		Updates: make(chan any, 1),
 		style:   &overlayStyle,
 		done:    make(chan struct{}),
+		config:  cfg,
 	}
 	o.list.Axis = layout.Vertical
 	return o
@@ -141,9 +144,9 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 						seconds := int(dur.Seconds()) % 60
 						rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-								layout.Rigid(material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%02d:%02d", minutes, seconds)).Layout),
+								layout.Rigid(material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), fmt.Sprintf("%02d:%02d", minutes, seconds)).Layout),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(o.style.Theme, unit.Sp(13), tt.Event.Spell).Layout)
+									return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), tt.Event.Spell).Layout)
 								}),
 							)
 						}))
@@ -159,9 +162,9 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Constraints.Max.X
 				if fight == nil {
-					return material.Label(o.style.Theme, unit.Sp(13), "Waiting for data").Layout(gtx)
+					return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Waiting for data").Layout(gtx)
 				} else {
-					return material.Label(o.style.Theme, unit.Sp(13), fight.Name).Layout(gtx)
+					return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), fight.Name).Layout(gtx)
 				}
 			})
 		})
@@ -171,16 +174,16 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(13), "Combatant").Layout(gtx)
+						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Combatant").Layout(gtx)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(13), "Damage").Layout(gtx)
+						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Damage").Layout(gtx)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(13), "DPS").Layout(gtx)
+						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "DPS").Layout(gtx)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(13), "Time").Layout(gtx)
+						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Time").Layout(gtx)
 					}),
 				)
 			})
@@ -220,15 +223,15 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 func (o *Overlay) RenderCombatRow(cb *data.Combatant, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-			return material.Label(o.style.Theme, unit.Sp(13), cb.Name).Layout(gtx)
+			return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), cb.Name).Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%d", cb.Overall.Damage))
+			label := material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), fmt.Sprintf("%d", cb.Overall.Damage))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%.0f", cb.Overall.DPS()))
+			label := material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), fmt.Sprintf("%.0f", cb.Overall.DPS()))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
@@ -236,9 +239,16 @@ func (o *Overlay) RenderCombatRow(cb *data.Combatant, gtx layout.Context) layout
 			dur := cb.Overall.LastUpdate.Sub(cb.Overall.Start)
 			minutes := int(dur.Minutes())
 			seconds := int(dur.Seconds()) % 60
-			label := material.Label(o.style.Theme, unit.Sp(13), fmt.Sprintf("%02d:%02d", minutes, seconds))
+			label := material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), fmt.Sprintf("%02d:%02d", minutes, seconds))
 			label.Alignment = text.End
 			return label.Layout(gtx)
 		}),
 	)
+}
+
+func (o *Overlay) ScaleFont(size float32) float32 {
+	if o.config != nil && o.config.UIConfig.OverlayFontScale >= 0.5 {
+		return size * o.config.UIConfig.OverlayFontScale
+	}
+	return size
 }

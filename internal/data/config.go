@@ -40,13 +40,16 @@ type EQLDbConfig struct {
 	AccessToken               string    `json:"access_token"`
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
-
+type UIConfig struct {
+	OverlayFontScale float32
+}
 type Config struct {
 	LastLogfile string        `json:"last_logfile"`
 	OpenOverlay bool          `json:"open_overlay"`
 	Events      []EventConfig `json:"events"`
 	Volume      float32       `json:"volume"`
 	EQLDbConfig EQLDbConfig   `json:"eqldb"`
+	UIConfig    UIConfig      `json:"ui"`
 }
 
 func (c *Config) Save() error {
@@ -66,6 +69,9 @@ func GetConfig() (*Config, error) {
 	config := &Config{
 		Events: make([]EventConfig, 0),
 		Volume: 0.5,
+		UIConfig: UIConfig{
+			OverlayFontScale: 1.0,
+		},
 	}
 	path, err := AppDataPath("config.json")
 	if err != nil {

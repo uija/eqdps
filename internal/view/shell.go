@@ -258,6 +258,7 @@ func (s *Shell) update(gtx layout.Context) {
 	s.menuBar.Update(gtx)
 	s.selectHistory.Update(gtx)
 	s.help.Update(gtx)
+	s.preferences.Update(gtx)
 }
 
 func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {

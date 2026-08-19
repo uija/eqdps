@@ -65,7 +65,7 @@ func (m *Module) UploadFile() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		result, err := uploadInventory(ctx, eqldbHTTPClient, accessToken, inventoryPath, classInfo)
+		_, err := uploadInventory(ctx, eqldbHTTPClient, accessToken, inventoryPath, classInfo)
 		m.upload_timer = time.Now()
 		if err != nil {
 			m.handleInventoryUploadError(accessToken, err)

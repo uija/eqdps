@@ -222,7 +222,7 @@ func (m *Module) OpenOverlay() {
 	if m.ctx.Overlay != nil {
 		return
 	}
-	m.ctx.Overlay = overlay.NewOverlay(&view.Style)
+	m.ctx.Overlay = overlay.NewOverlay(&view.Style, m.ctx.Config)
 	go m.ctx.Overlay.Run(func() {
 		m.overlayClosed <- struct{}{}
 	})

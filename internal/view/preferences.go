@@ -1,6 +1,9 @@
 package view
 
 import (
+	"sync/atomic"
+	"time"
+
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -13,16 +16,42 @@ type Preferences struct {
 	ctx  *module.Context
 	list widget.List
 
+	config_changed atomic.Bool
+
 	overlay_opacity           widget.Float
+	overlay_font_scale        widget.Float
 	check_for_updates         widget.Bool
 	open_eqlconnection_window widget.Clickable
+
+	stop chan struct{}
 }
 
 func NewPreferences(ctx *module.Context) *Preferences {
 	p := &Preferences{
-		ctx: ctx,
+		ctx:  ctx,
+		stop: make(chan struct{}),
 	}
 	p.list.Axis = layout.Vertical
+	p.overlay_font_scale.Value = (ctx.Config.UIConfig.OverlayFontScale - 0.8) / 0.4
+	p.config_changed.Store(false)
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if p.config_changed.Load() {
+					p.ctx.Config.Save()
+					p.config_changed.Store(false)
+				}
+			case <-p.stop:
+				return
+			}
+		}
+	}()
+
 	return p
 }
 func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
@@ -48,6 +77,12 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 		}),
 	)
 }
+func (p *Preferences) Update(gtx layout.Context) {
+	if p.overlay_font_scale.Dragging() {
+		p.ctx.Config.UIConfig.OverlayFontScale = 0.8 + (p.overlay_font_scale.Value * 0.4)
+		p.config_changed.Store(true)
+	}
+}
 func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Preferences").Layout)
 }
@@ -55,6 +90,7 @@ func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) 
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			p.RenderOverlayOpacity(style, gtx),
+			p.RenderOverlayFontScale(style, gtx),
 		)
 	})
 }
@@ -63,6 +99,14 @@ func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) 
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "DPS Overlay opacity").Layout),
 			layout.Rigid(material.Slider(style.Theme, &p.overlay_opacity).Layout),
+		)
+	})
+}
+func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context) layout.FlexChild {
+	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "DPS Overlay font scale").Layout),
+			layout.Rigid(material.Slider(style.Theme, &p.overlay_font_scale).Layout),
 		)
 	})
 }
@@ -102,4 +146,8 @@ func (p *Preferences) RenderEQLDbConnect(style *ui.Style, gtx layout.Context) la
 			}),
 		)
 	})
+}
+
+func (p *Preferences) Shutdown() {
+	p.stop <- struct{}{}
 }

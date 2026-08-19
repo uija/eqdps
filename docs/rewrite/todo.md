@@ -9,7 +9,7 @@
  - eqldb: send sky drops to eqldb
  - eqldb: send items / kills
  - Store "Last Logfiles" and make them selectable
- - Overlay: Scaling
+ - ~~Overlay: Scaling~~
  - Overlay: Combat timeout / Remove last fight
  - Overlay: Opacity
  - Overlay: Position/Size persistend
