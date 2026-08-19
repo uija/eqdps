@@ -202,7 +202,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 	case data.LogRowEventTypeCast:
 		caster := normalizeName(e.Data[1])
 		c.lastCastSpell[caster] = CastSpell{
-			name:      e.Data[2],
+			name:      normalizeSpellName(e.Data[2]),
 			timestamp: e.Timestamp,
 		}
 	case data.LogRowEventTypeAggroClear:
@@ -299,7 +299,7 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool)
 		}
 		de := data.NewDamageEvent(e.Timestamp, e.Data[1], e.Data[3], e.Data[2], e.Data[4], e.Data[6], e.Data[7], e.Type)
 		if de.IsSpell() {
-			if cs, ok := c.lastCastSpell[de.NormalizedSource]; ok && cs.name == de.Ability {
+			if cs, ok := c.lastCastSpell[de.NormalizedSource]; ok && cs.name == normalizeSpellName(de.Ability) {
 				elapsed := de.Time.Sub(cs.timestamp)
 				if elapsed >= 0 && elapsed <= 10*time.Second {
 					de.IsCast = true
@@ -355,6 +355,23 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool)
 func normalizeName(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
 }
+
+func normalizeSpellName(name string) string {
+	name = strings.TrimSpace(name)
+	separator := strings.LastIndexByte(name, ' ')
+	if separator < 0 {
+		return name
+	}
+
+	level := name[separator+1:]
+	for _, character := range level {
+		if !strings.ContainsRune("IVXLCDM", character) {
+			return name
+		}
+	}
+	return strings.TrimSpace(name[:separator])
+}
+
 func extractSourceAndTarget(e *data.LogRowEvent, sidx, tidx int) (string, string, error) {
 	if sidx >= len(e.Data) || tidx >= len(e.Data) {
 		return "", "", fmt.Errorf("index out of bounds")
