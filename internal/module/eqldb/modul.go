@@ -3,6 +3,9 @@ package eqldb
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,6 +18,23 @@ import (
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
+
+const (
+	UPLOAD_WHO_TIMEOUT          = 5 * time.Second
+	UPLOAD_NOTIFICATION_TIMEOUT = 5 * time.Second
+)
+
+type ClassInfo struct {
+	Level     int
+	Classes   []string
+	Race      string
+	Timestamp time.Time
+}
+
+type UploadData struct {
+	Filename  string
+	Timestamp time.Time
+}
 
 type Module struct {
 	mu         sync.RWMutex
@@ -32,10 +52,22 @@ type Module struct {
 	connection_cancel context.CancelFunc
 
 	current_charname string
+	current_logpath  string
+
+	last_who_result *ClassInfo
+	last_export     *UploadData
+	stop            chan struct{}
+
+	upload_status int
+	upload_timer  time.Time
 }
 
 func NewModule() *Module {
-	return &Module{process_stage: connectionIdle}
+	return &Module{
+		process_stage: connectionIdle,
+		stop:          make(chan struct{}),
+		upload_status: -1,
+	}
 }
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterLogRow(m.OnLogRow)
@@ -43,11 +75,13 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.RegisterLogOpen(m.OnLogOpen)
+	ctx.RegisterStatusWidget(m.LayoutStatus)
 	ctx.AddSidebarItem("eqldb", func() {
 		ctx.SetMainView(m.Layout)
 	})
 	m.ctx = ctx
 	m.invalidate = invalidate
+	go m.CheckUploadData()
 	return nil
 }
 func (m *Module) Update(gtx layout.Context) {
@@ -62,11 +96,86 @@ func (m *Module) Update(gtx layout.Context) {
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
 	m.current_charname = characterName
+	m.current_logpath = path
 	return true
+}
+func (m *Module) CheckUploadData() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case now := <-ticker.C:
+			if m.upload_status >= 0 {
+				if m.upload_timer.Add(UPLOAD_NOTIFICATION_TIMEOUT).Before(now) {
+					m.upload_status = -1
+					m.upload_timer = time.Time{}
+					m.invalidate()
+				}
+			}
+			m.mu.Lock()
+			if m.last_export != nil {
+				log.Printf("Now: %v", now)
+				log.Printf("I have am export %v", m.last_export.Timestamp)
+				if m.last_who_result != nil {
+					log.Printf("I have a who result")
+					m.UploadFile()
+					m.last_export = nil
+					m.last_who_result = nil
+				} else if m.last_export.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
+					log.Printf("Timeout, uploading without who")
+					m.UploadFile()
+					m.last_export = nil
+					m.last_who_result = nil
+				}
+			}
+			if m.last_who_result != nil {
+				if m.last_who_result.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
+					m.last_who_result = nil
+				}
+			}
+			m.mu.Unlock()
+		case <-m.stop:
+			return
+		}
+	}
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	if m.replay.Load() {
 		return
+	}
+	switch e.Type {
+	case data.LogRowEventTypeWho:
+		name := e.Data[3]
+		if !strings.EqualFold(name, m.current_charname) {
+			return
+		}
+
+		level, err := strconv.Atoi(e.Data[1])
+		if err != nil {
+			return
+		}
+		classes := strings.Split(e.Data[2], "/")
+		race := e.Data[4]
+		m.mu.Lock()
+		m.upload_status = upload_detected
+		m.upload_timer = time.Now()
+		m.invalidate()
+		if m.last_who_result == nil {
+			m.last_who_result = &ClassInfo{}
+		}
+		m.last_who_result.Classes = classes
+		m.last_who_result.Timestamp = time.Now()
+		m.last_who_result.Level = level
+		m.last_who_result.Race = race
+		m.mu.Unlock()
+	case data.LogRowEventTypeInventoryExport:
+		m.mu.Lock()
+		m.last_export = &UploadData{
+			Filename:  e.Data[1],
+			Timestamp: time.Now(),
+		}
+		m.mu.Unlock()
 	}
 }
 
@@ -153,4 +262,5 @@ func (m *Module) Shutdown() {
 		m.connection_cancel = nil
 	}
 	m.mu.Unlock()
+	m.stop <- struct{}{}
 }

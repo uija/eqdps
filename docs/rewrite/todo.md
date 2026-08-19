@@ -4,8 +4,8 @@
  - Event: Spell Icon settings
  - Event: RegExp validation
  - ~~eqldb: authorization workflow~~
- - eqldb: identify inventory export
- - eqldb: upload inventory
+ - ~~eqldb: identify inventory export~~
+ - ~~eqldb: upload inventory~~
  - eqldb: send sky drops to eqldb
  - eqldb: send items / kills
  - Store "Last Logfiles" and make them selectable
@@ -24,5 +24,5 @@
  - XPHour: XP in this level
  - XPHour: Time to levelup
  - Sky: Watch Quests
- - Sky: Open Quest reward in browser
+ - ~~Sky: Open Quest reward in browser~~
  -
