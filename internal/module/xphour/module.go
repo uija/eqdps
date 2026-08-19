@@ -26,6 +26,7 @@ type Module struct {
 	latestLog     time.Time
 	activeBetween time.Duration
 	xpReceived    float64
+	levelXp       float64
 
 	overlay bool
 
@@ -60,6 +61,7 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.overlay_level.Clicked(gtx) {
 		time := m.ctx.GetLastLevelOffset()
 		if !time.IsZero() {
+			m.levelXp = 0
 			m.ctx.RequestReplay(eqlog.Loopback{Timestamp: time})
 		}
 		m.overlay = false
@@ -105,11 +107,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	defer m.mu.RUnlock()
 	var dims layout.Dimensions
 	if m.latestLog.IsZero() || m.xpReceived == 0 {
-		dims = m.statusbar_click.Layout(gtx,
-			func(gtx layout.Context) layout.Dimensions {
-				return ui.IconLabel(gtx, style.Theme, 13, ui.Timer, "Waiting for data...")
-			},
-		)
+		dims = ui.IconLink(style, &m.statusbar_click, ui.Timer, "Waiting for data...").Layout(gtx)
 	} else {
 		active := m.activeBetween
 
@@ -119,14 +117,25 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 		}
 
 		xpPerHour := 0.0
+		str := fmt.Sprintf("XP: %.02f", m.levelXp)
 		if active > 0 {
 			xpPerHour = m.xpReceived / active.Hours()
+			str = fmt.Sprintf("%s - %.02f XP/h", str, xpPerHour)
 		}
-		dims = m.statusbar_click.Layout(gtx,
-			func(gtx layout.Context) layout.Dimensions {
-				return ui.IconLabel(gtx, style.Theme, 14, ui.Timer, fmt.Sprintf("%.02f xp/h", xpPerHour))
-			},
-		)
+
+		remaining := 100.0 - m.levelXp
+		if xpPerHour > 0 && remaining > 0 {
+			hoursRemaining := remaining / xpPerHour
+			untilLevel := time.Duration(hoursRemaining * float64(time.Hour))
+			totalSeconds := int(untilLevel.Round(time.Second) / time.Second)
+			if str != "" {
+				str = str + " - "
+			}
+			str = fmt.Sprintf("%s%d:%02d min", str, totalSeconds/60, totalSeconds%60)
+		}
+
+		dims = ui.IconLink(style, &m.statusbar_click, ui.Timer, str).Layout(gtx)
+
 	}
 	if m.overlay {
 		width := gtx.Dp(unit.Dp(220))
@@ -158,6 +167,7 @@ func (m *Module) OnLogOpen(characterName string, serverName string, filesize int
 	m.lastCombat = time.Time{}
 	m.activeBetween = 0
 	m.xpReceived = 0
+	m.levelXp = 0
 	return true
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
@@ -182,7 +192,10 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	case data.LogRowEventTypeExperience:
 		if xp, err := strconv.ParseFloat(e.Data[1], 64); err == nil {
 			m.xpReceived += xp
+			m.levelXp += xp
 		}
+	case data.LogRowEventTypeLevelUp:
+		m.levelXp = 0
 	}
 }
 
