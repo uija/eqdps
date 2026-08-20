@@ -195,7 +195,13 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 			cb = append(cb, c)
 		}
 		sort.Slice(cb, func(i, j int) bool {
-			return cb[i].Overall.DPS() < cb[j].Overall.DPS()
+			if cb[i].Overall.DPS() == cb[j].Overall.DPS() {
+				if cb[i].Overall.Damage == cb[j].Overall.Damage {
+					return cb[i].Name > cb[j].Name
+				}
+				return cb[i].Overall.Damage > cb[j].Overall.Damage
+			}
+			return cb[i].Overall.DPS() > cb[j].Overall.DPS()
 		})
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
