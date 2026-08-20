@@ -20,17 +20,30 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 	combat.mu.RLock()
 	defer combat.mu.RUnlock()
 
+	if m.filterEditor.Text() == "" {
+		m.displayHistory = m.combat.history
+	} else {
+		m.displayHistory = make([]*data.Fight, 0)
+		search := strings.ToLower(m.filterEditor.Text())
+		for _, f := range m.combat.history {
+			if strings.Contains(strings.ToLower(f.Name), search) {
+				m.displayHistory = append(m.displayHistory, f)
+			}
+		}
+	}
+
 	children := make([]layout.FlexChild, 0)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderFilterRow(style, gtx) }))
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTableHeader(style, gtx) }))
 	if !m.replay.Load() {
 		children = append(children,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(style.Theme, &m.table)
-				size := len(m.combat.history)
+				size := len(m.displayHistory)
 				return list.Layout(
 					gtx,
-					len(m.combat.history),
+					size,
 					func(gtx layout.Context, index int) layout.Dimensions {
 						return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							return m.RenderFight(size-index-1, style, gtx)
@@ -62,6 +75,22 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 		})
 	})
 }
+func (m *Module) RenderFilterRow(style *ui.Style, gtx layout.Context) layout.Dimensions {
+
+	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(7), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Filter").Layout)
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				return ui.MaxedTextField(&m.filterEditor, "Filter combat list", style, gtx)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(7), Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &m.filterReset, ui.Close, "Clear").Layout)
+			}),
+		)
+	})
+}
 func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	columns := make([]layout.FlexChild, 0)
 	for i, col := range m.columns {
@@ -88,7 +117,7 @@ func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.D
 	})
 }
 func (m *Module) RenderFight(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	fight := m.combat.history[index]
+	fight := m.displayHistory[index]
 
 	rows := make([]layout.FlexChild, 0)
 	rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderFightHeader(fight, style, gtx) }))

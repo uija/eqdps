@@ -35,20 +35,26 @@ type Module struct {
 	replay       atomic.Bool
 	startOverlay bool
 
+	filterEditor widget.Editor
+	filterReset  widget.Clickable
+
 	overlayClick   widget.Clickable
 	overlayClosed  chan struct{}
 	overlayTimeout time.Time
 
 	invalidateFunc func()
+
+	displayHistory []*data.Fight
 }
 
 func NewModule() *Module {
 	return &Module{
-		combat:        newCombat(),
-		rows:          make(chan *data.LogRowEvent, 1024),
-		stop:          make(chan struct{}, 1),
-		columns:       make([]column, 0),
-		overlayClosed: make(chan struct{}, 1),
+		combat:         newCombat(),
+		rows:           make(chan *data.LogRowEvent, 1024),
+		stop:           make(chan struct{}, 1),
+		columns:        make([]column, 0),
+		overlayClosed:  make(chan struct{}, 1),
+		displayHistory: make([]*data.Fight, 0),
 	}
 }
 
@@ -80,6 +86,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	ctx.RegisterUpdate(m.Update)
 	m.startOverlay = m.ctx.Config.OpenOverlay
+	m.filterEditor.SingleLine = true
 	m.combat = newCombat()
 
 	go func() {
@@ -219,6 +226,9 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.startOverlay {
 		m.startOverlay = false
 		m.OpenOverlay()
+	}
+	if m.filterReset.Clicked(gtx) {
+		m.filterEditor.SetText("")
 	}
 }
 func (m *Module) OpenOverlay() {

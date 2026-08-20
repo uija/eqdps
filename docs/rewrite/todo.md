@@ -15,14 +15,14 @@
  - Overlay: Position/Size persistend
  - Mainwindow: Position/Size persistence
  - DPS: Combat History row limit?
- - DPS: Filter
+ - ~~DPS: Filter~~
  - ~~DPS: track engagement for SDPS~~
  - DPS: Min/Max values
  - Parser: Replay error management
  - Parser: Handle truncated files
  - Parser: ?Logrotate
- - XPHour: XP in this level
- - XPHour: Time to levelup
+ - ~~XPHour: XP in this level~~
+ - ~~XPHour: Time to levelup~~
  - Sky: Watch Quests
  - ~~Sky: Open Quest reward in browser~~
  -
