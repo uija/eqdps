@@ -107,6 +107,14 @@ func RightAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dimen
 		return label.Layout(tgtx)
 	})
 }
+func CenterAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dimensions {
+	return layout.Inset{Right: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		tgtx := gtx
+		tgtx.Constraints.Min.X = tgtx.Constraints.Max.X
+		label.Alignment = text.Middle
+		return label.Layout(tgtx)
+	})
+}
 func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string) material.LabelStyle {
 	l := material.Label(th, unit.Sp(size), txt)
 	l.Color = col

@@ -41,6 +41,8 @@ type Combatant struct {
 	Overall    *CombatDamageData
 	Categories map[string]CombatDamageCategory
 
+	FirstParticipation time.Time
+
 	Open  bool
 	Click widget.Clickable
 }
@@ -55,7 +57,11 @@ func NewCombatant(name, normalized string) *Combatant {
 }
 
 func (c *Combatant) AddDamageEvent(e *DamageEvent) {
-	c.Overall.AddDamageEvent(e)
+	if e.Participation && c.FirstParticipation.IsZero() {
+		c.FirstParticipation = e.Time
+	}
+
+	c.Overall.AddDamageEvent(e, !c.FirstParticipation.IsZero())
 
 	category := ""
 	switch e.Type {
@@ -116,10 +122,10 @@ func (f *Fight) AddDamageEvent(e *DamageEvent) {
 		combatant = NewCombatant(e.Source, e.NormalizedSource)
 		f.Combatants[e.NormalizedSource] = combatant
 	}
-	combatant.AddDamageEvent(e)
 	if e.Participation {
 		f.LastParticipate = e.Time
 	}
+	combatant.AddDamageEvent(e)
 }
 
 func (f *Fight) Clone() *Fight {
@@ -155,10 +161,11 @@ func (c *Combatant) Clone() *Combatant {
 	}
 
 	clone := &Combatant{
-		Name:       c.Name,
-		Normalized: c.Normalized,
-		Overall:    CloneDamageData(c.Overall),
-		Categories: make(map[string]CombatDamageCategory, len(c.Categories)),
+		Name:               c.Name,
+		Normalized:         c.Normalized,
+		Overall:            CloneDamageData(c.Overall),
+		Categories:         make(map[string]CombatDamageCategory, len(c.Categories)),
+		FirstParticipation: c.FirstParticipation,
 	}
 
 	for name, category := range c.Categories {

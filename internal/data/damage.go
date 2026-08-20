@@ -19,32 +19,36 @@ func NewCombatDamageCategory(name string) CombatDamageCategory {
 }
 
 func (d CombatDamageCategory) AddDamageEvent(e *DamageEvent) {
-	d.Overall.AddDamageEvent(e)
+	d.Overall.AddDamageEvent(e, false)
 	if _, ok := d.Abilities[e.Ability]; !ok {
 		d.Abilities[e.Ability] = NewCombatDamageData(e.Ability)
 	}
-	d.Abilities[e.Ability].AddDamageEvent(e)
+	d.Abilities[e.Ability].AddDamageEvent(e, false)
 }
 
 type CombatDamageData struct {
-	Name       string
-	Damage     int
-	Dps        float32
-	Sdps       float32
-	Hits       int
-	Crits      int
-	MinDamage  int
-	MaxDamage  int
-	Start      time.Time
-	LastUpdate time.Time
+	Name         string
+	Damage       int
+	ActiveDamage int
+	Dps          float32
+	Sdps         float32
+	Hits         int
+	Crits        int
+	MinDamage    int
+	MaxDamage    int
+	Start        time.Time
+	LastUpdate   time.Time
 }
 
-func (d *CombatDamageData) AddDamageEvent(e *DamageEvent) {
+func (d *CombatDamageData) AddDamageEvent(e *DamageEvent, active_damage bool) {
 	if d.Start.IsZero() {
 		d.Start = e.Time
 	}
 	d.LastUpdate = e.Time
 	d.Damage += e.Amount
+	if active_damage {
+		d.ActiveDamage += e.Amount
+	}
 	d.Hits++
 	if d.MinDamage == 0 || d.MinDamage > e.Amount {
 		d.MinDamage = e.Amount
@@ -75,7 +79,10 @@ func (d *CombatDamageData) SDPS(fightDuration time.Duration) float64 {
 	if fightDuration <= 0 {
 		return 0
 	}
-	return float64(d.Damage) / fightDuration.Seconds()
+	if d.ActiveDamage == 0 {
+		return 0
+	}
+	return float64(d.ActiveDamage) / fightDuration.Seconds()
 }
 
 func NewCombatDamageData(name string) *CombatDamageData {
@@ -94,6 +101,7 @@ type DamageEvent struct {
 	Amount           int
 	Ability          string
 	Crit             bool
+	Riposte          bool
 	IsCast           bool
 	Type             LogRowEventType
 	Participation    bool
@@ -118,6 +126,7 @@ func NewDamageEvent(ts time.Time, source, target, verb, amount, ability, annotat
 		Amount:           damage,
 		Ability:          ability,
 		Crit:             strings.Contains(annotation, "Critical"),
+		Riposte:          strings.Contains(annotation, "Riposte"),
 		IsCast:           false,
 		Type:             t,
 		Participation:    false,

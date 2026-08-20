@@ -65,6 +65,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	m.columns = append(m.columns, column{title: "Combatant", weight: 8})
 	m.columns = append(m.columns, column{title: "Damage", weight: 1})
 	m.columns = append(m.columns, column{title: "Dps", weight: 1})
+	m.columns = append(m.columns, column{title: "SDps", weight: 1})
 	m.columns = append(m.columns, column{title: "Hits", weight: 1})
 	m.columns = append(m.columns, column{title: "Crits", weight: 1})
 	m.columns = append(m.columns, column{title: "Active", weight: 1})

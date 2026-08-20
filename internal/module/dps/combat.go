@@ -310,7 +310,9 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool)
 			}
 		} else {
 			if de.Source == "You" {
-				de.Participation = true
+				if !strings.EqualFold(de.Verb, "Cleave") && !strings.EqualFold(de.Verb, "Kick") && !de.Riposte {
+					de.Participation = true
+				}
 			}
 			de.Ability = de.Verb
 		}

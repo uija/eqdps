@@ -16,7 +16,7 @@
  - Mainwindow: Position/Size persistence
  - DPS: Combat History row limit?
  - DPS: Filter
- - DPS: track engagement for SDPS
+ - ~~DPS: track engagement for SDPS~~
  - DPS: Min/Max values
  - Parser: Replay error management
  - Parser: Handle truncated files
