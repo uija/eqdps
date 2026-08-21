@@ -174,9 +174,6 @@ func (m *Module) TimerRun() {
 				}
 			}
 			m.tmu.Unlock()
-		case <-m.stop:
-			return
-		default:
 			if m.ctx.Overlay != nil {
 				timers := make([]data.TimerTracker, 0)
 				for _, tt := range m.runningTimers {
@@ -189,6 +186,8 @@ func (m *Module) TimerRun() {
 				}
 				m.ctx.Overlay.Updates <- timers
 			}
+		case <-m.stop:
+			return
 		}
 	}
 }
