@@ -6,7 +6,7 @@
  - ~~eqldb: authorization workflow~~
  - ~~eqldb: identify inventory export~~
  - ~~eqldb: upload inventory~~
- - eqldb: send sky drops to eqldb
+ - ~~eqldb: send sky drops to eqldb~~
  - eqldb: send items / kills
  - Store "Last Logfiles" and make them selectable
  - ~~Overlay: Scaling~~
