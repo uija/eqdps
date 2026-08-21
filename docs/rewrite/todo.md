@@ -2,27 +2,28 @@
 
  - Event: Spell Icon extraction
  - Event: Spell Icon settings
- - ~~Event: RegExp validation~~
- - ~~eqldb: authorization workflow~~
- - ~~eqldb: identify inventory export~~
- - ~~eqldb: upload inventory~~
- - ~~eqldb: send sky drops to eqldb~~
  - eqldb: send items / kills
  - Store "Last Logfiles" and make them selectable
- - ~~Overlay: Scaling~~
  - Overlay: Combat timeout / Remove last fight
  - Overlay: Opacity
  - Overlay: Position/Size persistend
  - Mainwindow: Position/Size persistence
  - DPS: Combat History row limit?
- - ~~DPS: Filter~~
- - ~~DPS: track engagement for SDPS~~
  - DPS: Min/Max values
  - Parser: Replay error management
  - Parser: Handle truncated files
  - Parser: ?Logrotate
+ - Sky: Watch Quests
+ -
+
  - ~~XPHour: XP in this level~~
  - ~~XPHour: Time to levelup~~
- - Sky: Watch Quests
+ - ~~Event: RegExp validation~~
+ - ~~eqldb: authorization workflow~~
+ - ~~eqldb: identify inventory export~~
+ - ~~eqldb: upload inventory~~
+ - ~~eqldb: send sky drops to eqldb~~
+ - ~~Overlay: Scaling~~
+ - ~~DPS: Filter~~
+ - ~~DPS: track engagement for SDPS~~
  - ~~Sky: Open Quest reward in browser~~
- -
