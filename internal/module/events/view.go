@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+	"strings"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -211,7 +212,29 @@ func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, s
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return ui.TextField(field, hint, style, gtx)
+					if strings.EqualFold(title, "regexp") {
+						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return ui.TextField(field, hint, style, gtx)
+							}),
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								switch m.validation_state {
+								case -1:
+									return layout.UniformInset(unit.Dp(10)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ui.ColoredIconLabel(gtx, style.Theme, 15, ui.Check, style.Palette.No, "Error")
+									})
+								case 1:
+									return layout.UniformInset(unit.Dp(10)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ui.ColoredIconLabel(gtx, style.Theme, 15, ui.Check, style.Palette.Yes, "Validated!")
+									})
+								default:
+									return layout.UniformInset(unit.Dp(10)).Layout(gtx, ui.IconLink(style, &m.validate_regexp_click, ui.Check, "Validate").Layout)
+								}
+							}),
+						)
+					} else {
+						return ui.TextField(field, hint, style, gtx)
+					}
 				})
 			}),
 		)
@@ -300,7 +323,18 @@ func (m *Module) RenderEventsTableRow(index int, style *ui.Style, gtx layout.Con
 				return layout.Inset{Left: unit.Dp(0)}.Layout(gtx, link.Layout)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(14), "Type").Layout)
+				str := "Unknown"
+				switch event.Type {
+				case data.EventTypeRegexp:
+					str = "RegExp"
+				case data.EventTypeSpell:
+					str = "Spell"
+				case data.EventTypeString:
+					str = "Text"
+				case data.EventTypeTimer:
+					str = "Timer"
+				}
+				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(14), str).Layout)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {

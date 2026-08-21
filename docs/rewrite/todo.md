@@ -2,7 +2,7 @@
 
  - Event: Spell Icon extraction
  - Event: Spell Icon settings
- - Event: RegExp validation
+ - ~~Event: RegExp validation~~
  - ~~eqldb: authorization workflow~~
  - ~~eqldb: identify inventory export~~
  - ~~eqldb: upload inventory~~

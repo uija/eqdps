@@ -63,6 +63,9 @@ type Module struct {
 	do_delete_click     widget.Clickable
 	cancel_delete_click widget.Clickable
 
+	validate_regexp_click widget.Clickable
+	validation_state      int
+
 	volume           widget.Float
 	play_sound_click widget.Clickable
 
@@ -101,7 +104,9 @@ func NewModule() *Module {
 	mustRegister(m.event_form.AddSelectBox("class", m.class_select))
 	mustRegister(m.event_form.AddSelectBox("spell", m.spell_select))
 	mustRegister(m.event_form.AddSelectBox("target", m.target_select))
-	mustRegister(m.event_form.AddEditor("text", m.text_field, func(ee widget.EditorEvent) {}))
+	mustRegister(m.event_form.AddEditor("text", m.text_field, func(ee widget.EditorEvent) {
+		m.validation_state = 0
+	}))
 	mustRegister(m.event_form.AddCheckbox("full", m.full_message_check, func(b bool) {}))
 	mustRegister(m.event_form.AddEditor("duration", m.duration_field, func(ee widget.EditorEvent) {}))
 	mustRegister(m.event_form.AddEditor("notification", m.notification_field, func(ee widget.EditorEvent) {}))
@@ -291,6 +296,17 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.volume.Dragging() {
 		m.ctx.Config.Volume = m.volume.Value
 		m.ctx.Config.Save()
+	}
+	if m.validate_regexp_click.Clicked(gtx) {
+		if m.text_field.Text() == "" {
+			return
+		}
+		_, err := regexp.Compile(m.text_field.Text())
+		if err == nil {
+			m.validation_state = 1
+		} else {
+			m.validation_state = -1
+		}
 	}
 }
 func (m *Module) PrepareToCreate(t data.EventType) {
