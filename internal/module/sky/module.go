@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"gioui.org/layout"
@@ -14,6 +15,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/gen2brain/beeep"
+	"github.com/uija/eqdps/internal/eqldb"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/native"
@@ -61,22 +63,31 @@ type Module struct {
 	ready_turnin_click widget.Clickable
 	watched_click      widget.Clickable
 
+	current_charactername string
+	current_server        string
+
 	hide_finished widget.Clickable
 	hide_empty    widget.Clickable
 
 	notification *Notification
+
+	mu           sync.Mutex
+	eqldb_events []eqldb.PlaneOfSkyEvent
+	stop         chan struct{}
 
 	invalidFunc func()
 }
 
 func NewModule() *Module {
 	return &Module{
-		config:      Config{},
-		status:      make([]ClassStatus, 0),
-		tradeIn:     nil,
-		mainView:    func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
-		inventory:   make([]InventoryRow, 0),
-		invalidFunc: func() {},
+		config:       Config{},
+		status:       make([]ClassStatus, 0),
+		tradeIn:      nil,
+		mainView:     func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
+		inventory:    make([]InventoryRow, 0),
+		invalidFunc:  func() {},
+		eqldb_events: make([]eqldb.PlaneOfSkyEvent, 0),
+		stop:         make(chan struct{}, 1),
 	}
 }
 
@@ -136,10 +147,44 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.inventorylist.Axis = layout.Vertical
 	m.BuildStatusFromDatabase()
 	m.mainView = m.MainView
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-m.stop:
+				return
+			case <-ticker.C:
+				m.TickSkyItemUpload()
+			}
+		}
+
+	}()
 
 	return nil
 }
+func (m *Module) TickSkyItemUpload() {
+	m.mu.Lock()
+	if len(m.eqldb_events) == 0 {
+		m.mu.Unlock()
+		return
+	}
+	token := m.ctx.Config.EQLDbConfig.AccessToken
+	character_name := m.current_charactername
+	server := m.current_server
+	events := append([]eqldb.PlaneOfSkyEvent(nil), m.eqldb_events...)
+	m.eqldb_events = make([]eqldb.PlaneOfSkyEvent, 0)
+	m.mu.Unlock()
 
+	go func() {
+		err := eqldb.UploadPlaneOfSkyEvents(token, character_name, server, events...)
+		if eqldb.IsUnauthorized(err) {
+			m.ctx.Config.EQLDbConfig.AccessToken = ""
+			m.ctx.Config.EQLDbConfig.AuthorizationTime = time.Time{}
+		}
+	}()
+}
 func (m *Module) BuildStatusFromDatabase() {
 	for _, c := range m.db.Classes {
 		cs := ClassStatus{
@@ -263,7 +308,7 @@ func (m *Module) OpenMainView() {
 }
 
 func (m *Module) Shutdown() {
-
+	m.stop <- struct{}{}
 }
 func (m *Module) Update(gtx layout.Context) {
 	for cidx := range m.status {
@@ -319,8 +364,11 @@ func (m *Module) Update(gtx layout.Context) {
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
+	m.TickSkyItemUpload()
 	// Extract path
 	base_path := filepath.Dir(path)
+	m.current_charactername = characterName
+	m.current_server = serverName
 	m.configPath = fmt.Sprintf("%s/eqdps_%s_%s_PoS.json", base_path, characterName, serverName)
 	config, err := LoadConfig(m.configPath)
 	if err != nil {

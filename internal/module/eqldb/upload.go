@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	eqldbapi "github.com/uija/eqdps/internal/eqldb"
 )
 
 const (
@@ -68,7 +70,7 @@ func (m *Module) UploadFile() {
 		_, err := uploadInventory(ctx, eqldbHTTPClient, accessToken, inventoryPath, classInfo)
 		m.upload_timer = time.Now()
 		if err != nil {
-			m.handleInventoryUploadError(accessToken, err)
+			m.handleUploadError(accessToken, "inventory", err)
 			m.upload_status = upload_error
 			m.invalidate()
 			return
@@ -165,11 +167,12 @@ func uploadInventory(
 	return result, nil
 }
 
-func (m *Module) handleInventoryUploadError(accessToken string, err error) {
-	log.Printf("EQLDB inventory upload failed: %v", err)
+func (m *Module) handleUploadError(accessToken, uploadName string, err error) {
+	log.Printf("EQLDB %s upload failed: %v", uploadName, err)
 
 	var apiError *APIError
-	if !errors.As(err, &apiError) || apiError.Status != http.StatusUnauthorized {
+	moduleUnauthorized := errors.As(err, &apiError) && apiError.Status == http.StatusUnauthorized
+	if !moduleUnauthorized && !eqldbapi.IsUnauthorized(err) {
 		return
 	}
 

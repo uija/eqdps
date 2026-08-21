@@ -105,33 +105,36 @@ func (m *Module) CheckUploadData() {
 	for {
 		select {
 		case now := <-ticker.C:
-			if m.upload_status >= 0 {
-				if m.upload_timer.Add(UPLOAD_NOTIFICATION_TIMEOUT).Before(now) {
-					m.upload_status = -1
-					m.upload_timer = time.Time{}
-					m.invalidate()
-				}
-			}
-			m.mu.Lock()
-			if m.last_export != nil {
-				if m.last_who_result != nil {
-					m.UploadFile()
-					m.last_export = nil
-					m.last_who_result = nil
-				} else if m.last_export.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
-					m.UploadFile()
-					m.last_export = nil
-					m.last_who_result = nil
-				}
-			}
-			if m.last_who_result != nil {
-				if m.last_who_result.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
-					m.last_who_result = nil
-				}
-			}
-			m.mu.Unlock()
+			m.TickInventoryExport(now)
 		case <-m.stop:
 			return
+		}
+	}
+}
+func (m *Module) TickInventoryExport(now time.Time) {
+	if m.upload_status >= 0 {
+		if m.upload_timer.Add(UPLOAD_NOTIFICATION_TIMEOUT).Before(now) {
+			m.upload_status = -1
+			m.upload_timer = time.Time{}
+			m.invalidate()
+		}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.last_export != nil {
+		if m.last_who_result != nil {
+			m.UploadFile()
+			m.last_export = nil
+			m.last_who_result = nil
+		} else if m.last_export.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
+			m.UploadFile()
+			m.last_export = nil
+			m.last_who_result = nil
+		}
+	}
+	if m.last_who_result != nil {
+		if m.last_who_result.Timestamp.Add(UPLOAD_WHO_TIMEOUT).Before(now) {
+			m.last_who_result = nil
 		}
 	}
 }

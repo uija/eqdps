@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/uija/eqdps/internal/data"
+	"github.com/uija/eqdps/internal/eqldb"
 )
 
 func (m *Module) OnLogRow(event *data.LogRowEvent) {
@@ -20,12 +21,13 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	changed := true
 	switch event.Type {
 	case data.LogRowEventTypeItemDestroyed:
-		_, item := normalizeItemName(event.Data[2])
+		_, item_orig := normalizeItemName(event.Data[2])
 		count, err := strconv.Atoi(event.Data[1])
 		if err != nil {
 			return
 		}
-		item = strings.ToLower(item)
+		item := strings.ToLower(item_orig)
+		m.EqlDbItem(item_orig, -count, event.Timestamp)
 		if _, ok := m.config.QuestItems[item]; ok {
 			if m.config.QuestItems[item] > count {
 				m.config.QuestItems[item] -= count
@@ -43,12 +45,14 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	case data.LogRowEventTypeLoot:
 		quantity, item := normalizeItemName(event.Data[1])
 		if m.HandleLootedItems(quantity, item) {
+			m.EqlDbItem(item, quantity, event.Timestamp)
 			changed = true
 		}
 	case data.LogRowEventTypeLootResult:
 		quantity, item := normalizeItemName(event.Data[1])
 		if strings.Contains(event.Data[3], "and stored") {
 			if m.HandleLootedItems(quantity, item) {
+				m.EqlDbItem(item, quantity, event.Timestamp)
 				changed = true
 			}
 		}
@@ -106,7 +110,6 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 			}
 		}
 		if quest == nil {
-			//log.Printf("Didn't fine a quest for that! %#v", m.tradeIn)
 			return
 		}
 		for item := range m.tradeIn.Given {
@@ -117,8 +120,9 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 				delete(m.config.QuestItems, lname)
 			}
 		}
+		m.config.Quests[quest.Name]++
+		m.EqlDbQuest(quest.Name, event.Timestamp)
 		if m.config.RedoQuests[quest.Name].IsZero() || event.Timestamp.After(m.config.RedoQuests[quest.Name]) {
-			m.config.Quests[quest.Name]++
 			delete(m.config.RedoQuests, quest.Name)
 		}
 		m.tradeIn = nil
@@ -173,7 +177,45 @@ func normalizeItemName(value string) (int, string) {
 	item = strings.TrimSpace(item)
 	return quantity, itemUpgradeSuffixRE.ReplaceAllString(item, "")
 }
-
+func (m *Module) EqlDbQuest(name string, timestamp time.Time) {
+	if !m.ctx.Config.EQLDbConfig.UploadSkyData {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.eqldb_events = append(m.eqldb_events, eqldb.PlaneOfSkyEvent{
+		Type:      eqldb.PlaneOfSkyEventTypeQuestTurnIn,
+		Quest:     normalizeEqldbQuestName(name),
+		Timestamp: timestamp.Format("Mon Jan 02 15:04:05 2006"),
+	})
+	if len(m.eqldb_events) > 1900 {
+		go m.TickSkyItemUpload()
+	}
+}
+func (m *Module) EqlDbItem(item string, amount int, timestamp time.Time) {
+	if !m.ctx.Config.EQLDbConfig.UploadSkyData {
+		return
+	}
+	if !strings.Contains(strings.ToLower(item), "wind rune") {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t := eqldb.PlaneOfSkyEventTypeWindRuneReceive
+	if amount < 0 {
+		t = eqldb.PlaneOfSkyEventTypeWindRuneDelete
+		amount *= -1
+	}
+	m.eqldb_events = append(m.eqldb_events, eqldb.PlaneOfSkyEvent{
+		Type:      t,
+		Rune:      item,
+		Amount:    amount,
+		Timestamp: timestamp.Format("Mon Jan 02 15:04:05 2006"),
+	})
+	if len(m.eqldb_events) > 1900 {
+		go m.TickSkyItemUpload()
+	}
+}
 func (m *Module) match(quest Quest) bool {
 	if m.tradeIn == nil {
 		return false
@@ -188,4 +230,9 @@ func (m *Module) match(quest Quest) bool {
 		}
 	}
 	return true
+}
+func normalizeEqldbQuestName(name string) string {
+	name = strings.ToLower(name)
+	name = strings.ReplaceAll(name, " ", "-")
+	return name
 }

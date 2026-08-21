@@ -22,6 +22,8 @@ type Preferences struct {
 	overlay_font_scale        widget.Float
 	check_for_updates         widget.Bool
 	open_eqlconnection_window widget.Clickable
+	upload_sky_items          widget.Bool
+	allow_eqldb_contribution  widget.Bool
 
 	stop chan struct{}
 }
@@ -34,6 +36,8 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.list.Axis = layout.Vertical
 	p.overlay_font_scale.Value = (ctx.Config.UIConfig.OverlayFontScale - 0.8) / 0.4
 	p.config_changed.Store(false)
+	p.upload_sky_items.Value = ctx.Config.EQLDbConfig.UploadSkyData
+	p.allow_eqldb_contribution.Value = ctx.Config.EQLDbConfig.ContributeKillAndLootData
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -82,6 +86,14 @@ func (p *Preferences) Update(gtx layout.Context) {
 		p.ctx.Config.UIConfig.OverlayFontScale = 0.8 + (p.overlay_font_scale.Value * 0.4)
 		p.config_changed.Store(true)
 	}
+	if p.allow_eqldb_contribution.Value != p.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
+		p.ctx.Config.EQLDbConfig.ContributeKillAndLootData = p.allow_eqldb_contribution.Value
+		p.ctx.Config.Save()
+	}
+	if p.upload_sky_items.Value != p.ctx.Config.EQLDbConfig.UploadSkyData {
+		p.ctx.Config.EQLDbConfig.UploadSkyData = p.upload_sky_items.Value
+		p.ctx.Config.Save()
+	}
 }
 func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Preferences").Layout)
@@ -121,7 +133,7 @@ func (p *Preferences) RenderCheckForUpdates(style *ui.Style, gtx layout.Context)
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.CheckBox(style.Theme, &p.check_for_updates, "Check for updates").Layout),
-			layout.Rigid(material.Label(style.Theme, unit.Sp(14), "Checks GitHub for newly published releases when the application starts").Layout),
+			layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Checks GitHub for newly published releases when the application starts").Layout),
 		)
 	})
 }
@@ -129,22 +141,41 @@ func (p *Preferences) RenderCheckForUpdates(style *ui.Style, gtx layout.Context)
 func (p *Preferences) RenderEQLDbSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
+					return material.Label(style.Theme, unit.Sp(17), "eqldb.org").Layout(gtx)
+				})
+			}),
 			p.RenderEQLDbConnect(style, gtx),
+			p.RenderEQLDbUploadSky(style, gtx),
 		)
 	})
 }
 func (p *Preferences) RenderEQLDbConnect(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, unit.Sp(14), "TODO: Render text that explain what EQLDb is etc.").Layout),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if p.ctx.Config.EQLDbConfig.AccessToken == "" {
-					return ui.IconLink(style, &p.open_eqlconnection_window, ui.ActionVisibility, "Connect to eqldb.org").Layout(gtx)
-				} else {
-					return material.Label(style.Theme, unit.Sp(14), "eqldb.org is already connected.").Layout(gtx)
-				}
-			}),
-		)
+		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					if p.ctx.Config.EQLDbConfig.AccessToken == "" {
+						return ui.IconLink(style, &p.open_eqlconnection_window, ui.ActionVisibility, "Connect to eqldb.org").Layout(gtx)
+					} else {
+						return ui.IconLabel(gtx, style.Theme, 15, ui.Check, "eqldb.org is already connected")
+					}
+				}),
+				layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "TODO: Render text that explain what EQLDb is etc.").Layout),
+			)
+		})
+	})
+}
+func (p *Preferences) RenderEQLDbUploadSky(style *ui.Style, gtx layout.Context) layout.FlexChild {
+	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(material.CheckBox(style.Theme, &p.upload_sky_items, "Upload Wind Runes from PoS to your EQLDb Profile").Layout),
+				layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Enhances your profile on eqldb.org with wind runes, that are not part of the inventory export").Layout),
+			)
+		})
 	})
 }
 

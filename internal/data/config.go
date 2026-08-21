@@ -35,8 +35,8 @@ type EventConfig struct {
 	RegExpOthers        *regexp.Regexp
 }
 type EQLDbConfig struct {
-	UploadProfile             bool      `json:"upload_profile"`
 	ContributeKillAndLootData bool      `json:"contribute"`
+	UploadSkyData             bool      `json:"upload_sky"`
 	AccessToken               string    `json:"access_token"`
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
@@ -71,6 +71,9 @@ func GetConfig() (*Config, error) {
 		Volume: 0.5,
 		UIConfig: UIConfig{
 			OverlayFontScale: 1.0,
+		},
+		EQLDbConfig: EQLDbConfig{
+			UploadSkyData: true,
 		},
 	}
 	path, err := AppDataPath("config.json")
