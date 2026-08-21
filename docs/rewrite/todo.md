@@ -13,8 +13,6 @@
  - Parser: Replay error management
  - Parser: Handle truncated files
  - Parser: ?Logrotate
- - Sky: Watch Quests
- -
 
  - ~~XPHour: XP in this level~~
  - ~~XPHour: Time to levelup~~
@@ -27,3 +25,4 @@
  - ~~DPS: Filter~~
  - ~~DPS: track engagement for SDPS~~
  - ~~Sky: Open Quest reward in browser~~
+ - ~~Sky: Watch Quests~~

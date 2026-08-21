@@ -6,6 +6,7 @@ import (
 )
 
 var ActionVisibility *widget.Icon
+var ActionVisibilityOff *widget.Icon
 var CheckBox *widget.Icon
 var CheckBoxOutline *widget.Icon
 var AddBox *widget.Icon
@@ -29,6 +30,7 @@ var Check *widget.Icon
 
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
+	ActionVisibilityOff = loadIcon(icons.ActionVisibilityOff)
 	CheckBox = loadIcon(icons.ToggleCheckBox)
 	CheckBoxOutline = loadIcon(icons.ToggleCheckBoxOutlineBlank)
 	AddBox = loadIcon(icons.ContentAddBox)

@@ -100,21 +100,35 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 	})
 }
 func (m *Module) RenderWatched(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	num := 0
 	icon := ui.DelBox
 	if m.config.HideWatched {
 		icon = ui.AddBox
 	}
 	rows := make([]layout.FlexChild, 0)
-	rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return ui.ColoredRow(gtx, style.Palette.Panel, func(layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				link := ui.IconLink(style, &m.watched_click, icon, fmt.Sprintf("WATCHED (%d)", num))
-				link.TextColor = style.Palette.Accent
-				return link.Layout(gtx)
+	num := 0
+	for index := range m.status {
+		for qidx, q := range m.status[index].Quests {
+			if q.Watched {
+				num++
+				if !m.config.HideWatched {
+					rows = append(rows, m.RenderQuest(index, qidx, false, style, gtx)...)
+				}
+			}
+		}
+	}
+	if num > 0 {
+		ele := layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ui.ColoredRow(gtx, style.Palette.Panel, func(layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					link := ui.IconLink(style, &m.watched_click, icon, fmt.Sprintf("WATCHED (%d)", num))
+					link.TextColor = style.Palette.Accent
+					return link.Layout(gtx)
+				})
 			})
 		})
-	}))
+
+		rows = append([]layout.FlexChild{ele}, rows...)
+	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, rows...)
 }
 func (m *Module) RenderReadyToTurnIn(style *ui.Style, gtx layout.Context) layout.Dimensions {
@@ -152,9 +166,22 @@ func (m *Module) RenderReadyToTurnIn(style *ui.Style, gtx layout.Context) layout
 func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	rows := make([]layout.FlexChild, 0)
 	cl := &m.status[index]
+	if index == 0 {
+
+		rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+					return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						gtx.Constraints.Min.X = gtx.Constraints.Max.X
+						return material.Label(style.Theme, unit.Sp(17), "Class Quests").Layout(gtx)
+					})
+				})
+			})
+		}))
+	}
 	rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return cl.ToggleClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return ui.ColoredRow(gtx, style.Palette.Panel, func(layout.Context) layout.Dimensions {
+			return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -238,11 +265,13 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 								}
 							}
 							if !quest.Watched {
-								link := ui.Link(style, &m.status[index].Quests[qidx].WatchClick, text)
+								link := ui.IconLink(style, &m.status[index].Quests[qidx].WatchClick, ui.ActionVisibility, text)
 								link.TextColor = highlight_color
 								return link.Layout(gtx)
 							} else {
-								return ui.ColoredLabel(style.Theme, RowSize, highlight_color, "   ").Layout(gtx)
+								link := ui.IconLink(style, &m.status[index].Quests[qidx].UnwatchClick, ui.ActionVisibilityOff, "Unwatch")
+								link.TextColor = highlight_color
+								return link.Layout(gtx)
 							}
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {

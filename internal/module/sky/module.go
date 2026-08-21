@@ -234,6 +234,7 @@ func (m *Module) RecalculateStatus() {
 		c.QuestsReady = 0
 		for qidx := range c.Quests {
 			q := &c.Quests[qidx]
+			q.Watched = m.config.Watched[q.Key]
 			if m.config.Quests[q.Key] > 0 && m.config.RedoQuests[q.Key].IsZero() {
 				q.Done = true
 				c.QuestsDone++
@@ -330,10 +331,14 @@ func (m *Module) Update(gtx layout.Context) {
 					m.config.Save()
 				} else {
 					m.status[cidx].Quests[qidx].Watched = true
+					m.config.Watched[quest.Key] = true
+					m.config.Save()
 				}
 			}
 			if m.status[cidx].Quests[qidx].UnwatchClick.Clicked(gtx) {
 				m.status[cidx].Quests[qidx].Watched = false
+				delete(m.config.Watched, quest.Key)
+				m.config.Save()
 			}
 		}
 	}
