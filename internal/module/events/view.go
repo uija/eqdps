@@ -30,6 +30,26 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 		stacks...,
 	)
 }
+func (m *Module) RenderSpellIconOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		width := min(gtx.Dp(unit.Dp(400)), gtx.Constraints.Max.X)
+		gtx.Constraints.Max.X = width
+		gtx.Constraints.Min.X = width
+
+		ui.FillOverlay(gtx, style.Palette.Accent, style.Palette.Border)
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
+				return layout.Dimensions{Size: gtx.Constraints.Min}
+			}),
+			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return material.Label(style.Theme, unit.Sp(15), "Hallo Welt").Layout(gtx)
+				})
+			}),
+		)
+	})
+}
 func (m *Module) RenderDeleteOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		width := min(gtx.Dp(unit.Dp(400)), gtx.Constraints.Max.X)
@@ -241,16 +261,18 @@ func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, s
 	}
 }
 func (m *Module) RenderMainPage(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderVolumeRow(style, gtx) }),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderEventsTable(style, gtx) }),
-	)
+	children := make([]layout.FlexChild, 0)
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderVolumeRow(style, gtx) }))
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderSpellIconRow(style, gtx) }))
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderEventsTable(style, gtx) }))
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }
 func (m *Module) RenderVolumeRow(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
 				return layout.Inset{Top: unit.Dp(6), Right: unit.Dp(16)}.Layout(gtx, material.Body1(style.Theme, "Notification Volume:").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -260,6 +282,20 @@ func (m *Module) RenderVolumeRow(style *ui.Style, gtx layout.Context) layout.Dim
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(6)}.Layout(gtx, material.Body1(style.Theme, fmt.Sprintf("%.02f%%", m.ctx.Config.Volume)).Layout)
 			}),
+		)
+	})
+}
+func (m *Module) RenderSpellIconRow(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
+				return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Spell Icon Set:").Layout)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return m.spell_icon_select.Layout(style, gtx, unit.Dp(gtx.Dp(200)))
+			}),
+			layout.Flexed(1, material.Body1(style.Theme, "").Layout),
 		)
 	})
 }
@@ -401,18 +437,29 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, label.Layout)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-						layout.Rigid(RenderLinkAsButton(style, &m.add_spell_click, ui.Book, "Add Spell")),
+					children := make([]layout.FlexChild, 0)
+					children = append(children,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_spell_click, ui.Book, "Add Spell"))
+						}),
+					)
+					children = append(children,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_timer_click, ui.Timer, "Add Timer"))
 						}),
+					)
+					children = append(children,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_text_click, ui.Text, "Add Text"))
 						}),
+					)
+					children = append(children,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_regexp_click, ui.RegExp, "Add RegExp"))
 						}),
 					)
+
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 				}),
 			)
 		})

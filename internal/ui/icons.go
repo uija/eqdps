@@ -28,6 +28,8 @@ var RegExp *widget.Icon
 var Close *widget.Icon
 var Check *widget.Icon
 
+var Exclamation *widget.Icon
+
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
 	ActionVisibilityOff = loadIcon(icons.ActionVisibilityOff)
@@ -50,6 +52,7 @@ func Init() {
 	RegExp = loadIcon(icons.ActionSearch)
 	Close = loadIcon(icons.NavigationClose)
 	Check = loadIcon(icons.NavigationCheck)
+	Exclamation = loadIcon(icons.NotificationPriorityHigh)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

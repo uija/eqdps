@@ -1,4 +1,4 @@
-package events
+package spellicon
 
 import (
 	_ "embed"

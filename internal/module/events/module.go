@@ -20,6 +20,7 @@ import (
 	"github.com/uija/eqdps/internal/audio"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
+	"github.com/uija/eqdps/internal/spellicon"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/ui/form"
 )
@@ -39,7 +40,9 @@ type Module struct {
 	overlay_close widget.Clickable
 	delete_id     int
 
-	spells []Spell
+	spells            []spellicon.Spell
+	spell_icon_sets   []string
+	spell_icon_select *form.SelectBox
 
 	row_click      []widget.Clickable
 	activate_click []widget.Clickable
@@ -88,12 +91,14 @@ func NewModule() *Module {
 		class_select:       form.NewSelectBox([]string{}, 0),
 		spell_select:       form.NewSelectBox([]string{}, 0),
 		target_select:      form.NewSelectBox([]string{"Self", "Others", "Both"}, 0),
+		spell_icon_select:  form.NewSelectBox([]string{"default"}, 0),
 		edit_index:         -1,
 		delete_id:          -1,
 		create_type:        data.EventTypeUndefined,
 		stop:               make(chan struct{}),
 		gracePeriodTimers:  make(map[string]data.TimerTracker),
 		runningTimers:      make(map[string]data.TimerTracker),
+		spell_icon_sets:    make([]string, 0),
 	}
 	mustRegister := func(err error) {
 		if err != nil {
@@ -138,7 +143,7 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	ctx.RegisterUpdate(m.Update)
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
-	spells, err := Load()
+	spells, err := spellicon.Load()
 	if err != nil {
 		panic("Uanble to load spells")
 	}
@@ -230,11 +235,16 @@ func (m *Module) UpdateSpellsAndClasses() {
 }
 func (m *Module) Update(gtx layout.Context) {
 	m.event_form.Update(gtx)
+	m.spell_icon_select.Update(gtx)
 	if m.class_select.Changed() {
 		m.UpdateSpellsAndClasses()
 	}
 	if m.spell_select.Changed() {
 		m.title_field.SetText(m.spell_select.Value())
+	}
+	if m.spell_icon_select.Changed() {
+		m.ctx.Config.SpellIconSet = m.spell_icon_select.Value()
+		m.ctx.Config.Save()
 	}
 	if m.add_spell_click.Clicked(gtx) {
 		m.PrepareToCreate(data.EventTypeSpell)
@@ -428,6 +438,34 @@ func (m *Module) LayoutStatus(style *ui.Style, gtx layout.Context) layout.Dimens
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) bool {
+	source, sets, ok := spellicon.Detect(path, m.spells)
+	if !ok {
+		return true
+	}
+
+	iconDir, err := data.AppDataPath("spell-icons")
+	if err != nil {
+		log.Printf("Unable to locate spell icon directory: %v", err)
+		return true
+	}
+
+	for _, set := range sets {
+		if !spellicon.Available(iconDir, set, m.spells) {
+			if _, err := spellicon.ExtractAll(source, iconDir, m.spells); err != nil {
+				log.Printf("Unable to extract spell icons: %v", err)
+				return true
+			}
+			break
+		}
+	}
+
+	m.spell_icon_sets = sets
+	m.spell_icon_select.SetOptions(sets)
+	if !slices.Contains(sets, m.ctx.Config.SpellIconSet) {
+		m.ctx.Config.SpellIconSet = sets[0]
+	}
+	log.Printf("Options: %v", sets)
+	m.spell_icon_select.Select(m.ctx.Config.SpellIconSet)
 	return true
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
@@ -502,11 +540,14 @@ func (m *Module) Notify(event data.EventConfig) {
 			}
 		}
 		iconPath := ""
-		if iconId >= 0 {
-			path, err := data.AppDataPath(fmt.Sprintf("spell-icons/spell_%d.png", iconId))
-			if err == nil {
-				iconPath = path
-			}
+
+		iconDir, err := data.AppDataPath("spell-icons")
+		if err == nil {
+			iconPath = spellicon.SetIconPath(
+				iconDir,
+				m.ctx.Config.SpellIconSet,
+				iconId,
+			)
 		}
 		beeep.Notify(event.Title, not, iconPath)
 	}

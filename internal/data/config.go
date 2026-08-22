@@ -44,12 +44,13 @@ type UIConfig struct {
 	OverlayFontScale float32
 }
 type Config struct {
-	LastLogfile string        `json:"last_logfile"`
-	OpenOverlay bool          `json:"open_overlay"`
-	Events      []EventConfig `json:"events"`
-	Volume      float32       `json:"volume"`
-	EQLDbConfig EQLDbConfig   `json:"eqldb"`
-	UIConfig    UIConfig      `json:"ui"`
+	LastLogfile  string        `json:"last_logfile"`
+	OpenOverlay  bool          `json:"open_overlay"`
+	Events       []EventConfig `json:"events"`
+	Volume       float32       `json:"volume"`
+	SpellIconSet string        `json:"spell_icon_set"`
+	EQLDbConfig  EQLDbConfig   `json:"eqldb"`
+	UIConfig     UIConfig      `json:"ui"`
 }
 
 func (c *Config) Save() error {
