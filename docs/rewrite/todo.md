@@ -1,7 +1,6 @@
 # TODO Rewrite
 
  - eqldb: send items / kills
- - Store "Last Logfiles" and make them selectable
  - Overlay: Combat timeout / Remove last fight
  - Overlay: Opacity
  - Overlay: Position/Size persistend
@@ -15,6 +14,7 @@
  - Parser: ?Logrotate
 
  ## Done
+ - ~~Store "Last Logfiles" and make them selectable~~
  - ~~Event: Spell Icon extraction~~
  - ~~Event: Spell Icon settings~~
  - ~~XPHour: XP in this level~~

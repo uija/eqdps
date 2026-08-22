@@ -62,3 +62,48 @@ func TestMenuBackdropClosesOpenMenu(t *testing.T) {
 		t.Fatal("menu remained open after backdrop click")
 	}
 }
+
+func TestSubmenuItemInvokesActionAndClosesMenu(t *testing.T) {
+	bar := NewBar(&ui.Style{Theme: material.NewTheme()}, "")
+	fileMenu := bar.AddMenu("File")
+	recentMenu := fileMenu.AddMenu("Recent")
+	called := false
+	item := recentMenu.AddItem("example.txt", func() {
+		called = true
+	})
+
+	fileMenu.click.Click()
+	bar.Update(layout.Context{})
+	fileMenu.items[0].click.Click()
+	bar.Update(layout.Context{})
+	if fileMenu.openItem != fileMenu.items[0] {
+		t.Fatal("submenu did not open")
+	}
+
+	item.click.Click()
+	bar.Update(layout.Context{})
+	if !called {
+		t.Fatal("submenu action was not called")
+	}
+	if bar.active != nil {
+		t.Fatal("menu remained open after submenu action")
+	}
+}
+
+func TestMenuClearRemovesItemsAndOpenSubmenu(t *testing.T) {
+	bar := NewBar(&ui.Style{Theme: material.NewTheme()}, "")
+	fileMenu := bar.AddMenu("File")
+	fileMenu.AddItem("Open", func() {})
+	recentMenu := fileMenu.AddMenu("Recent")
+	recentMenu.AddItem("example.txt", func() {})
+	fileMenu.openItem = fileMenu.items[1]
+
+	fileMenu.Clear()
+
+	if len(fileMenu.items) != 0 {
+		t.Fatal("menu items were not removed")
+	}
+	if fileMenu.openItem != nil {
+		t.Fatal("open submenu was not cleared")
+	}
+}

@@ -35,6 +35,7 @@ type Menu struct {
 	action   func()
 	dropdown bool
 	anchorX  int
+	openItem *Item
 }
 
 // Item is one actionable entry in a Menu.
@@ -42,6 +43,7 @@ type Item struct {
 	label   string
 	click   widget.Clickable
 	action  func()
+	submenu *Menu
 	enabled bool
 }
 
@@ -76,6 +78,24 @@ func (m *Menu) AddItem(label string, action func()) *Item {
 	m.items = append(m.items, item)
 	return item
 }
+
+// AddMenu adds a submenu and returns it for item registration.
+func (m *Menu) AddMenu(label string) *Menu {
+	submenu := &Menu{label: label, dropdown: true}
+	m.items = append(m.items, &Item{
+		label:   label,
+		submenu: submenu,
+		enabled: true,
+	})
+	return submenu
+}
+
+// Clear removes every item and open submenu from the menu.
+func (m *Menu) Clear() {
+	m.items = nil
+	m.openItem = nil
+}
+
 func (m *Menu) AddSeparator() {
 	m.items = append(m.items, &Item{
 		label:   SEPARATOR_TEXT,
@@ -90,31 +110,71 @@ func (b *Bar) Update(gtx layout.Context) {
 		if entry.click.Clicked(gtx) {
 			if entry.dropdown {
 				if b.active == entry {
-					b.active = nil
+					b.closeMenus()
 				} else {
+					b.closeMenus()
 					b.active = entry
 				}
 			} else {
-				b.active = nil
+				b.closeMenus()
 				if entry.action != nil {
 					entry.action()
 				}
 			}
 		}
 
-		for _, item := range entry.items {
-			if !item.enabled || !item.click.Clicked(gtx) {
-				continue
+	}
+	if b.active != nil {
+		b.updateMenu(gtx, b.active)
+	}
+	if b.backdrop.Clicked(gtx) {
+		b.closeMenus()
+	}
+}
+
+func (b *Bar) updateMenu(gtx layout.Context, menu *Menu) {
+	for _, item := range menu.items {
+		if !item.enabled {
+			continue
+		}
+
+		clicked := item.click.Clicked(gtx)
+		if item.submenu != nil {
+			if clicked || item.click.Hovered() {
+				menu.openItem = item
 			}
-			b.active = nil
+			continue
+		}
+
+		if item.click.Hovered() {
+			menu.openItem = nil
+		}
+		if clicked {
+			b.closeMenus()
 			if item.action != nil {
 				item.action()
 			}
+			return
 		}
 	}
-	if b.backdrop.Clicked(gtx) {
-		b.active = nil
+
+	if menu.openItem != nil && menu.openItem.submenu != nil {
+		b.updateMenu(gtx, menu.openItem.submenu)
 	}
+}
+
+func (b *Bar) closeMenus() {
+	if b.active != nil {
+		closeSubmenus(b.active)
+	}
+	b.active = nil
+}
+
+func closeSubmenus(menu *Menu) {
+	if menu.openItem != nil && menu.openItem.submenu != nil {
+		closeSubmenus(menu.openItem.submenu)
+	}
+	menu.openItem = nil
 }
 
 // LayoutBar renders the fixed menu-bar row.
@@ -153,10 +213,42 @@ func (b *Bar) LayoutOverlay(gtx layout.Context) layout.Dimensions {
 		return layout.Dimensions{}
 	}
 
-	return layout.Stack{}.Layout(gtx,
+	children := []layout.StackChild{
 		layout.Expanded(b.layoutBackdrop),
-		layout.Stacked(b.layoutDropdown),
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			return b.layoutDropdown(gtx, b.active, b.active.anchorX, gtx.Dp(b.barHeight))
+		}),
+	}
+	b.appendSubmenus(
+		&children,
+		b.active,
+		b.active.anchorX,
+		gtx.Dp(b.barHeight),
+		gtx.Dp(unit.Dp(MenuDropDownWidth)),
+		gtx.Dp(unit.Dp(MenuItemHeight)),
 	)
+	return layout.Stack{}.Layout(gtx, children...)
+}
+
+func (b *Bar) appendSubmenus(children *[]layout.StackChild, menu *Menu, x, y, width, itemHeight int) {
+	if menu.openItem == nil || menu.openItem.submenu == nil {
+		return
+	}
+
+	index := 0
+	for i, item := range menu.items {
+		if item == menu.openItem {
+			index = i
+			break
+		}
+	}
+	submenu := menu.openItem.submenu
+	submenuX := x + width
+	submenuY := y + itemHeight*index
+	*children = append(*children, layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+		return b.layoutDropdown(gtx, submenu, submenuX, submenuY)
+	}))
+	b.appendSubmenus(children, submenu, submenuX, submenuY, width, itemHeight)
 }
 
 func (b *Bar) layoutBackdrop(gtx layout.Context) layout.Dimensions {
@@ -168,25 +260,25 @@ func (b *Bar) layoutBackdrop(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-func (b *Bar) layoutDropdown(gtx layout.Context) layout.Dimensions {
-	offset := op.Offset(image.Pt(b.active.anchorX, gtx.Dp(b.barHeight))).Push(gtx.Ops)
+func (b *Bar) layoutDropdown(gtx layout.Context, menu *Menu, x, y int) layout.Dimensions {
+	offset := op.Offset(image.Pt(x, y)).Push(gtx.Ops)
 	defer offset.Pop()
 
 	width := gtx.Dp(unit.Dp(MenuDropDownWidth))
 	gtx.Constraints.Min.X = width
 	gtx.Constraints.Max.X = width
-	itemCount := max(1, len(b.active.items))
+	itemCount := max(1, len(menu.items))
 	height := gtx.Dp(unit.Dp((MenuItemHeight) * itemCount))
 	gtx.Constraints.Min.Y = height
 	gtx.Constraints.Max.Y = height
 	fill(gtx, b.style.Palette.Panel)
 
-	if len(b.active.items) == 0 {
+	if len(menu.items) == 0 {
 		return b.layoutEmptyItem(gtx)
 	}
 
-	children := make([]layout.FlexChild, 0, len(b.active.items))
-	for _, item := range b.active.items {
+	children := make([]layout.FlexChild, 0, len(menu.items))
+	for _, item := range menu.items {
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return b.layoutItem(gtx, item)
 		}))
@@ -226,7 +318,19 @@ func (b *Bar) layoutItem(gtx layout.Context, item *Item) layout.Dimensions {
 			} else {
 				label.Color = b.style.Palette.Muted
 			}
-			return layout.W.Layout(gtx, label.Layout)
+			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return layout.W.Layout(gtx, label.Layout)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					if item.submenu == nil {
+						return layout.Dimensions{}
+					}
+					arrow := material.Label(b.style.Theme, unit.Sp(15), ">")
+					arrow.Color = b.style.Palette.Muted
+					return arrow.Layout(gtx)
+				}),
+			)
 		})
 	})
 }

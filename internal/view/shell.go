@@ -3,6 +3,7 @@ package view
 import (
 	"image/color"
 	"log"
+	"path/filepath"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -54,6 +55,7 @@ type progress struct {
 type Shell struct {
 	Style         *ui.Style
 	menuBar       *menu.Bar
+	recentLogs    *menu.Menu
 	status        string
 	help          *helpView
 	selectHistory *historySelection
@@ -90,9 +92,11 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 		progressUpdate:   make(chan progress, 1),
 	}
 	context.RegisterProgressHandler(result.OnProgress)
+	context.RegisterLogOpen(result.OnLogOpen)
 	result.menuBar = menu.NewBar(&Style, "EVERQUEST LEGENDS")
 	fileMenu := result.menuBar.AddMenu("File")
 	fileMenu.AddItem("Open Log", result.OpenLogfile)
+	result.recentLogs = fileMenu.AddMenu("Recent Logs")
 	fileMenu.AddItem("Quit", closeWindow)
 	viewMenu := result.menuBar.AddMenu("View")
 	for _, entry := range context.ViewMenuItems {
@@ -122,6 +126,18 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	}
 
 	return result
+}
+
+func (s *Shell) OnLogOpen(characterName string, serverName string, filesize int64, path string) bool {
+	s.recentLogs.Clear()
+	for _, path := range s.context.Config.RecentLogFiles {
+		name := filepath.Base(path)
+		s.recentLogs.AddItem(name, func() {
+			s.fileSelectResult <- fileResult{Path: path, Error: nil}
+			s.invalidateFunc()
+		})
+	}
+	return true
 }
 
 func (s *Shell) OpenLogfile() {
@@ -255,6 +271,7 @@ func (s *Shell) update(gtx layout.Context) {
 		s.context.SetMainView(s.preferences.Layout)
 	}
 	s.context.Update(gtx)
+	// check menu items
 	s.menuBar.Update(gtx)
 	s.selectHistory.Update(gtx)
 	s.help.Update(gtx)
