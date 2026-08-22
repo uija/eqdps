@@ -104,12 +104,10 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 						m.publishOverlayFight()
 					}
 				}
-			case <-ticker.C:
-				/*
-					if !m.replay.Load() && m.combat.endTimedOutFights(now) {
-						m.publishOverlayFight()
-					}
-				*/
+			case now := <-ticker.C:
+				if !m.replay.Load() && m.combat.endTimedOutFights(now) {
+					//m.publishOverlayFight()
+				}
 			case <-m.stop:
 				return
 			}
