@@ -149,7 +149,7 @@ func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark Landmark
 				if !ok {
 					continue
 				}
-				timestamp, err := time.Parse(timestampLayout, timestampText)
+				timestamp, err := time.ParseInLocation(timestampLayout, timestampText, time.Local)
 				if err != nil {
 					log.Printf("Unable to parse timestamp. %v", err)
 					continue
@@ -169,7 +169,7 @@ func (p *Parser) IndexFile(onProgress ReplayProgressHandler, onLandmark Landmark
 				if !ok {
 					continue
 				}
-				timestamp, err := time.Parse(timestampLayout, timestampText)
+				timestamp, err := time.ParseInLocation(timestampLayout, timestampText, time.Local)
 				if err != nil {
 					log.Printf("Unable to parse timestamp. %v", err)
 					continue
@@ -341,7 +341,7 @@ func rowTimestamp(row string) (time.Time, bool) {
 	if !ok {
 		return time.Time{}, false
 	}
-	timestamp, err := time.Parse(timestampLayout, timestampText)
+	timestamp, err := time.ParseInLocation(timestampLayout, timestampText, time.Local)
 	return timestamp, err == nil
 }
 
@@ -441,7 +441,8 @@ func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowE
 	if !known && !live {
 		return nil, false
 	}
-	timestamp, err := time.Parse(timestampLayout, timestampText)
+	//timestamp, err := time.Parse(timestampLayout, timestampText)
+	timestamp, err := time.ParseInLocation(timestampLayout, timestampText, time.Local)
 	if err != nil {
 		return nil, false
 	}
