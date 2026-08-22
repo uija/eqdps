@@ -290,7 +290,7 @@ func (m *Module) RenderSpellIconRow(style *ui.Style, gtx layout.Context) layout.
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
-				return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Spell Icon Set:").Layout)
+				return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Spell Icon Set:").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return m.spell_icon_select.Layout(style, gtx, unit.Dp(gtx.Dp(200)))

@@ -464,7 +464,6 @@ func (m *Module) OnLogOpen(characterName string, serverName string, filesize int
 	if !slices.Contains(sets, m.ctx.Config.SpellIconSet) {
 		m.ctx.Config.SpellIconSet = sets[0]
 	}
-	log.Printf("Options: %v", sets)
 	m.spell_icon_select.Select(m.ctx.Config.SpellIconSet)
 	return true
 }
