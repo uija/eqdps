@@ -44,13 +44,14 @@ type UIConfig struct {
 	OverlayFontScale float32
 }
 type Config struct {
-	LastLogfile  string        `json:"last_logfile"`
-	OpenOverlay  bool          `json:"open_overlay"`
-	Events       []EventConfig `json:"events"`
-	Volume       float32       `json:"volume"`
-	SpellIconSet string        `json:"spell_icon_set"`
-	EQLDbConfig  EQLDbConfig   `json:"eqldb"`
-	UIConfig     UIConfig      `json:"ui"`
+	LastLogfile    string        `json:"last_logfile"`
+	RecentLogFiles []string      `json:"recent_logfiles"`
+	OpenOverlay    bool          `json:"open_overlay"`
+	Events         []EventConfig `json:"events"`
+	Volume         float32       `json:"volume"`
+	SpellIconSet   string        `json:"spell_icon_set"`
+	EQLDbConfig    EQLDbConfig   `json:"eqldb"`
+	UIConfig       UIConfig      `json:"ui"`
 }
 
 func (c *Config) Save() error {
@@ -76,6 +77,7 @@ func GetConfig() (*Config, error) {
 		EQLDbConfig: EQLDbConfig{
 			UploadSkyData: true,
 		},
+		RecentLogFiles: make([]string, 0),
 	}
 	path, err := AppDataPath("config.json")
 	if err != nil {
@@ -91,6 +93,9 @@ func GetConfig() (*Config, error) {
 	err = json.Unmarshal(bytes, config)
 	if err != nil {
 		return nil, err
+	}
+	if config.RecentLogFiles == nil {
+		config.RecentLogFiles = make([]string, 0)
 	}
 
 	return config, nil

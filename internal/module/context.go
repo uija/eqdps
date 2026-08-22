@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -130,6 +131,12 @@ func NewContext(invalidateFunc func()) *Context {
 func (c *Context) ParserLogFileOpened(path string) {
 	// Extract Character and Servername
 	c.parserPath = path
+	if !slices.Contains(c.Config.RecentLogFiles, path) {
+		c.Config.RecentLogFiles = append(c.Config.RecentLogFiles, path)
+		if len(c.Config.RecentLogFiles) > 5 {
+			c.Config.RecentLogFiles = c.Config.RecentLogFiles[1:]
+		}
+	}
 	c.startParser(path, c.runIndexFile)
 }
 func (c *Context) RegisterProgressHandler(h ProgressHandler) {
