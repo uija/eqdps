@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/uija/eqdps/internal/module/events"
+	"github.com/uija/eqdps/internal/spellicon"
 )
 
 const (
@@ -45,7 +45,7 @@ var classNames = []string{
 	"Berserker",
 }
 
-type spell = events.Spell
+type spell = spellicon.Spell
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
