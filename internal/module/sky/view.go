@@ -111,7 +111,7 @@ func (m *Module) RenderWatched(style *ui.Style, gtx layout.Context) layout.Dimen
 			if q.Watched {
 				num++
 				if !m.config.HideWatched {
-					rows = append(rows, m.RenderQuest(index, qidx, false, style, gtx)...)
+					rows = append(rows, m.RenderQuest(index, qidx, true, style, gtx)...)
 				}
 			}
 		}
