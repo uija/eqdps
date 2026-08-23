@@ -115,9 +115,10 @@ type QuestStatus struct {
 	MissingItems int
 	Items        []ItemStatus
 
-	WatchClick   widget.Clickable
-	UnwatchClick widget.Clickable
-	RewardClick  widget.Clickable
+	WatchClick     widget.Clickable
+	UnwatchClick   widget.Clickable
+	RedoQuestClick widget.Clickable
+	RewardClick    widget.Clickable
 }
 type ClassStatus struct {
 	Name        string
@@ -322,23 +323,23 @@ func (m *Module) Update(gtx layout.Context) {
 				native.OpenURL(url)
 			}
 			if m.status[cidx].Quests[qidx].WatchClick.Clicked(gtx) {
-				if quest.Done {
-					if m.config.RedoQuests[quest.Key].IsZero() {
-						m.config.RedoQuests[quest.Key] = time.Now()
-					} else {
-						delete(m.config.RedoQuests, quest.Key)
-					}
-					m.config.Save()
-				} else {
-					m.status[cidx].Quests[qidx].Watched = true
-					m.config.Watched[quest.Key] = true
-					m.config.Save()
-				}
+				m.status[cidx].Quests[qidx].Watched = true
+				m.config.Watched[quest.Key] = true
+				m.config.Save()
 			}
 			if m.status[cidx].Quests[qidx].UnwatchClick.Clicked(gtx) {
 				m.status[cidx].Quests[qidx].Watched = false
 				delete(m.config.Watched, quest.Key)
 				m.config.Save()
+			}
+
+			if m.status[cidx].Quests[qidx].RedoQuestClick.Clicked(gtx) {
+				if m.config.RedoQuests[quest.Key].IsZero() {
+					m.config.RedoQuests[quest.Key] = time.Now()
+				} else {
+					delete(m.config.RedoQuests, quest.Key)
+				}
+				m.RecalculateStatus()
 			}
 		}
 	}

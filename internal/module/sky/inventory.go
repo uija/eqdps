@@ -36,7 +36,7 @@ func (m *Module) InventoryView(style *ui.Style, gtx layout.Context) layout.Dimen
 		for _, ir := range m.inventory {
 			if ir.Need > ir.Have {
 				container.missing = append(container.missing, ir)
-			} else if ir.Need < ir.Have && !strings.Contains(ir.Name, "Wind Rune") {
+			} else if ir.Have > 0 && ir.Need <= ir.Have && !strings.Contains(ir.Name, "Wind Rune") {
 				container.others = append(container.others, ir)
 			}
 		}

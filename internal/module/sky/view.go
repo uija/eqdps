@@ -167,7 +167,6 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 	rows := make([]layout.FlexChild, 0)
 	cl := &m.status[index]
 	if index == 0 {
-
 		rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
@@ -184,7 +183,7 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 			return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 							icon := ui.AddBox
 							if cl.Visible {
 								icon = ui.DelBox
@@ -231,7 +230,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 	highlight_color := style.Palette.Accent
 	missing_text := fmt.Sprintf("Missing %d", quest.MissingItems)
 	show := true
-	if quest.Done {
+	if quest.Done && m.config.RedoQuests[quest.Key].IsZero() {
 		title_color = style.Palette.Done
 		highlight_color = style.Palette.Done
 		missing_text = "Done"
@@ -253,19 +252,25 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 						layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 							label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest_name)
 							label.Font.Weight = font.SemiBold
-							return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, label.Layout)
+							return layout.Inset{Top: unit.Dp(2), Left: unit.Dp(16)}.Layout(gtx, label.Layout)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							text := "Watch"
-							if quest.Done {
+							if quest.Done || !m.config.RedoQuests[quest.Key].IsZero() {
 								if m.config.RedoQuests[quest.Key].IsZero() {
-									text = "Redo Quest"
+									link := ui.IconLink(style, &m.status[index].Quests[qidx].RedoQuestClick, ui.Refresh, "Redo quest")
+									link.TextColor = highlight_color
+									return link.Layout(gtx)
 								} else {
-									text = "Cancel Redo"
+									link := ui.IconLink(style, &m.status[index].Quests[qidx].RedoQuestClick, ui.Check, "Cancel redo")
+									link.TextColor = highlight_color
+									return link.Layout(gtx)
 								}
 							}
+							return material.Label(style.Theme, unit.Sp(14), "").Layout(gtx)
+						}),
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							if !quest.Watched {
-								link := ui.IconLink(style, &m.status[index].Quests[qidx].WatchClick, ui.ActionVisibility, text)
+								link := ui.IconLink(style, &m.status[index].Quests[qidx].WatchClick, ui.ActionVisibility, "Watch")
 								link.TextColor = highlight_color
 								return link.Layout(gtx)
 							} else {
@@ -300,7 +305,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 
 						prefix := "+"
 						amount_text := fmt.Sprintf("%d", item.Amount)
-						if quest.Done {
+						if quest.Done && m.config.RedoQuests[quest.Key].IsZero() {
 							amount_text = "-"
 							color = style.Palette.Done
 						} else if item.Amount > 0 {
@@ -309,7 +314,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 							prefix = "-"
 						}
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-							layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
+							layout.Flexed(5, func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{Left: unit.Dp(32)}.Layout(gtx,
 									ui.ColoredLabel(style.Theme, RowSize, color, fmt.Sprintf("%s %s", prefix, item.Name)).Layout,
 								)
