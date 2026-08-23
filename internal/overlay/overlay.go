@@ -34,7 +34,7 @@ type Overlay struct {
 	timers  []data.TimerTracker
 	done    chan struct{}
 
-	Updates chan any
+	updates chan any
 
 	decorations widget.Decorations
 }
@@ -57,7 +57,7 @@ func NewOverlay(source *ui.Style, cfg *data.Config) *Overlay {
 	)
 	o := &Overlay{
 		window:  window,
-		Updates: make(chan any, 1),
+		updates: make(chan any, 1),
 		style:   &overlayStyle,
 		done:    make(chan struct{}),
 		config:  cfg,
@@ -88,10 +88,18 @@ func (o *Overlay) Run(onEnd func()) {
 func (o *Overlay) Close() {
 	o.window.Perform(system.ActionClose)
 }
+func (o *Overlay) Send(update any) bool {
+	select {
+	case o.updates <- update:
+		return true
+	case <-o.done:
+		return false
+	}
+}
 func (o *Overlay) handleUpdates() {
 	for {
 		select {
-		case d := <-o.Updates:
+		case d := <-o.updates:
 			o.fightMu.Lock()
 			switch a := d.(type) {
 			case *data.Fight:

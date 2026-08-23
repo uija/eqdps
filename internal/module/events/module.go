@@ -189,7 +189,9 @@ func (m *Module) TimerRun() {
 						return timers[i].Event.Spell < timers[j].Event.Spell
 					})
 				}
-				m.ctx.Overlay.Updates <- timers
+				if m.ctx.Overlay != nil {
+					m.ctx.Overlay.Send(timers)
+				}
 			}
 		case <-m.stop:
 			return

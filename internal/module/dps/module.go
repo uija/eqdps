@@ -143,8 +143,10 @@ func (m *Module) publishOverlayFight() {
 	}
 	combat.mu.RUnlock()
 	if fight != nil {
-		m.ctx.Overlay.Updates <- fight
-		m.ctx.Overlay.Invalidate()
+		if m.ctx.Overlay != nil {
+			m.ctx.Overlay.Send(fight)
+			m.ctx.Overlay.Invalidate()
+		}
 	}
 }
 
