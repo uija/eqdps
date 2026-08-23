@@ -287,7 +287,7 @@ func (p *Parser) Replay(lookback Loopback, handler EventHandler, onProgress Repl
 			if onProgress != nil {
 				onProgress(ReplayProgress{Bytes: info.Size(), Total: info.Size(), Lines: lines})
 			}
-			log.Printf("Used %d out of %d filed. %d skipped", used_rows, num_rows, num_rows-used_rows)
+			log.Printf("Used %d out of %d rows. %d skipped", used_rows, num_rows, num_rows-used_rows)
 			return nil
 		}
 		return fmt.Errorf("read logfile replay: %w", readErr)
