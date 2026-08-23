@@ -25,7 +25,7 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeDamageShield, regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$"), []string{" by ", " for ", " point", "damage"}},
 	{data.LogRowEventTypeYourDamageOverTime, regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`), []string{" has taken ", " damage from your "}},
 	{data.LogRowEventTypeDamageOverTime, regexp.MustCompile(`^(.+?) (?:has|have) taken ([0-9]+) damage from (.+?) by ([^.]+)\.(?: \(([^)]+)\))?$`), []string{" taken ", " damage from ", " by "}},
-	{data.LogRowEventTypeExperience, regexp.MustCompile(`^You gain experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`), []string{"You gain experience!", "%"}},
+	{data.LogRowEventTypeExperience, regexp.MustCompile(`^You gain (?:party )?experience! \(([0-9]+(?:\.[0-9]+)?)%\)$`), []string{"You gain ", "experience!", "%"}},
 	{data.LogRowEventTypeKillExperienceReward, regexp.MustCompile(`^You gain (?:party )?experience!(?: \([0-9]+(?:\.[0-9]+)?%\))?$`), []string{"You gain ", "experience!"}},
 	{data.LogRowEventTypeCorpseCoinReward, regexp.MustCompile(`^You receive .+ from the corpse\.$`), []string{"You receive ", " from the corpse."}},
 	{data.LogRowEventTypeLevelUp, levelUpExpression, []string{"You have gained a level! Welcome to level "}},

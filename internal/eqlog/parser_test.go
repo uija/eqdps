@@ -25,6 +25,7 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 		{"your damage over time", "A zol ghoul knight has taken 49 damage from your Tuyen's Chant of Flame.", data.LogRowEventTypeYourDamageOverTime},
 		{"damage over time", "An orc raider has taken 2 damage from Flame Lick by Sobatin.", data.LogRowEventTypeDamageOverTime},
 		{"experience", "You gain experience! (1.239%)", data.LogRowEventTypeExperience},
+		{"party experience", "You gain party experience! (0.283%)", data.LogRowEventTypeExperience},
 		{"kill experience", "You gain party experience!", data.LogRowEventTypeKillExperienceReward},
 		{"corpse coin", "You receive 2 gold from the corpse.", data.LogRowEventTypeCorpseCoinReward},
 		{"level up", "You have gained a level! Welcome to level 43!", data.LogRowEventTypeLevelUp},
