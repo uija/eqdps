@@ -177,13 +177,19 @@ func (o *Overlay) RenderMainView(gtx layout.Context) layout.Dimensions {
 						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Combatant").Layout(gtx)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Damage").Layout(gtx)
+						label := material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Dmg")
+						label.Alignment = text.End
+						return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, label.Layout)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "DPS").Layout(gtx)
+						label := material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "DPS")
+						label.Alignment = text.End
+						return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, label.Layout)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Time").Layout(gtx)
+						label := material.Label(o.style.Theme, unit.Sp(o.ScaleFont(13)), "Time")
+						label.Alignment = text.End
+						return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, label.Layout)
 					}),
 				)
 			})
