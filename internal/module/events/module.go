@@ -210,6 +210,9 @@ func (m *Module) UpdateSpellsAndClasses() {
 				}
 			}
 		}
+		sort.Slice(classes, func(i, j int) bool {
+			return classes[i] < classes[j]
+		})
 		m.class_select.SetOptions(classes)
 		m.class_select.SetSelected(0)
 	}
