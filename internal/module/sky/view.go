@@ -21,10 +21,10 @@ func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					children := make([]layout.FlexChild, 0)
-					children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return ui.Link(style, &m.edit_runes_click, "Missing Runes?").Layout(gtx)
-					}))
 					if active != "Progression" {
+						children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return material.Label(style.Theme, unit.Sp(14), "").Layout(gtx)
+						}))
 						children = append(children,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 								return ui.Link(style, &m.progression_click, "Show Progression").Layout(gtx)
@@ -32,6 +32,9 @@ func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context
 						)
 					}
 					if active != "Inventory" {
+						children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return ui.Link(style, &m.edit_runes_click, "Missing Runes?").Layout(gtx)
+						}))
 						children = append(children,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 								return ui.Link(style, &m.inventory_click, "Show Inventory").Layout(gtx)
