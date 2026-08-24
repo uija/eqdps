@@ -472,7 +472,7 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 	label := material.Label(
 		style.Theme,
 		unit.Sp(15),
-		"This is awesome Plane of Sky Quest Tracker help content!",
+		fmt.Sprintf("You find your PoS config file at: %s", m.configPath),
 	)
 	label.Color = style.Palette.Muted
 	return label.Layout(gtx)
