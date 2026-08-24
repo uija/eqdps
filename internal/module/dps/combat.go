@@ -28,6 +28,8 @@ type Combat struct {
 	lastCastSpell     map[string]CastSpell
 	history           []*data.Fight
 
+	lastParticipatedFight *data.Fight
+
 	mu sync.RWMutex
 }
 
@@ -76,11 +78,11 @@ func (c *Combat) endTimedOutFights(now time.Time) bool {
 // legacy FightTracker.mobForEvent implementation. Unlike getActiveFight, it
 // never searches active fights by participant: each event is assigned to the
 // fight keyed by the endpoint that was identified as the mob.
-func (c *Combat) getActiveFightLegacy(event *data.DamageEvent) *data.Fight {
+func (c *Combat) getActiveFight(event *data.DamageEvent) *data.Fight {
 	source := event.NormalizedSource
 	target := event.NormalizedTarget
-	sourceFightName := c.legacyFightName(source)
-	targetFightName := c.legacyFightName(target)
+	sourceFightName := c.fightName(source)
+	targetFightName := c.fightName(target)
 	sourceIsMob := c.activeFights[sourceFightName] != nil
 	targetIsMob := c.activeFights[targetFightName] != nil
 	sourceIsPlayer := c.knownPlayers[source]
@@ -143,7 +145,7 @@ func (c *Combat) getActiveFightLegacy(event *data.DamageEvent) *data.Fight {
 		c.knownPlayers[source] = true
 	}
 
-	fightName := c.legacyFightName(mob)
+	fightName := c.fightName(mob)
 	if fight := c.activeFights[fightName]; fight != nil {
 		return fight
 	}
@@ -158,7 +160,7 @@ func (c *Combat) getActiveFightLegacy(event *data.DamageEvent) *data.Fight {
 // legacyFightName mirrors FightTracker.mobIdentity. Names ending in " pet"
 // always identify their owner. Possessive pet names identify their owner only
 // while that owner's fight is active.
-func (c *Combat) legacyFightName(name string) string {
+func (c *Combat) fightName(name string) string {
 	trimmed := strings.TrimSpace(name)
 	if owner, ok := strings.CutSuffix(trimmed, " pet"); ok && owner != "" {
 		return strings.TrimSpace(owner)
@@ -194,8 +196,11 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 
 	event, ok := c.damageFromLogRow(e)
 	if ok {
-		fight := c.getActiveFightLegacy(event)
+		fight := c.getActiveFight(event)
 		fight.AddDamageEvent(event)
+		if event.Participation {
+			c.lastParticipatedFight = fight
+		}
 		return true
 	}
 	switch e.Type {

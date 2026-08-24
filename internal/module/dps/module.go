@@ -106,7 +106,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 				}
 			case now := <-ticker.C:
 				if !m.replay.Load() && m.combat.endTimedOutFights(now) {
-					//m.publishOverlayFight()
+					m.publishOverlayFight()
 				}
 			case <-m.stop:
 				return
@@ -127,19 +127,24 @@ func (m *Module) publishOverlayFight() {
 		combat.mu.RUnlock()
 		return
 	}
-	active := make([]*data.Fight, 0)
-	for _, f := range combat.history {
-		if f.EndReason == "" {
-			active = append(active, f)
-		}
-	}
-	if len(active) == 0 {
-		fight = combat.history[len(combat.history)-1].Clone()
+	if m.combat.lastParticipatedFight != nil {
+		fight = m.combat.lastParticipatedFight
 	} else {
-		sort.Slice(active, func(i, j int) bool {
-			return active[i].LastParticipate.After(active[j].LastParticipate)
-		})
-		fight = active[0].Clone()
+		active := make([]*data.Fight, 0)
+		for _, f := range combat.history {
+			if f.EndReason == "" {
+				active = append(active, f)
+			}
+		}
+		if len(active) == 0 {
+			fight = combat.history[len(combat.history)-1].Clone()
+		} else {
+			sort.Slice(active, func(i, j int) bool {
+				return active[i].LastParticipate.After(active[j].LastParticipate)
+			})
+			fight = active[0].Clone()
+		}
+
 	}
 	combat.mu.RUnlock()
 	if fight != nil {
