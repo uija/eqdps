@@ -276,7 +276,7 @@ func (m *Module) RecalculateStatus() {
 						Have: amount,
 					}
 				}
-				if !q.Done {
+				if !q.Done || !m.config.RedoQuests[q.Key].IsZero() {
 					ir.Need++
 				}
 				items[i.Name] = ir
