@@ -239,15 +239,19 @@ func (c *Context) Update(gtx layout.Context) {
 		if err != nil {
 			return
 		}
-		exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
+		//exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
+		exp := regexp.MustCompile(`^eqlog_([^_]+)_([^_]+)\.txt$`)
 		follow := true
-		if fields := exp.FindStringSubmatch(c.parserPath); fields != nil {
+		filename := filepath.Base(c.parserPath)
+		if fields := exp.FindStringSubmatch(filename); fields != nil {
 			// find size of file
 			for _, f := range c.logOpenListener {
-				if !f(fields[2], fields[3], info.Size(), c.parserPath) {
+				if !f(fields[1], fields[2], info.Size(), c.parserPath) {
 					follow = false
 				}
 			}
+		} else {
+			log.Printf("Unable to open it!")
 		}
 		if follow {
 			c.readyForFollow <- struct{}{}

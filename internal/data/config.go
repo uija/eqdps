@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -87,6 +88,7 @@ func GetConfig() (*Config, error) {
 		RecentLogFiles: make([]string, 0),
 	}
 	path, err := AppDataPath("config.json")
+	log.Printf("Logpath: %s", path)
 	if err != nil {
 		return nil, err
 	}
