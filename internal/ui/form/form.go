@@ -11,6 +11,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
+	"gioui.org/widget"
 )
 
 type field struct {
@@ -65,7 +66,8 @@ type Form struct {
 	focusedID string
 	change    *FocusChange
 
-	outsideTag struct{}
+	outsideTag   struct{}
+	modalBlocker widget.Clickable
 
 	// Wrap controls whether Tab on the last field moves to the first field and
 	// Shift-Tab on the first moves to the last. New forms enable wrapping.
@@ -184,6 +186,9 @@ func (f *Form) SetOnBlur(id string, onBlur func()) error {
 // Update processes one form input phase. It must run after the previous
 // frame's input layer was registered and before any state-dependent layout.
 func (f *Form) Update(gtx layout.Context) {
+	for f.modalBlocker.Clicked(gtx) {
+	}
+
 	if focused, ok := f.field(f.focusedID); ok && !focused.active() {
 		gtx.Execute(key.FocusCmd{Tag: nil})
 		f.transition("")
@@ -243,6 +248,21 @@ func (f *Form) LayoutInputLayer(gtx layout.Context) layout.Dimensions {
 	defer pointer.PassOp{}.Push(gtx.Ops).Pop()
 	event.Op(gtx.Ops, &f.outsideTag)
 	return layout.Dimensions{Size: gtx.Constraints.Max}
+}
+
+// LayoutModalInputLayer registers the form input layer above a full-size
+// pointer barrier. Form controls rendered afterward remain interactive, while
+// controls beneath the modal form cannot receive its pointer events.
+func (f *Form) LayoutModalInputLayer(gtx layout.Context) layout.Dimensions {
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = gtx.Constraints.Max
+			return f.modalBlocker.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Dimensions{Size: gtx.Constraints.Max}
+			})
+		}),
+		layout.Expanded(f.LayoutInputLayer),
+	)
 }
 
 // Focus requests focus for an active control and reports whether it was found.

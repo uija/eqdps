@@ -99,7 +99,7 @@ func (m *Module) RenderDeleteOverlay(style *ui.Style, gtx layout.Context) layout
 	})
 }
 func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	m.event_form.LayoutInputLayer(gtx)
+	m.event_form.LayoutModalInputLayer(gtx)
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
 		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
