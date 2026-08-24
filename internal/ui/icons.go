@@ -31,6 +31,7 @@ var Check *widget.Icon
 var Exclamation *widget.Icon
 
 var Refresh *widget.Icon
+var Download *widget.Icon
 
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
@@ -56,6 +57,7 @@ func Init() {
 	Check = loadIcon(icons.NavigationCheck)
 	Exclamation = loadIcon(icons.NotificationPriorityHigh)
 	Refresh = loadIcon(icons.NavigationRefresh)
+	Download = loadIcon(icons.FileFileDownload)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

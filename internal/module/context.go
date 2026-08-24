@@ -1,6 +1,8 @@
 package module
 
 import (
+	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -17,6 +20,8 @@ import (
 	"github.com/uija/eqdps/internal/audio"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/eqlog"
+	"github.com/uija/eqdps/internal/github"
+	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/overlay"
 	"github.com/uija/eqdps/internal/ui"
 )
@@ -84,6 +89,12 @@ type Context struct {
 	Playback *audio.Playback
 
 	Overlay *overlay.Overlay
+
+	updateFound      chan github.Release
+	updateAvailable  *github.Release
+	updateBodyList   widget.List
+	updateLinkClick  widget.Clickable
+	updateCloseClick widget.Clickable
 }
 
 type ReplayRequest struct {
@@ -120,12 +131,33 @@ func NewContext(invalidateFunc func()) *Context {
 		indexingDone:    make(chan struct{}, 1),
 		invalidateFunc:  invalidateFunc,
 		Config:          config,
+		updateFound:     make(chan github.Release, 1),
 	}
 	p, err := audio.NewPlayback("")
 	if err != nil {
 		panic("Unable to initialize audio playback")
 	}
 	ctx.Playback = p
+	ctx.updateBodyList.Axis = layout.Vertical
+	if ctx.Config.CheckForUpdates {
+
+		go func() {
+			result, newUpdate, err := github.CheckNewVersion(ctx.Config.LastSeenVersion)
+			if err != nil {
+				log.Printf("Unable to fetch Github Version. %v", err)
+				return
+			}
+			if !newUpdate {
+				return
+			}
+			if ctx.Config.LastSeenVersion != "" {
+				ctx.updateFound <- result
+				invalidateFunc()
+			}
+			ctx.Config.LastSeenVersion = result.TagName
+		}()
+	}
+
 	return ctx
 }
 func (c *Context) ParserLogFileOpened(path string) {
@@ -260,10 +292,19 @@ func (c *Context) Update(gtx layout.Context) {
 	case <-c.readyForFollow:
 		c.startParser(c.parserPath, c.runFollow)
 		c.invalidateFunc()
+	case ud := <-c.updateFound:
+		c.updateAvailable = &ud
+		c.invalidateFunc()
 	default:
 	}
 	for _, f := range c.updateListener {
 		f(gtx)
+	}
+	if c.updateLinkClick.Clicked(gtx) && c.updateAvailable != nil {
+		native.OpenURL(c.updateAvailable.HTMLURL)
+	}
+	if c.updateCloseClick.Clicked(gtx) {
+		c.updateAvailable = nil
 	}
 }
 func (c *Context) startParser(path string, runFunc func()) {
@@ -352,7 +393,15 @@ func (c *Context) RegisterModule(m Module) error {
 }
 func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if c.currentMainView != nil {
-		return c.currentMainView(style, gtx)
+		//return material.Label(style.Theme, unit.Sp(14), "Test").Layout(gtx)
+		if c.updateAvailable == nil {
+			return c.currentMainView(style, gtx)
+		} else {
+			return layout.Stack{}.Layout(gtx,
+				layout.Expanded(func(gtx layout.Context) layout.Dimensions { return c.currentMainView(style, gtx) }),
+				c.RenderNewVersionOverlay(style, gtx),
+			)
+		}
 	} else {
 		return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			label := material.Label(style.Theme, unit.Sp(15), "No modules registered")
@@ -360,6 +409,49 @@ func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions 
 			return label.Layout(gtx)
 		})
 	}
+}
+func (c *Context) RenderNewVersionOverlay(style *ui.Style, gtx layout.Context) layout.StackChild {
+	return layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			width := min(gtx.Dp(unit.Dp(500)), gtx.Constraints.Max.X)
+			height := min(gtx.Dp(unit.Dp(300)), gtx.Constraints.Max.Y)
+			gtx.Constraints = layout.Exact(image.Pt(width, height))
+
+			ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
+			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						label := material.Label(style.Theme, unit.Sp(17), fmt.Sprintf("Version %s is ready for download!", c.updateAvailable.TagName))
+						label.Font.Weight = font.SemiBold
+						return label.Layout(gtx)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Top: unit.Dp(16), Left: unit.Dp(8), Right: unit.Dp(8), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							list := material.List(style.Theme, &c.updateBodyList)
+
+							return list.Layout(gtx, 1, func(gtx layout.Context, index int) layout.Dimensions {
+								label := material.Label(style.Theme, unit.Sp(15), c.updateAvailable.Body)
+								label.Color = style.Palette.Muted
+								return label.Layout(gtx)
+							})
+						})
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+							layout.Flexed(1, ui.IconLink(style, &c.updateLinkClick, ui.Download, "Go to Github").Layout),
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									link := ui.IconLink(style, &c.updateCloseClick, ui.Close, "Close")
+									link.TextColor = style.Palette.No
+									return link.Layout(gtx)
+								})
+							}),
+						)
+					}),
+				)
+			})
+		})
+	})
 }
 func (c *Context) GetLastLevelOffset() time.Time {
 	return c.lastLevelUp.Timestamp

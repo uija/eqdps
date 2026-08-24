@@ -51,14 +51,16 @@ type UIConfig struct {
 	OverlayOpacity   float32
 }
 type Config struct {
-	LastLogfile    string        `json:"last_logfile"`
-	RecentLogFiles []string      `json:"recent_logfiles"`
-	OpenOverlay    bool          `json:"open_overlay"`
-	Events         []EventConfig `json:"events"`
-	Volume         float32       `json:"volume"`
-	SpellIconSet   string        `json:"spell_icon_set"`
-	EQLDbConfig    EQLDbConfig   `json:"eqldb"`
-	UIConfig       UIConfig      `json:"ui"`
+	LastLogfile     string        `json:"last_logfile"`
+	RecentLogFiles  []string      `json:"recent_logfiles"`
+	OpenOverlay     bool          `json:"open_overlay"`
+	Events          []EventConfig `json:"events"`
+	Volume          float32       `json:"volume"`
+	SpellIconSet    string        `json:"spell_icon_set"`
+	EQLDbConfig     EQLDbConfig   `json:"eqldb"`
+	UIConfig        UIConfig      `json:"ui"`
+	CheckForUpdates bool          `json:"check_for_updates"`
+	LastSeenVersion string        `json:"last_seen_version"`
 }
 
 func (c *Config) Save() error {

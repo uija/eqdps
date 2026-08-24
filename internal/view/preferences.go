@@ -40,6 +40,7 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.upload_sky_items.Value = ctx.Config.EQLDbConfig.UploadSkyData
 	p.allow_eqldb_contribution.Value = ctx.Config.EQLDbConfig.ContributeKillAndLootData
 	p.overlay_opacity.Value = (ctx.Config.UIConfig.OverlayOpacity - 0.5) * 2
+	p.check_for_updates.Value = ctx.Config.CheckForUpdates
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -101,6 +102,10 @@ func (p *Preferences) Update(gtx layout.Context) {
 	}
 	if p.upload_sky_items.Value != p.ctx.Config.EQLDbConfig.UploadSkyData {
 		p.ctx.Config.EQLDbConfig.UploadSkyData = p.upload_sky_items.Value
+		p.ctx.Config.Save()
+	}
+	if p.check_for_updates.Value != p.ctx.Config.CheckForUpdates {
+		p.ctx.Config.CheckForUpdates = p.check_for_updates.Value
 		p.ctx.Config.Save()
 	}
 }
