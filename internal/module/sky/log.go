@@ -2,6 +2,7 @@ package sky
 
 import (
 	"log"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,32 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	}
 	changed := true
 	switch event.Type {
+	case data.LogRowEventTypeInventoryExport:
+		if m.replay || !m.ctx.Config.SkyConfig.ParseInventoryData {
+			return
+		}
+		exportPath := filepath.Join(
+			filepath.Dir(filepath.Dir(m.configPath)),
+			event.Data[1],
+		)
+		inv, err := ReadInventoryExport(exportPath, m.db)
+
+		if err != nil {
+			log.Printf("Unable to read inventory export. %v", err)
+			return
+		}
+		changed := false
+		for name, count := range inv {
+			lname := strings.ToLower(name)
+			if m.config.QuestItems[lname] != count {
+				m.config.QuestItems[lname] = count
+				changed = true
+			}
+		}
+		if changed {
+			m.config.Save()
+		}
+		m.invalidFunc()
 	case data.LogRowEventTypeItemDestroyed:
 		_, item_orig := normalizeItemName(event.Data[2])
 		count, err := strconv.Atoi(event.Data[1])

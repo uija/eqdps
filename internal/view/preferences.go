@@ -25,6 +25,7 @@ type Preferences struct {
 	open_eqlconnection_window widget.Clickable
 	upload_sky_items          widget.Bool
 	allow_eqldb_contribution  widget.Bool
+	sky_parse_inventory       widget.Bool
 
 	stop chan struct{}
 }
@@ -41,6 +42,7 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.allow_eqldb_contribution.Value = ctx.Config.EQLDbConfig.ContributeKillAndLootData
 	p.overlay_opacity.Value = (ctx.Config.UIConfig.OverlayOpacity - 0.5) * 2
 	p.check_for_updates.Value = ctx.Config.CheckForUpdates
+	p.sky_parse_inventory.Value = ctx.Config.SkyConfig.ParseInventoryData
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -108,6 +110,10 @@ func (p *Preferences) Update(gtx layout.Context) {
 		p.ctx.Config.CheckForUpdates = p.check_for_updates.Value
 		p.ctx.Config.Save()
 	}
+	if p.sky_parse_inventory.Value != p.ctx.Config.SkyConfig.ParseInventoryData {
+		p.ctx.Config.SkyConfig.ParseInventoryData = p.sky_parse_inventory.Value
+		p.ctx.Config.Save()
+	}
 }
 func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Preferences").Layout)
@@ -142,6 +148,7 @@ func (p *Preferences) RenderUpdatesSettings(style *ui.Style, gtx layout.Context)
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			p.RenderCheckForUpdates(style, gtx),
+			p.RenderSkyParseInventory(style, gtx),
 		)
 	})
 }
@@ -150,6 +157,14 @@ func (p *Preferences) RenderCheckForUpdates(style *ui.Style, gtx layout.Context)
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.CheckBox(style.Theme, &p.check_for_updates, "Check for updates").Layout),
 			layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Checks GitHub for newly published releases when the application starts").Layout),
+		)
+	})
+}
+func (p *Preferences) RenderSkyParseInventory(style *ui.Style, gtx layout.Context) layout.FlexChild {
+	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(material.CheckBox(style.Theme, &p.sky_parse_inventory, "Parse Inventory for Plane of Sky Items").Layout),
+			layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Parses inventory exports you do and updates your plane of sky items with items found in your inventory. Does not work for Wind Runes.").Layout),
 		)
 	})
 }

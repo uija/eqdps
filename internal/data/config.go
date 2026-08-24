@@ -42,13 +42,15 @@ type EQLDbConfig struct {
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
 type UIConfig struct {
-	MainWindowWidth  int
-	MainWindowHeight int
-	OverlayPlaced    bool
-	OverlayX         int
-	OverlayY         int
-	OverlayFontScale float32
-	OverlayOpacity   float32
+	MainWindowWidth  int     `json:"main_window_width"`
+	MainWindowHeight int     `json:"main_window_height"`
+	OverlayX         int     `json:"overlay_x"`
+	OverlayY         int     `json:"overlay_y"`
+	OverlayFontScale float32 `json:"overlay_font_scale"`
+	OverlayOpacity   float32 `json:"overlay_opacity"`
+}
+type SkyConfig struct {
+	ParseInventoryData bool `json:"parse_inventory_data"`
 }
 type Config struct {
 	LastLogfile     string        `json:"last_logfile"`
@@ -58,6 +60,7 @@ type Config struct {
 	Volume          float32       `json:"volume"`
 	SpellIconSet    string        `json:"spell_icon_set"`
 	EQLDbConfig     EQLDbConfig   `json:"eqldb"`
+	SkyConfig       SkyConfig     `json:"sky"`
 	UIConfig        UIConfig      `json:"ui"`
 	CheckForUpdates bool          `json:"check_for_updates"`
 	LastSeenVersion string        `json:"last_seen_version"`

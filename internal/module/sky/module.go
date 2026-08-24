@@ -75,19 +75,22 @@ type Module struct {
 	eqldb_events []eqldb.PlaneOfSkyEvent
 	stop         chan struct{}
 
+	inventoryDiff chan map[string]int
+
 	invalidFunc func()
 }
 
 func NewModule() *Module {
 	return &Module{
-		config:       Config{},
-		status:       make([]ClassStatus, 0),
-		tradeIn:      nil,
-		mainView:     func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
-		inventory:    make([]InventoryRow, 0),
-		invalidFunc:  func() {},
-		eqldb_events: make([]eqldb.PlaneOfSkyEvent, 0),
-		stop:         make(chan struct{}, 1),
+		config:        Config{},
+		status:        make([]ClassStatus, 0),
+		tradeIn:       nil,
+		mainView:      func(*ui.Style, layout.Context) layout.Dimensions { return layout.Dimensions{} },
+		inventory:     make([]InventoryRow, 0),
+		invalidFunc:   func() {},
+		eqldb_events:  make([]eqldb.PlaneOfSkyEvent, 0),
+		stop:          make(chan struct{}, 1),
+		inventoryDiff: make(chan map[string]int, 1),
 	}
 }
 
