@@ -27,11 +27,12 @@ func main() {
 		context.RegisterModule(events.NewModule())
 		context.RegisterModule(eqldb.NewModule())
 		//context.RegisterModule(statistics.NewModule())
-
+		width := max(1100, context.Config.UIConfig.MainWindowWidth)
+		height := max(640, context.Config.UIConfig.MainWindowHeight)
 		window.Option(
 			app.Title("eqdps"),
-			app.Size(unit.Dp(960), unit.Dp(640)),
-			app.MinSize(unit.Dp(640), unit.Dp(400)),
+			app.Size(unit.Dp(width), unit.Dp(height)),
+			app.MinSize(unit.Dp(1100), unit.Dp(400)),
 		)
 		if err := run(context, window); err != nil {
 			log.Print(err)
@@ -40,6 +41,9 @@ func main() {
 	}()
 	app.Main()
 }
+
+var lastMainWidth int
+var lastMainHeight int
 
 func run(context *module.Context, window *app.Window) error {
 	rootView := view.NewShell(context, func() {
@@ -52,9 +56,17 @@ func run(context *module.Context, window *app.Window) error {
 	for {
 		switch event := window.Event().(type) {
 		case app.DestroyEvent:
+			context.Config.UIConfig.MainWindowWidth = lastMainWidth
+			context.Config.UIConfig.MainWindowHeight = lastMainHeight
+			if context.Overlay != nil {
+				context.Overlay.Close()
+			}
+			context.Config.Save()
 			return event.Err
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, event)
+			lastMainWidth = int(gtx.Metric.PxToDp(gtx.Constraints.Max.X))
+			lastMainHeight = int(gtx.Metric.PxToDp(gtx.Constraints.Max.Y))
 			rootView.Layout(gtx)
 			event.Frame(gtx.Ops)
 		}

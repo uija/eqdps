@@ -68,7 +68,7 @@ type CombatInstance struct {
 func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	m.ctx = ctx
 	m.table.Axis = layout.Vertical
-	m.columns = append(m.columns, column{title: "Combatant", weight: 8})
+	m.columns = append(m.columns, column{title: "Combatant", weight: 6})
 	m.columns = append(m.columns, column{title: "Damage", weight: 1})
 	m.columns = append(m.columns, column{title: "Dps", weight: 1})
 	m.columns = append(m.columns, column{title: "SDps", weight: 1})

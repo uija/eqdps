@@ -23,6 +23,10 @@ type OverlayUpdate struct {
 }
 
 type Overlay struct {
+	nativeMu         sync.Mutex
+	nativeHandle     uintptr
+	positionRestored bool
+
 	style  *ui.Style
 	window *app.Window
 	list   widget.List
@@ -65,6 +69,9 @@ func NewOverlay(source *ui.Style, cfg *data.Config) *Overlay {
 	o.list.Axis = layout.Vertical
 	return o
 }
+func (o *Overlay) Config() *data.Config {
+	return o.config
+}
 func (o *Overlay) Invalidate() {
 	o.window.Invalidate()
 }
@@ -73,8 +80,11 @@ func (o *Overlay) Run(onEnd func()) {
 
 	var ops op.Ops
 	for {
-		switch event := o.window.Event().(type) {
+		e := o.window.Event()
+		handleNativeOverlayEvent(o, e)
+		switch event := e.(type) {
 		case app.DestroyEvent:
+			captureNativeOverlayPosition(o)
 			close(o.done)
 			onEnd()
 			return
@@ -86,6 +96,7 @@ func (o *Overlay) Run(onEnd func()) {
 	}
 }
 func (o *Overlay) Close() {
+	captureNativeOverlayPosition(o)
 	o.window.Perform(system.ActionClose)
 }
 func (o *Overlay) Send(update any) bool {
@@ -106,6 +117,8 @@ func (o *Overlay) handleUpdates() {
 				o.fight = a
 			case []data.TimerTracker:
 				o.timers = a
+			case float32:
+				setNativeOverlayOpacity(o, a)
 			}
 			o.fightMu.Unlock()
 			o.window.Invalidate()

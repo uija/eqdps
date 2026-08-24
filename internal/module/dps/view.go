@@ -101,7 +101,7 @@ func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.D
 					label := material.Body1(style.Theme, strings.ToUpper(col.title))
 					label.Color = style.Palette.Muted
 					label.TextSize = 16
-					label.Font.Weight = font.SemiBold
+					//				label.Font.Weight = font.SemiBold
 					if i == 0 {
 						return label.Layout(gtx)
 					}

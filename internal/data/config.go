@@ -41,7 +41,12 @@ type EQLDbConfig struct {
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
 type UIConfig struct {
+	MainWindowWidth  int
+	MainWindowHeight int
+	OverlayX         int
+	OverlayY         int
 	OverlayFontScale float32
+	OverlayOpacity   float32
 }
 type Config struct {
 	LastLogfile    string        `json:"last_logfile"`
@@ -73,6 +78,9 @@ func GetConfig() (*Config, error) {
 		Volume: 0.5,
 		UIConfig: UIConfig{
 			OverlayFontScale: 1.0,
+			OverlayOpacity:   1.0,
+			OverlayX:         1,
+			OverlayY:         1,
 		},
 		EQLDbConfig: EQLDbConfig{
 			UploadSkyData: true,
@@ -96,6 +104,9 @@ func GetConfig() (*Config, error) {
 	}
 	if config.RecentLogFiles == nil {
 		config.RecentLogFiles = make([]string, 0)
+	}
+	if config.UIConfig.OverlayOpacity < 0.2 {
+		config.UIConfig.OverlayOpacity = 1.0
 	}
 
 	return config, nil

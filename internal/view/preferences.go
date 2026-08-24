@@ -86,6 +86,13 @@ func (p *Preferences) Update(gtx layout.Context) {
 		p.ctx.Config.UIConfig.OverlayFontScale = 0.8 + (p.overlay_font_scale.Value * 0.4)
 		p.config_changed.Store(true)
 	}
+	if p.overlay_opacity.Dragging() {
+		p.ctx.Config.UIConfig.OverlayOpacity = 0.2 + (p.overlay_opacity.Value * 0.8)
+		p.config_changed.Store(true)
+		if p.ctx.Overlay != nil {
+			p.ctx.Overlay.Send(p.ctx.Config.UIConfig.OverlayOpacity)
+		}
+	}
 	if p.allow_eqldb_contribution.Value != p.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
 		p.ctx.Config.EQLDbConfig.ContributeKillAndLootData = p.allow_eqldb_contribution.Value
 		p.ctx.Config.Save()
