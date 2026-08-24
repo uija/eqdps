@@ -48,6 +48,7 @@ type UIConfig struct {
 	OverlayY         int     `json:"overlay_y"`
 	OverlayFontScale float32 `json:"overlay_font_scale"`
 	OverlayOpacity   float32 `json:"overlay_opacity"`
+	OverlayPlaced    bool    `json:"overlay_placed"`
 }
 type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`
