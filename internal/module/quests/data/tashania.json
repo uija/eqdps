@@ -1,0 +1,27 @@
+{
+  "name": "Spell: Tashania",
+  "description": "",
+  "link": "",
+  "classes": ["enchanter"],
+  "steps": [
+    {
+      "type": "talk",
+      "npc": {
+        "name": "",
+        "location": "",
+        "description": "",
+        "link": ""
+      },
+      "triggers": [
+        "what nose"
+      ],
+      "receive": [
+        {
+          "name": "bag of coins",
+          "link": "",
+          "description": "combines all 10 bags"
+        }
+      ]
+    }
+  ]
+}
