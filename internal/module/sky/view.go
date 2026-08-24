@@ -21,6 +21,9 @@ func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					children := make([]layout.FlexChild, 0)
+					children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return ui.Link(style, &m.edit_runes_click, "Missing Runes?").Layout(gtx)
+					}))
 					if active != "Progression" {
 						children = append(children,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -94,10 +97,24 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 			}),
 		)
 	}
-
-	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
-	})
+	if m.edit_runes {
+		return layout.Stack{}.Layout(gtx,
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+				})
+			}),
+			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return m.RenderRunesOverlay(style, gtx)
+				})
+			}),
+		)
+	} else {
+		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+		})
+	}
 }
 func (m *Module) RenderWatched(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	icon := ui.DelBox

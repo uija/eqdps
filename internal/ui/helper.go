@@ -156,14 +156,14 @@ func ColoredIconLabel(gtx layout.Context, th *material.Theme, size float32, icon
 	)
 }
 
-func TextField(editor *widget.Editor, hint string, style *Style, gtx layout.Context) layout.Dimensions {
+func TextFieldSized(editor *widget.Editor, hint string, width int, style *Style, gtx layout.Context) layout.Dimensions {
 	return layout.Stack{}.Layout(gtx,
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 			Fill(gtx, style.Palette.Border)
 			return layout.Dimensions{}
 		}),
 		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints.Min.X = min(gtx.Dp(unit.Dp(500)), gtx.Constraints.Max.X)
+			gtx.Constraints.Min.X = min(gtx.Dp(unit.Dp(width)), gtx.Constraints.Max.X)
 			return layout.UniformInset(unit.Dp(1)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Background{}.Layout(gtx,
 					func(gtx layout.Context) layout.Dimensions {
@@ -177,6 +177,9 @@ func TextField(editor *widget.Editor, hint string, style *Style, gtx layout.Cont
 			})
 		}),
 	)
+}
+func TextField(editor *widget.Editor, hint string, style *Style, gtx layout.Context) layout.Dimensions {
+	return TextFieldSized(editor, hint, 500, style, gtx)
 }
 func MaxedTextField(editor *widget.Editor, hint string, style *Style, gtx layout.Context) layout.Dimensions {
 	return layout.Stack{}.Layout(gtx,

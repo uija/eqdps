@@ -5,7 +5,9 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +22,7 @@ import (
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/ui"
+	"github.com/uija/eqdps/internal/ui/form"
 )
 
 var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
@@ -71,11 +74,20 @@ type Module struct {
 
 	notification *Notification
 
+	runeNames       []string
+	runeEditors     []*widget.Editor
+	runeForm        *form.Form
+	runeSaveClick   widget.Clickable
+	runeCancelClick widget.Clickable
+
 	mu           sync.Mutex
 	eqldb_events []eqldb.PlaneOfSkyEvent
 	stop         chan struct{}
 
 	inventoryDiff chan map[string]int
+
+	edit_runes_click widget.Clickable
+	edit_runes       bool
 
 	invalidFunc func()
 }
@@ -91,6 +103,7 @@ func NewModule() *Module {
 		eqldb_events:  make([]eqldb.PlaneOfSkyEvent, 0),
 		stop:          make(chan struct{}, 1),
 		inventoryDiff: make(chan map[string]int, 1),
+		runeNames:     make([]string, 0),
 	}
 }
 
@@ -150,6 +163,33 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.questlist.Axis = layout.Vertical
 	m.inventorylist.Axis = layout.Vertical
 	m.BuildStatusFromDatabase()
+	m.runeEditors = make([]*widget.Editor, len(m.runeNames))
+	m.runeForm = form.New()
+	for idx, name := range m.runeNames {
+		m.runeEditors[idx] = &widget.Editor{SingleLine: true}
+		m.runeForm.AddEditor(name, m.runeEditors[idx], func(ee widget.EditorEvent) {})
+	}
+	m.runeForm.AddButton("save", &m.runeSaveClick, func() {
+		if m.config.QuestItems != nil {
+			for idx, name := range m.runeNames {
+				lname := strings.ToLower(name)
+				i, err := strconv.Atoi(m.runeEditors[idx].Text())
+				if err == nil {
+					if i == 0 {
+						delete(m.config.QuestItems, lname)
+					} else {
+						m.config.QuestItems[lname] = i
+					}
+				}
+				m.config.Save()
+			}
+		}
+		m.edit_runes = false
+	})
+	m.runeForm.AddButton("cancel", &m.runeCancelClick, func() {
+		m.edit_runes = false
+	})
+
 	m.mainView = m.MainView
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
@@ -219,6 +259,11 @@ func (m *Module) BuildStatusFromDatabase() {
 					is.Hint = "Random trash drop"
 				}
 				qs.Items = append(qs.Items, is)
+				if strings.Contains(i.Name, "Wind Rune") {
+					if !slices.Contains(m.runeNames, i.Name) {
+						m.runeNames = append(m.runeNames, i.Name)
+					}
+				}
 			}
 			qs.MissingItems = len(qs.Items)
 
@@ -316,6 +361,7 @@ func (m *Module) Shutdown() {
 	m.stop <- struct{}{}
 }
 func (m *Module) Update(gtx layout.Context) {
+	m.runeForm.Update(gtx)
 	for cidx := range m.status {
 		if m.status[cidx].ToggleClick.Clicked(gtx) {
 			m.status[cidx].Visible = !m.status[cidx].Visible
@@ -376,6 +422,18 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.watched_click.Clicked(gtx) {
 		m.config.HideWatched = !m.config.HideWatched
 		m.config.Save()
+	}
+	if m.edit_runes_click.Clicked(gtx) {
+		m.edit_runes = !m.edit_runes
+		if m.config.QuestItems != nil {
+			if m.edit_runes {
+				for idx, name := range m.runeNames {
+					lname := strings.ToLower(name)
+					val := m.config.QuestItems[lname]
+					m.runeEditors[idx].SetText(strconv.Itoa(val))
+				}
+			}
+		}
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
