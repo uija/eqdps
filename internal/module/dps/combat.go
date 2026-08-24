@@ -113,12 +113,8 @@ func (c *Combat) getActiveFight(event *data.DamageEvent) *data.Fight {
 			return gp.Fight
 		}
 	default:
-		if _, ok := c.gracePeriodFights[sourceFightName]; ok {
-			delete(c.gracePeriodFights, sourceFightName)
-		}
-		if _, ok := c.gracePeriodFights[targetFightName]; ok {
-			delete(c.gracePeriodFights, targetFightName)
-		}
+		delete(c.gracePeriodFights, sourceFightName)
+		delete(c.gracePeriodFights, targetFightName)
 	}
 
 	mob := target
