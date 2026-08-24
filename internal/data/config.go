@@ -43,6 +43,7 @@ type EQLDbConfig struct {
 type UIConfig struct {
 	MainWindowWidth  int
 	MainWindowHeight int
+	OverlayPlaced    bool
 	OverlayX         int
 	OverlayY         int
 	OverlayFontScale float32
@@ -79,8 +80,6 @@ func GetConfig() (*Config, error) {
 		UIConfig: UIConfig{
 			OverlayFontScale: 1.0,
 			OverlayOpacity:   1.0,
-			OverlayX:         1,
-			OverlayY:         1,
 		},
 		EQLDbConfig: EQLDbConfig{
 			UploadSkyData: true,

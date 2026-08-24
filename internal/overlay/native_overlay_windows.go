@@ -44,12 +44,7 @@ func handleNativeOverlayEvent(overlay *Overlay, event any) {
 	overlay.nativeMu.Lock()
 	config := overlay.Config()
 	overlay.nativeHandle = view.HWND
-	hasSavedPosition := func() bool {
-		if config.UIConfig.OverlayX != 0 && config.UIConfig.OverlayY != 0 {
-			return true
-		}
-		return false
-	}()
+	hasSavedPosition := config.UIConfig.OverlayPlaced
 	restorePosition := hasSavedPosition && !overlay.positionRestored
 	if restorePosition {
 		overlay.positionRestored = true
@@ -77,6 +72,7 @@ func captureNativeOverlayPosition(overlay *Overlay) {
 	if rect, ok := windowRect(hwnd); ok {
 		overlay.Config().UIConfig.OverlayX = int(rect.left)
 		overlay.Config().UIConfig.OverlayY = int(rect.top)
+		overlay.Config().UIConfig.OverlayPlaced = true
 		overlay.Config().Save()
 	}
 }
