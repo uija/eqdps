@@ -9,6 +9,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/module"
+	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -38,6 +39,7 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.config_changed.Store(false)
 	p.upload_sky_items.Value = ctx.Config.EQLDbConfig.UploadSkyData
 	p.allow_eqldb_contribution.Value = ctx.Config.EQLDbConfig.ContributeKillAndLootData
+	p.overlay_opacity.Value = (ctx.Config.UIConfig.OverlayOpacity - 0.5) * 2
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -87,7 +89,7 @@ func (p *Preferences) Update(gtx layout.Context) {
 		p.config_changed.Store(true)
 	}
 	if p.overlay_opacity.Dragging() {
-		p.ctx.Config.UIConfig.OverlayOpacity = 0.2 + (p.overlay_opacity.Value * 0.8)
+		p.ctx.Config.UIConfig.OverlayOpacity = 0.5 + (p.overlay_opacity.Value * 0.5)
 		p.config_changed.Store(true)
 		if p.ctx.Overlay != nil {
 			p.ctx.Overlay.Send(p.ctx.Config.UIConfig.OverlayOpacity)
@@ -106,11 +108,13 @@ func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.D
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Preferences").Layout)
 }
 func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	children := make([]layout.FlexChild, 0)
+	if native.SupportWindowOppacity() {
+		children = append(children, p.RenderOverlayOpacity(style, gtx))
+	}
+	children = append(children, p.RenderOverlayFontScale(style, gtx))
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			p.RenderOverlayOpacity(style, gtx),
-			p.RenderOverlayFontScale(style, gtx),
-		)
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	})
 }
 func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) layout.FlexChild {

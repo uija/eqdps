@@ -2,10 +2,6 @@
 
  - eqldb: send items / kills
  - Overlay: Combat timeout / Remove last fight
- - Overlay: Opacity
- - Overlay: Position/Size persistend
- - Mainwindow: Position/Size persistence
- - Windows only "always on top"
 
 ## Not in v1
  - DPS: Combat History row limit?
@@ -30,6 +26,10 @@
  - ~~DPS: track engagement for SDPS~~
  - ~~Sky: Open Quest reward in browser~~
  - ~~Sky: Watch Quests~~
+ - ~~Overlay: Opacity~~
+ - ~~Overlay: Position/Size persistend~~
+ - ~~Mainwindow: Position/Size persistence~~
+ - ~~Windows only "always on top"~~
 
 
  Fight timeout:
