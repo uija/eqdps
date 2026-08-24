@@ -30,26 +30,6 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 		stacks...,
 	)
 }
-func (m *Module) RenderSpellIconOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		width := min(gtx.Dp(unit.Dp(400)), gtx.Constraints.Max.X)
-		gtx.Constraints.Max.X = width
-		gtx.Constraints.Min.X = width
-
-		ui.FillOverlay(gtx, style.Palette.Accent, style.Palette.Border)
-		return layout.Stack{}.Layout(gtx,
-			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-				ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)
-				return layout.Dimensions{Size: gtx.Constraints.Min}
-			}),
-			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, unit.Sp(15), "Hallo Welt").Layout(gtx)
-				})
-			}),
-		)
-	})
-}
 func (m *Module) RenderDeleteOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		width := min(gtx.Dp(unit.Dp(400)), gtx.Constraints.Max.X)
@@ -143,8 +123,11 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 	if t == data.EventTypeSpell || t == data.EventTypeTimer {
 		children = append(children, layout.Rigid(m.SelectBoxRow(m.class_select, "Class", style, gtx)))
 		children = append(children, layout.Rigid(m.SelectBoxRow(m.spell_select, "Spell", style, gtx)))
-		children = append(children, layout.Rigid(m.SelectBoxRow(m.target_select, "Check for fade on", style, gtx)))
-
+		if t == data.EventTypeSpell {
+			children = append(children, layout.Rigid(m.SelectBoxRow(m.target_select, "Check for fade on", style, gtx)))
+		} else {
+			m.event_form.SetVisible("target", false)
+		}
 	} else {
 		m.event_form.SetVisible("class", false)
 		m.event_form.SetVisible("spell", false)
