@@ -324,20 +324,26 @@ func (m *Module) Update(gtx layout.Context) {
 			}
 			if m.status[cidx].Quests[qidx].WatchClick.Clicked(gtx) {
 				m.status[cidx].Quests[qidx].Watched = true
-				m.config.Watched[quest.Key] = true
-				m.config.Save()
+				if m.config.Watched != nil {
+					m.config.Watched[quest.Key] = true
+					m.config.Save()
+				}
 			}
 			if m.status[cidx].Quests[qidx].UnwatchClick.Clicked(gtx) {
 				m.status[cidx].Quests[qidx].Watched = false
-				delete(m.config.Watched, quest.Key)
-				m.config.Save()
+				if m.config.Watched != nil {
+					delete(m.config.Watched, quest.Key)
+					m.config.Save()
+				}
 			}
 
 			if m.status[cidx].Quests[qidx].RedoQuestClick.Clicked(gtx) {
-				if m.config.RedoQuests[quest.Key].IsZero() {
-					m.config.RedoQuests[quest.Key] = time.Now()
-				} else {
-					delete(m.config.RedoQuests, quest.Key)
+				if m.config.RedoQuests != nil {
+					if m.config.RedoQuests[quest.Key].IsZero() {
+						m.config.RedoQuests[quest.Key] = time.Now()
+					} else {
+						delete(m.config.RedoQuests, quest.Key)
+					}
 				}
 				m.RecalculateStatus()
 			}
