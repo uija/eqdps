@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -25,7 +24,7 @@ import (
 	"github.com/uija/eqdps/internal/ui/form"
 )
 
-var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
+//var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
 
 const HeaderSize = 15
 const RowSize = 14

@@ -6,7 +6,6 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,28 +18,7 @@ import (
 	//_ "github.com/glebarez/go-sqlite"
 )
 
-var itemUpgradeSuffixRE = regexp.MustCompile(` \+[0-9]+$`)
 var zoneVariantSuffixRE = regexp.MustCompile(`(?: - (?:Group|Solo)(?: [0-9]+)?(?: \([^)]+\))?| [0-9]+ \([^)]+\))$`)
-
-func normalizeItemName(value string) (int, string) {
-	value = strings.TrimSpace(value)
-	prefix, name, found := strings.Cut(value, " ")
-	if !found {
-		return 1, itemUpgradeSuffixRE.ReplaceAllString(value, "")
-	}
-
-	quantity := 1
-	if !strings.EqualFold(prefix, "a") && !strings.EqualFold(prefix, "an") {
-		parsed, err := strconv.Atoi(prefix)
-		if err != nil || parsed < 1 {
-			return 1, itemUpgradeSuffixRE.ReplaceAllString(value, "")
-		}
-		quantity = parsed
-	}
-
-	name = itemUpgradeSuffixRE.ReplaceAllString(strings.TrimSpace(name), "")
-	return quantity, name
-}
 
 func normalizeZoneName(name string) string {
 	return zoneVariantSuffixRE.ReplaceAllString(strings.TrimSpace(name), "")
@@ -114,7 +92,7 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 		}
 	case data.LogRowEventTypeLoot,
 		data.LogRowEventTypeLootResult:
-		quantity, item := normalizeItemName(e.Data[1])
+		quantity, item := data.NormalizeItemName(e.Data[1])
 		mob := e.Data[2]
 		mobid, err := GetOrCreateMob(m.db, m.currentZone, mob)
 		if err != nil {

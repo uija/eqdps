@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/uija/eqdps/internal/data"
 )
 
 // ReadInventoryExport returns quantities for known Plane of Sky quest items.
@@ -63,7 +65,7 @@ func ReadInventoryExport(path string, database Database) (map[string]int, error)
 }
 
 func knownItem(db *Database, name string) (string, bool) {
-	_, item := normalizeItemName(name)
+	_, item := data.NormalizeItemName(name)
 	for _, c := range db.Classes {
 		for _, q := range c.Quests {
 			for _, i := range q.Requirements {

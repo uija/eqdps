@@ -23,7 +23,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	case data.LogRowEventTypeInventoryExport:
 		m.HandleInventoryUpload(event)
 	case data.LogRowEventTypeItemDestroyed:
-		_, item_orig := normalizeItemName(event.Data[2])
+		_, item_orig := data.NormalizeItemName(event.Data[2])
 		count, err := strconv.Atoi(event.Data[1])
 		if err != nil {
 			return
@@ -45,13 +45,13 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		}
 
 	case data.LogRowEventTypeLoot:
-		quantity, item := normalizeItemName(event.Data[1])
+		quantity, item := data.NormalizeItemName(event.Data[1])
 		if m.HandleLootedItems(quantity, item) {
 			m.EqlDbItem(item, quantity, event.Timestamp)
 			changed = true
 		}
 	case data.LogRowEventTypeLootResult:
-		quantity, item := normalizeItemName(event.Data[1])
+		quantity, item := data.NormalizeItemName(event.Data[1])
 		if strings.Contains(event.Data[3], "and stored") {
 			if m.HandleLootedItems(quantity, item) {
 				m.EqlDbItem(item, quantity, event.Timestamp)
@@ -63,7 +63,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		if err != nil {
 			return
 		}
-		_, item := normalizeItemName("a " + event.Data[2])
+		_, item := data.NormalizeItemName("a " + event.Data[2])
 		lname := strings.ToLower(item)
 
 		npc := event.Data[3]
@@ -159,25 +159,6 @@ func (m *Module) HandleLootedItems(quantity int, item string) bool {
 		}
 	}
 	return false
-}
-func normalizeItemName(value string) (int, string) {
-	value = strings.TrimSpace(value)
-	prefix, item, ok := strings.Cut(value, " ")
-	if !ok {
-		return 1, itemUpgradeSuffixRE.ReplaceAllString(value, "")
-	}
-
-	quantity := 1
-	if !strings.EqualFold(prefix, "a") && !strings.EqualFold(prefix, "an") {
-		parsed, err := strconv.Atoi(prefix)
-		if err != nil || parsed < 1 {
-			return 1, itemUpgradeSuffixRE.ReplaceAllString(value, "")
-		}
-		quantity = parsed
-	}
-
-	item = strings.TrimSpace(item)
-	return quantity, itemUpgradeSuffixRE.ReplaceAllString(item, "")
 }
 func (m *Module) EqlDbQuest(name string, timestamp time.Time) {
 	if !m.ctx.Config.EQLDbConfig.UploadSkyData {

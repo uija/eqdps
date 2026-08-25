@@ -3,6 +3,7 @@ package eqldb
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
+	"github.com/uija/eqdps/internal/eqldb"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
@@ -59,6 +61,12 @@ type Module struct {
 
 	upload_status int
 	upload_timer  time.Time
+
+	recentKills []eqldb.KillObservation
+	killQueue   []eqldb.KillObservation
+	lootQueue   []eqldb.DropObservation
+
+	lastCoinReward time.Time
 }
 
 func NewModule() *Module {
@@ -66,6 +74,9 @@ func NewModule() *Module {
 		process_stage: connectionIdle,
 		stop:          make(chan struct{}),
 		upload_status: -1,
+		recentKills:   make([]eqldb.KillObservation, 0),
+		killQueue:     make([]eqldb.KillObservation, 0),
+		lootQueue:     make([]eqldb.DropObservation, 0),
 	}
 }
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
@@ -100,16 +111,41 @@ func (m *Module) OnLogOpen(characterName string, serverName string, size int64, 
 }
 func (m *Module) CheckUploadData() {
 	ticker := time.NewTicker(time.Second)
+	itemUploadTicks := 0
 	defer ticker.Stop()
 
 	for {
 		select {
 		case now := <-ticker.C:
 			m.TickInventoryExport(now)
+			itemUploadTicks++
+			if itemUploadTicks > 10 {
+				m.CheckAndSendContribution()
+				itemUploadTicks = 0
+			}
 		case <-m.stop:
 			return
 		}
 	}
+}
+func (m *Module) CheckAndSendContribution() {
+	if !m.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
+		return
+	}
+	m.mu.Lock()
+	// on error, we loose the info. Thats sad, but as we are watching log live, internet is working, so website is down
+	// or access token is not there, so nothing that will change in the next minute or so
+	if len(m.killQueue) > 0 {
+		killQueue := append([]eqldb.KillObservation{}, m.killQueue...)
+		m.killQueue = m.killQueue[:0]
+		go eqldb.UploadKillObservations(m.ctx.Config.EQLDbConfig.AccessToken, killQueue...)
+	}
+	if len(m.lootQueue) > 0 {
+		lootQueue := append([]eqldb.DropObservation{}, m.lootQueue...)
+		m.lootQueue = m.lootQueue[:0]
+		go eqldb.UploadDropObservations(m.ctx.Config.EQLDbConfig.AccessToken, lootQueue...)
+	}
+	m.mu.Unlock()
 }
 func (m *Module) TickInventoryExport(now time.Time) {
 	if m.upload_status >= 0 {
@@ -142,6 +178,10 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	if m.replay.Load() {
 		return
 	}
+	m.recentKills = slices.DeleteFunc(m.recentKills, func(k eqldb.KillObservation) bool {
+		return e.Timestamp.Sub(k.Time) > 2*time.Minute
+	})
+
 	switch e.Type {
 	case data.LogRowEventTypeWho:
 		name := e.Data[3]
@@ -174,6 +214,57 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 			Timestamp: time.Now(),
 		}
 		m.mu.Unlock()
+	case data.LogRowEventTypeYouSlain:
+		if !m.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
+			return
+		}
+		m.mu.Lock()
+		m.lastCoinReward = time.Time{}
+		m.killQueue = append(m.killQueue, eqldb.NewKillObservation(e.Timestamp, e.Metadata.Zone, e.Data[1]))
+		m.mu.Unlock()
+
+	case data.LogRowEventTypeSlainBy:
+		if !m.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
+			return
+		}
+		if strings.EqualFold(e.Data[1], "You") {
+			m.recentKills = m.recentKills[:0]
+			return
+		}
+		elapsed := e.Timestamp.Sub(m.lastCoinReward)
+		if !m.lastCoinReward.IsZero() && elapsed >= 0 && elapsed <= 2*time.Second {
+			m.lastCoinReward = time.Time{}
+			m.mu.Lock()
+			m.killQueue = append(m.killQueue, eqldb.NewKillObservation(e.Timestamp, e.Metadata.Zone, e.Data[1]))
+			m.mu.Unlock()
+		} else {
+			m.recentKills = append(m.recentKills, eqldb.NewKillObservation(e.Timestamp, e.Metadata.Zone, e.Data[1]))
+		}
+
+	case data.LogRowEventTypeLoot,
+		data.LogRowEventTypeLootResult:
+		//{data.LogRowEventTypeLoot, regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`), []string{"--You have looted ", " from ", "'s corpse.--"}},
+		//{data.LogRowEventTypeLootResult, regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`), []string{"You looted ", " from ", "'s corpse "}},
+		if !m.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
+			return
+		}
+		m.mu.Lock()
+		// confirm kills
+		m.recentKills = slices.DeleteFunc(m.recentKills, func(k eqldb.KillObservation) bool {
+			if strings.EqualFold(k.Mob, e.Data[2]) {
+				m.killQueue = append(m.killQueue, k)
+				return true
+			}
+			return false
+		})
+		amount, item := data.NormalizeItemName(e.Data[1])
+		m.lootQueue = append(m.lootQueue, eqldb.NewDropObservation(e.Timestamp, e.Metadata.Zone, e.Data[2], item, amount))
+		m.mu.Unlock()
+	case data.LogRowEventTypeCorpseCoinReward:
+		m.lastCoinReward = e.Timestamp
+
+	case data.LogRowEventTypeZoneChange:
+		m.recentKills = m.recentKills[:0]
 	}
 }
 
