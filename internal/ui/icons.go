@@ -33,6 +33,9 @@ var Exclamation *widget.Icon
 var Refresh *widget.Icon
 var Download *widget.Icon
 
+var Import *widget.Icon
+var Export *widget.Icon
+
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
 	ActionVisibilityOff = loadIcon(icons.ActionVisibilityOff)
@@ -58,6 +61,9 @@ func Init() {
 	Exclamation = loadIcon(icons.NotificationPriorityHigh)
 	Refresh = loadIcon(icons.NavigationRefresh)
 	Download = loadIcon(icons.FileFileDownload)
+
+	Import = loadIcon(icons.FileFolderOpen)
+	Export = loadIcon(icons.ContentSave)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

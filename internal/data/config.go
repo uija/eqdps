@@ -20,20 +20,20 @@ const (
 )
 
 type EventConfig struct {
-	Type                EventType `json:"type"`
-	Title               string    `json:"title"`
-	Class               string    `json:"class,omitempty"`
-	Spell               string    `json:"spell,omitempty"`
-	Expression          string    `json:"expression"`
-	ExpressionOthers    string    `json:"expression_others"`
-	FullExpression      bool      `json:"full_expression"`
-	Duration            int       `json:"duration,omitempty"`
-	Notification        string    `json:"notification"`
-	PersistNotification bool      `json:"persist_notification"`
-	Sound               string    `json:"sound"`
-	Active              bool      `json:"active"`
-	RegExp              *regexp.Regexp
-	RegExpOthers        *regexp.Regexp
+	Type                EventType      `json:"type"`
+	Title               string         `json:"title"`
+	Class               string         `json:"class,omitempty"`
+	Spell               string         `json:"spell,omitempty"`
+	Expression          string         `json:"expression"`
+	ExpressionOthers    string         `json:"expression_others"`
+	FullExpression      bool           `json:"full_expression"`
+	Duration            int            `json:"duration,omitempty"`
+	Notification        string         `json:"notification"`
+	PersistNotification bool           `json:"persist_notification"`
+	Sound               string         `json:"sound"`
+	Active              bool           `json:"active"`
+	RegExp              *regexp.Regexp `json:"-"`
+	RegExpOthers        *regexp.Regexp `json:"-"`
 }
 type EQLDbConfig struct {
 	ContributeKillAndLootData bool      `json:"contribute"`

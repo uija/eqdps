@@ -25,7 +25,13 @@ import (
 	"github.com/uija/eqdps/internal/ui/form"
 )
 
+type ImportSuccess struct {
+	Imported  int
+	Skipped   int
+	Timestamp time.Time
+}
 type Module struct {
+	mu     sync.Mutex
 	ctx    *module.Context
 	replay atomic.Bool
 
@@ -76,6 +82,16 @@ type Module struct {
 	gracePeriodTimers map[string]data.TimerTracker
 	runningTimers     map[string]data.TimerTracker
 	tmu               sync.RWMutex
+
+	export_click widget.Clickable
+	import_click widget.Clickable
+
+	export_running atomic.Bool
+
+	export_success time.Time
+	import_success *ImportSuccess
+
+	invalidateFunc func()
 }
 
 func NewModule() *Module {
@@ -99,6 +115,7 @@ func NewModule() *Module {
 		gracePeriodTimers:  make(map[string]data.TimerTracker),
 		runningTimers:      make(map[string]data.TimerTracker),
 		spell_icon_sets:    make([]string, 0),
+		invalidateFunc:     func() {},
 	}
 	mustRegister := func(err error) {
 		if err != nil {
@@ -132,7 +149,7 @@ func NewModule() *Module {
 	return m
 }
 
-func (m *Module) Init(ctx *module.Context, _ func()) error {
+func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.ctx = ctx
 	ctx.AddViewMenuItem("Events", m.OpenMainView)
 	ctx.AddSidebarItem("Events", m.OpenMainView)
@@ -151,7 +168,7 @@ func (m *Module) Init(ctx *module.Context, _ func()) error {
 	m.events_list.Axis = layout.Vertical
 	m.UpdateSpellsAndClasses()
 	m.volume.Value = m.ctx.Config.Volume
-
+	m.invalidateFunc = invalidate
 	go m.TimerRun()
 
 	return nil
@@ -191,6 +208,14 @@ func (m *Module) TimerRun() {
 				if m.ctx.Overlay != nil {
 					m.ctx.Overlay.Send(timers)
 				}
+			}
+			if !m.export_success.IsZero() && time.Now().Sub(m.export_success) > 5*time.Second {
+				m.export_success = time.Time{}
+				m.invalidateFunc()
+			}
+			if m.import_success != nil && time.Now().Sub(m.import_success.Timestamp) > 5*time.Second {
+				m.import_success = nil
+				m.invalidateFunc()
 			}
 			m.tmu.Unlock()
 		case <-m.stop:
@@ -277,12 +302,18 @@ func (m *Module) Update(gtx layout.Context) {
 			m.event_form.Focus(gtx, "title")
 		}
 		if m.activate_click[idx].Clicked(gtx) {
-			m.ctx.Config.Events[idx].Active = !m.ctx.Config.Events[idx].Active
-			m.ctx.Config.Save()
+			m.mu.Lock()
+			if idx < len(m.ctx.Config.Events) {
+				m.ctx.Config.Events[idx].Active = !m.ctx.Config.Events[idx].Active
+				m.ctx.Config.Save()
+			}
+			m.mu.Unlock()
 		}
 	}
 	if m.do_delete_click.Clicked(gtx) {
+		m.mu.Lock()
 		if m.delete_id < 0 || m.delete_id >= len(m.ctx.Config.Events) {
+			m.mu.Unlock()
 			m.delete_id = -1
 			m.edit_index = -1
 			return
@@ -291,6 +322,7 @@ func (m *Module) Update(gtx layout.Context) {
 		m.delete_id = -1
 		m.edit_index = -1
 		m.ctx.Config.Save()
+		m.mu.Unlock()
 	}
 	if m.cancel_delete_click.Clicked(gtx) {
 		m.delete_id = -1
@@ -322,6 +354,20 @@ func (m *Module) Update(gtx layout.Context) {
 			m.validation_state = -1
 		}
 	}
+	if m.export_click.Clicked(gtx) {
+		if m.export_running.Load() {
+			return
+		}
+		m.export_running.Store(true)
+		go m.ExportEvents()
+	}
+	if m.import_click.Clicked(gtx) {
+		if m.export_running.Load() {
+			return
+		}
+		m.export_running.Store(true)
+		go m.ImportEvents()
+	}
 }
 func (m *Module) PrepareToCreate(t data.EventType) {
 	m.edit_index = -1
@@ -342,8 +388,10 @@ func (m *Module) PrepareToCreate(t data.EventType) {
 func (m *Module) SelectToEdit(idx int) {
 	m.edit_index = idx
 	m.create_type = data.EventTypeUndefined
+	m.mu.Lock()
 	if m.edit_index >= 0 && m.edit_index < len(m.ctx.Config.Events) {
-		val := &m.ctx.Config.Events[m.edit_index]
+		val := m.ctx.Config.Events[m.edit_index]
+		m.mu.Unlock()
 		m.title_field.SetText(val.Title)
 		if val.Class != "" {
 			m.class_select.Select(val.Class)
@@ -379,11 +427,17 @@ func (m *Module) SelectToEdit(idx int) {
 		} else {
 			m.sound_select.SetSelected(0)
 		}
+		return
 	}
+	m.mu.Unlock()
 }
 func (m *Module) OnSave() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	var val *data.EventConfig = nil
-	if m.edit_index >= 0 && len(m.ctx.Config.Events) > m.edit_index {
+	editing := m.edit_index >= 0 && len(m.ctx.Config.Events) > m.edit_index
+	if editing {
 		val = &m.ctx.Config.Events[m.edit_index]
 	} else {
 		val = &data.EventConfig{
@@ -425,7 +479,7 @@ func (m *Module) OnSave() {
 	val.Notification = m.notification_field.Text()
 	val.PersistNotification = m.persistent_check.Value
 	val.Sound = m.sound_select.Value()
-	if m.edit_index >= 0 {
+	if editing {
 		m.ctx.Config.Events[m.edit_index] = *val
 	} else {
 		m.ctx.Config.Events = append(m.ctx.Config.Events, *val)
@@ -439,7 +493,17 @@ func (m *Module) OnCancel() {
 	m.create_type = data.EventTypeUndefined
 }
 func (m *Module) LayoutStatus(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return material.Label(style.Theme, 14, "No events active").Layout(gtx)
+	if !m.export_success.IsZero() {
+		label := material.Label(style.Theme, ui.Sp(14), "Events exported successfully")
+		label.Color = style.Palette.Yes
+		return label.Layout(gtx)
+	}
+	if m.import_success != nil {
+		label := material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d imported, %d skipped.", m.import_success.Imported, m.import_success.Skipped))
+		label.Color = style.Palette.Yes
+		return label.Layout(gtx)
+	}
+	return material.Label(style.Theme, ui.Sp(14), "No events active").Layout(gtx)
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) bool {
@@ -476,10 +540,35 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	if m.replay.Load() {
 		return
 	}
-	if len(m.ctx.Config.Events) == 0 {
+
+	m.mu.Lock()
+	events := slices.Clone(m.ctx.Config.Events)
+	for idx := range events {
+		event := &events[idx]
+		if event.Type != data.EventTypeRegexp {
+			continue
+		}
+		if event.Expression != "" && event.RegExp == nil {
+			compiled, err := regexp.Compile(event.Expression)
+			if err == nil {
+				event.RegExp = compiled
+				m.ctx.Config.Events[idx].RegExp = compiled
+			}
+		}
+		if event.ExpressionOthers != "" && event.RegExpOthers == nil {
+			compiled, err := regexp.Compile(event.ExpressionOthers)
+			if err == nil {
+				event.RegExpOthers = compiled
+				m.ctx.Config.Events[idx].RegExpOthers = compiled
+			}
+		}
+	}
+	m.mu.Unlock()
+
+	if len(events) == 0 {
 		return
 	}
-	for idx, event := range m.ctx.Config.Events {
+	for _, event := range events {
 		if !event.Active {
 			continue
 		}
@@ -492,20 +581,6 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 				m.Notify(event)
 			}
 		case data.EventTypeRegexp:
-			if event.Expression != "" && event.RegExp == nil {
-				regexp, err := regexp.Compile(event.Expression)
-				if err == nil {
-					m.ctx.Config.Events[idx].RegExp = regexp
-					event.RegExp = regexp
-				}
-			}
-			if event.ExpressionOthers != "" && event.RegExpOthers == nil {
-				regexp, err := regexp.Compile(event.ExpressionOthers)
-				if err == nil {
-					m.ctx.Config.Events[idx].RegExpOthers = regexp
-					event.RegExpOthers = regexp
-				}
-			}
 			if event.RegExp != nil {
 				if event.RegExp.Match([]byte(e.Message)) {
 					m.Notify(event)
