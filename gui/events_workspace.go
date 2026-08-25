@@ -49,8 +49,11 @@ type eventsGUI struct {
 	addTextClick  widget.Clickable
 	addRegexClick widget.Clickable
 	iconClick     widget.Clickable
+	exportClick   widget.Clickable
 	activeClicks  []widget.Clickable
 	editClicks    []widget.Clickable
+	exportBusy    bool
+	exportResults chan eventExportResult
 
 	titleEditor        widget.Editor
 	patternEditor      widget.Editor
@@ -131,22 +134,23 @@ func newEventsGUI(window appWindow, store *eventstore.Store, runtime *eventrunti
 		return nil, err
 	}
 	ui := &eventsGUI{
-		window:      window,
-		store:       store,
-		runtime:     runtime,
-		logPath:     logPath,
-		events:      events,
-		spells:      spells,
-		sounds:      sounds,
-		classes:     guiEventClasses(spells),
-		screen:      "list",
-		list:        widget.List{List: layout.List{Axis: layout.Vertical}},
-		editorList:  widget.List{List: layout.List{Axis: layout.Vertical}},
-		pickerList:  widget.List{List: layout.List{Axis: layout.Vertical}},
-		iconSetup:   iconSetup,
-		iconResults: make(chan iconExtractionResult, 1),
-		iconSetList: widget.List{List: layout.List{Axis: layout.Vertical}},
-		audioVolume: float32(volume),
+		window:        window,
+		store:         store,
+		runtime:       runtime,
+		logPath:       logPath,
+		events:        events,
+		spells:        spells,
+		sounds:        sounds,
+		classes:       guiEventClasses(spells),
+		screen:        "list",
+		list:          widget.List{List: layout.List{Axis: layout.Vertical}},
+		editorList:    widget.List{List: layout.List{Axis: layout.Vertical}},
+		pickerList:    widget.List{List: layout.List{Axis: layout.Vertical}},
+		iconSetup:     iconSetup,
+		iconResults:   make(chan iconExtractionResult, 1),
+		exportResults: make(chan eventExportResult, 1),
+		iconSetList:   widget.List{List: layout.List{Axis: layout.Vertical}},
+		audioVolume:   float32(volume),
 	}
 	if err := ui.reloadIconSets(); err != nil {
 		return nil, err
@@ -230,6 +234,19 @@ func shouldPromptGUIEventIcons(state eventstore.IconSetup, logPath string) bool 
 
 func (ui *eventsGUI) Update(gtx layout.Context) {
 	select {
+	case result := <-ui.exportResults:
+		ui.exportBusy = false
+		switch {
+		case result.err != nil:
+			ui.error = "Could not export Events: " + result.err.Error()
+		case result.path != "":
+			ui.error = ""
+			ui.notice = "Exported Events to " + result.path
+		}
+	default:
+	}
+
+	select {
 	case result := <-ui.iconResults:
 		ui.iconBusy = false
 		err := result.err
@@ -309,6 +326,15 @@ func (ui *eventsGUI) updateList(gtx layout.Context) {
 			ui.screen = "icons"
 			ui.error = ""
 		}
+	}
+	if ui.exportClick.Clicked(gtx) && !ui.exportBusy {
+		ui.iconSetOpen = false
+		ui.exportBusy = true
+		events := append([]event.Event(nil), ui.events...)
+		go func() {
+			ui.exportResults <- exportEventsForRewrite(events)
+			ui.window.Invalidate()
+		}()
 	}
 	for index := range ui.events {
 		if ui.activeClicks[index].Clicked(gtx) {
@@ -708,6 +734,7 @@ func (ui *eventsGUI) layoutList(gtx layout.Context, theme *material.Theme) layou
 						guiEventAction{"Add text", &ui.addTextClick},
 						guiEventAction{"Add regexp", &ui.addRegexClick},
 						guiEventAction{"Extract icons", &ui.iconClick},
+						guiEventAction{"Export events", &ui.exportClick},
 					)
 				}),
 			)
