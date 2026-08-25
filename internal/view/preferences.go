@@ -44,6 +44,7 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.overlay_opacity.Value = (ctx.Config.UIConfig.OverlayOpacity - 0.5) * 2
 	p.check_for_updates.Value = ctx.Config.CheckForUpdates
 	p.sky_parse_inventory.Value = ctx.Config.SkyConfig.ParseInventoryData
+	p.mainwindow_font_scale.Value = (ctx.Config.UIConfig.MainWindowFontScale - 0.5) * 0.9
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -99,6 +100,12 @@ func (p *Preferences) Update(gtx layout.Context) {
 			p.ctx.Overlay.Send(p.ctx.Config.UIConfig.OverlayOpacity)
 		}
 	}
+	if p.mainwindow_font_scale.Dragging() {
+		val := 0.5 + (p.mainwindow_font_scale.Value * 0.9)
+		p.ctx.Config.UIConfig.MainWindowFontScale = min(1.4, max(val, 0.5))
+		ui.FontScaling = p.ctx.Config.UIConfig.MainWindowFontScale
+		p.config_changed.Store(true)
+	}
 	if p.allow_eqldb_contribution.Value != p.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
 		p.ctx.Config.EQLDbConfig.ContributeKillAndLootData = p.allow_eqldb_contribution.Value
 		p.ctx.Config.Save()
@@ -125,6 +132,7 @@ func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) 
 		children = append(children, p.RenderOverlayOpacity(style, gtx))
 	}
 	children = append(children, p.RenderOverlayFontScale(style, gtx))
+	children = append(children, p.RenderMainWindowFontScale(style, gtx))
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	})

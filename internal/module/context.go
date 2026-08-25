@@ -110,6 +110,7 @@ func NewContext(invalidateFunc func()) *Context {
 		log.Printf("Unable to create config. %v", err)
 		config = &data.Config{}
 	}
+	ui.FontScaling = min(1.4, max(0.5, config.UIConfig.MainWindowFontScale))
 	ctx := &Context{
 		ParserSession:          0,
 		Parser:                 nil,

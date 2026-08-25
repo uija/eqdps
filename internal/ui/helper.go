@@ -15,6 +15,11 @@ import (
 	"gioui.org/x/component"
 )
 
+const (
+	MIN_FONT_SCALING = 0.5
+	MAX_FONT_SCALING = 1.4
+)
+
 var FontScaling float32 = 1.0
 
 func Sp(val float32) unit.Sp {
