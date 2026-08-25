@@ -20,6 +20,8 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 	}{
 		{"cast", "Zonektik begins casting Furor.", data.LogRowEventTypeCast},
 		{"damage", "You pierce an elemental visier for 44 points of damage.", data.LogRowEventTypeDamage},
+		{"sting damage", "You sting an elemental visier for 44 points of damage.", data.LogRowEventTypeDamage},
+		{"stings damage", "A giant wasp stings You for 12 points of damage.", data.LogRowEventTypeDamage},
 		{"your damage shield", "A rock golem is pierced by YOUR thorns for 20 points of non-melee damage.", data.LogRowEventTypeYourDamageShield},
 		{"damage shield", "A fire giant warrior is pierced by Clown's thorns for 29 points of non-melee damage.", data.LogRowEventTypeDamageShield},
 		{"your damage over time", "A zol ghoul knight has taken 49 damage from your Tuyen's Chant of Flame.", data.LogRowEventTypeYourDamageOverTime},
@@ -241,7 +243,7 @@ func TestLatestTimestampUsesLastCompleteRowFromFileTail(t *testing.T) {
 	if stopped {
 		t.Fatal("tail lookup unexpectedly stopped")
 	}
-	want := time.Date(2026, time.July, 26, 12, 10, 0, 0, time.UTC)
+	want := time.Date(2026, time.July, 26, 12, 10, 0, 0, time.Local)
 	if !latest.Equal(want) {
 		t.Fatalf("latest timestamp = %v, want %v", latest, want)
 	}

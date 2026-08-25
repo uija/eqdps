@@ -85,6 +85,7 @@ func (m *Module) OnReplayStart() {
 	m.lastCombat = time.Time{}
 	m.activeBetween = 0
 	m.xpReceived = 0
+	m.levelXp = 0
 }
 func (m *Module) LayoutOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	ui.FillOverlay(gtx, style.Palette.Panel, style.Palette.Border)

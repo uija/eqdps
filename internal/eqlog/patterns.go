@@ -20,7 +20,7 @@ type eventPattern struct {
 
 var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeCast, regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`), []string{" begin", " cast"}},
-	{data.LogRowEventTypeDamage, regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`), []string{" for ", " point", "damage"}},
+	{data.LogRowEventTypeDamage, regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|sting|stings|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`), []string{" for ", " point", "damage"}},
 	{data.LogRowEventTypeYourDamageShield, regexp.MustCompile(`^(.+?) is .+? by YOUR (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)\.(?: \(([^)]+)\))?$`), []string{" by YOUR ", " for ", " point", "damage"}},
 	{data.LogRowEventTypeDamageShield, regexp.MustCompile("^(.+?) (?:is|are) .+? by (.+)(?:'s|`s) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)[.!](?: \\(([^)]+)\\))?$"), []string{" by ", " for ", " point", "damage"}},
 	{data.LogRowEventTypeYourDamageOverTime, regexp.MustCompile(`^(.+?) has taken ([0-9]+) damage from your (.+?)\.(?: \(([^)]+)\))?$`), []string{" has taken ", " damage from your "}},

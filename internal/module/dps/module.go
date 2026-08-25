@@ -127,7 +127,7 @@ func (m *Module) publishOverlayFight() {
 		return
 	}
 	if m.combat.lastParticipatedFight != nil {
-		fight = m.combat.lastParticipatedFight
+		fight = m.combat.lastParticipatedFight.Clone()
 	} else {
 		active := make([]*data.Fight, 0)
 		for _, f := range combat.history {

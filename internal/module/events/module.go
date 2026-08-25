@@ -178,7 +178,6 @@ func (m *Module) TimerRun() {
 					delete(m.runningTimers, name)
 				}
 			}
-			m.tmu.Unlock()
 			if m.ctx.Overlay != nil {
 				timers := make([]data.TimerTracker, 0)
 				for _, tt := range m.runningTimers {
@@ -193,6 +192,7 @@ func (m *Module) TimerRun() {
 					m.ctx.Overlay.Send(timers)
 				}
 			}
+			m.tmu.Unlock()
 		case <-m.stop:
 			return
 		}
@@ -362,7 +362,7 @@ func (m *Module) SelectToEdit(idx int) {
 			} else if val.Expression != "" {
 				m.target_select.Select("Self")
 			} else {
-				m.target_select.Select("Other")
+				m.target_select.Select("Others")
 			}
 		}
 		m.text_field.SetText(val.Expression)
@@ -493,10 +493,18 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 			}
 		case data.EventTypeRegexp:
 			if event.Expression != "" && event.RegExp == nil {
-				m.ctx.Config.Events[idx].RegExp = regexp.MustCompile(event.Expression)
+				regexp, err := regexp.Compile(event.Expression)
+				if err == nil {
+					m.ctx.Config.Events[idx].RegExp = regexp
+					event.RegExp = regexp
+				}
 			}
 			if event.ExpressionOthers != "" && event.RegExpOthers == nil {
-				m.ctx.Config.Events[idx].RegExpOthers = regexp.MustCompile(event.ExpressionOthers)
+				regexp, err := regexp.Compile(event.ExpressionOthers)
+				if err == nil {
+					m.ctx.Config.Events[idx].RegExpOthers = regexp
+					event.RegExpOthers = regexp
+				}
 			}
 			if event.RegExp != nil {
 				if event.RegExp.Match([]byte(e.Message)) {
@@ -515,12 +523,14 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 					spell := e.Data[2]
 					if strings.Contains(spell, event.Spell) {
 						now := time.Now()
+						m.tmu.Lock()
 						m.gracePeriodTimers[event.Spell] = data.TimerTracker{
 							Started:         now,
 							CancelableUntil: now.Add(time.Second),
 							StopsAt:         now.Add(time.Second * time.Duration(event.Duration)),
 							Event:           event,
 						}
+						m.tmu.Unlock()
 					}
 				}
 			}

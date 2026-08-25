@@ -156,6 +156,7 @@ func NewContext(invalidateFunc func()) *Context {
 				invalidateFunc()
 			}
 			ctx.Config.LastSeenVersion = result.TagName
+			ctx.Config.Save()
 		}()
 	}
 
