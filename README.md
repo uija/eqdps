@@ -1,5 +1,8 @@
 # eqdps
 
+> **Notice:** The beta phase of the rewritten eqdps may begin soon. This may be
+> the final release of this legacy parser.
+
 `eqdps` is a DPS meter built primarily for **EverQuest Legends** log files. It
 provides independent terminal and graphical frontends backed by the same combat,
 experience, loot, and quest parsers. Other EverQuest variants may work where
@@ -15,7 +18,7 @@ recent history to compare parses or investigate combat detection.
 ## Download
 
 Windows users can download the prebuilt graphical application directly from
-the [eqdps v0.2.8 release](https://github.com/uija/eqdps/releases/tag/v0.2.8).
+the [eqdps v0.2.9 release](https://github.com/uija/eqdps/releases/tag/v0.2.9).
 
 The Windows executables are not currently code-signed. Microsoft Defender
 SmartScreen may therefore display an **Unknown publisher** warning. Download
