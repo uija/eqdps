@@ -243,8 +243,6 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 
 	case data.LogRowEventTypeLoot,
 		data.LogRowEventTypeLootResult:
-		//{data.LogRowEventTypeLoot, regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`), []string{"--You have looted ", " from ", "'s corpse.--"}},
-		//{data.LogRowEventTypeLootResult, regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`), []string{"You looted ", " from ", "'s corpse "}},
 		if !m.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
 			return
 		}
