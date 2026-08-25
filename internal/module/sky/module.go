@@ -79,6 +79,7 @@ type Module struct {
 	runeForm        *form.Form
 	runeSaveClick   widget.Clickable
 	runeCancelClick widget.Clickable
+	runeEditList    widget.List
 
 	mu           sync.Mutex
 	eqldb_events []eqldb.PlaneOfSkyEvent
@@ -189,7 +190,7 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.runeForm.AddButton("cancel", &m.runeCancelClick, func() {
 		m.edit_runes = false
 	})
-
+	m.runeEditList.Axis = layout.Vertical
 	m.mainView = m.MainView
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)

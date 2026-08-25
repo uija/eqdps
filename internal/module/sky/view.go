@@ -108,7 +108,7 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 				})
 			}),
 			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(64)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return m.RenderRunesOverlay(style, gtx)
 				})
 			}),
