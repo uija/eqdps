@@ -8,6 +8,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -269,35 +270,55 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-						layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+						layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 							label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest_name)
 							label.Font.Weight = font.SemiBold
 							return layout.Inset{Top: unit.Dp(2), Left: unit.Dp(16)}.Layout(gtx, label.Layout)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							children := make([]layout.FlexChild, 0)
+							children = append(children, layout.Flexed(1, material.Body1(style.Theme, "").Layout))
 							if quest.Done || !m.config.RedoQuests[quest.Key].IsZero() {
 								if m.config.RedoQuests[quest.Key].IsZero() {
-									link := ui.IconLink(style, &m.status[index].Quests[qidx].RedoQuestClick, ui.Refresh, "Redo quest")
-									link.TextColor = highlight_color
-									return link.Layout(gtx)
+									children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										link := ui.IconLink(style, &m.status[index].Quests[qidx].RedoQuestClick, ui.Refresh, "")
+										link.TextColor = highlight_color
+										tip := component.PlatformTooltip(style.Theme, "Redo the quest")
+										return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+											return ui.LayoutTooltip(gtx, &m.status[index].Quests[qidx].RedoQuestTooptip, tip, link.Layout)
+										})
+									}))
 								} else {
-									link := ui.IconLink(style, &m.status[index].Quests[qidx].RedoQuestClick, ui.Check, "Cancel redo")
-									link.TextColor = highlight_color
-									return link.Layout(gtx)
+									children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										link := ui.IconLink(style, &m.status[index].Quests[qidx].RedoQuestClick, ui.Check, "")
+										link.TextColor = highlight_color
+										tip := component.PlatformTooltip(style.Theme, "Cancel redo")
+										return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+											return ui.LayoutTooltip(gtx, &m.status[index].Quests[qidx].RedoQuestTooptip, tip, link.Layout)
+										})
+									}))
 								}
 							}
-							return material.Label(style.Theme, unit.Sp(14), "").Layout(gtx)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							if !quest.Watched {
-								link := ui.IconLink(style, &m.status[index].Quests[qidx].WatchClick, ui.ActionVisibility, "Watch")
-								link.TextColor = highlight_color
-								return link.Layout(gtx)
-							} else {
-								link := ui.IconLink(style, &m.status[index].Quests[qidx].UnwatchClick, ui.ActionVisibilityOff, "Unwatch")
-								link.TextColor = highlight_color
-								return link.Layout(gtx)
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									link := ui.IconLink(style, &m.status[index].Quests[qidx].WatchClick, ui.ActionVisibility, "")
+									link.TextColor = highlight_color
+									tip := component.PlatformTooltip(style.Theme, "Add to watchlist")
+									return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ui.LayoutTooltip(gtx, &m.status[index].Quests[qidx].WatchTooltip, tip, link.Layout)
+									})
+								}))
+							} else if fullname {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									link := ui.IconLink(style, &m.status[index].Quests[qidx].UnwatchClick, ui.ActionVisibilityOff, "")
+									link.TextColor = highlight_color
+									tip := component.PlatformTooltip(style.Theme, "Remove from watchlist")
+									return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ui.LayoutTooltip(gtx, &m.status[index].Quests[qidx].WatchTooltip, tip, link.Layout)
+									})
+								}))
 							}
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							// TODO Evaluate value

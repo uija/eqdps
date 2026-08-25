@@ -16,6 +16,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 	"github.com/gen2brain/beeep"
 	"github.com/uija/eqdps/internal/eqldb"
 	"github.com/uija/eqdps/internal/eqlog"
@@ -132,10 +133,12 @@ type QuestStatus struct {
 	MissingItems int
 	Items        []ItemStatus
 
-	WatchClick     widget.Clickable
-	UnwatchClick   widget.Clickable
-	RedoQuestClick widget.Clickable
-	RewardClick    widget.Clickable
+	WatchClick       widget.Clickable
+	WatchTooltip     component.TipArea
+	UnwatchClick     widget.Clickable
+	RedoQuestClick   widget.Clickable
+	RedoQuestTooptip component.TipArea
+	RewardClick      widget.Clickable
 }
 type ClassStatus struct {
 	Name        string
@@ -373,6 +376,7 @@ func (m *Module) Update(gtx layout.Context) {
 				native.OpenURL(url)
 			}
 			if m.status[cidx].Quests[qidx].WatchClick.Clicked(gtx) {
+				m.status[cidx].Quests[qidx].WatchTooltip = component.TipArea{}
 				m.status[cidx].Quests[qidx].Watched = true
 				if m.config.Watched != nil {
 					m.config.Watched[quest.Key] = true
@@ -380,6 +384,7 @@ func (m *Module) Update(gtx layout.Context) {
 				}
 			}
 			if m.status[cidx].Quests[qidx].UnwatchClick.Clicked(gtx) {
+				m.status[cidx].Quests[qidx].WatchTooltip = component.TipArea{}
 				m.status[cidx].Quests[qidx].Watched = false
 				if m.config.Watched != nil {
 					delete(m.config.Watched, quest.Key)
@@ -388,6 +393,7 @@ func (m *Module) Update(gtx layout.Context) {
 			}
 
 			if m.status[cidx].Quests[qidx].RedoQuestClick.Clicked(gtx) {
+				m.status[cidx].Quests[qidx].RedoQuestTooptip = component.TipArea{}
 				if m.config.RedoQuests != nil {
 					if m.config.RedoQuests[quest.Key].IsZero() {
 						m.config.RedoQuests[quest.Key] = time.Now()

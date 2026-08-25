@@ -12,6 +12,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 )
 
 func Fill(gtx layout.Context, background color.NRGBA) {
@@ -208,4 +209,19 @@ func PageTitle(style *Style, title string, gtx layout.Context) material.LabelSty
 	label := material.Label(style.Theme, unit.Sp(18), title)
 	label.Font.Weight = font.SemiBold
 	return label
+}
+
+func LayoutTooltip(
+	gtx layout.Context,
+	area *component.TipArea,
+	tip component.Tooltip,
+	child layout.Widget,
+) layout.Dimensions {
+	tipGtx := gtx
+	tipGtx.Constraints.Max.X = max(
+		tipGtx.Constraints.Max.X,
+		gtx.Dp(unit.Dp(300)),
+	)
+
+	return area.Layout(tipGtx, tip, child)
 }
