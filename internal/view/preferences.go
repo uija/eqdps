@@ -21,6 +21,7 @@ type Preferences struct {
 
 	overlay_opacity           widget.Float
 	overlay_font_scale        widget.Float
+	mainwindow_font_scale     widget.Float
 	check_for_updates         widget.Bool
 	open_eqlconnection_window widget.Clickable
 	upload_sky_items          widget.Bool
@@ -133,6 +134,14 @@ func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) 
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "DPS Overlay opacity").Layout),
 			layout.Rigid(material.Slider(style.Theme, &p.overlay_opacity).Layout),
+		)
+	})
+}
+func (p *Preferences) RenderMainWindowFontScale(style *ui.Style, gtx layout.Context) layout.FlexChild {
+	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "Main font scale").Layout),
+			layout.Rigid(material.Slider(style.Theme, &p.mainwindow_font_scale).Layout),
 		)
 	})
 }

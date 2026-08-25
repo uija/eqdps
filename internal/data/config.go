@@ -42,13 +42,14 @@ type EQLDbConfig struct {
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
 type UIConfig struct {
-	MainWindowWidth  int     `json:"main_window_width"`
-	MainWindowHeight int     `json:"main_window_height"`
-	OverlayX         int     `json:"overlay_x"`
-	OverlayY         int     `json:"overlay_y"`
-	OverlayFontScale float32 `json:"overlay_font_scale"`
-	OverlayOpacity   float32 `json:"overlay_opacity"`
-	OverlayPlaced    bool    `json:"overlay_placed"`
+	MainWindowWidth     int     `json:"main_window_width"`
+	MainWindowHeight    int     `json:"main_window_height"`
+	MainWindowFontScale float32 `json:"main_window_font_scale"`
+	OverlayX            int     `json:"overlay_x"`
+	OverlayY            int     `json:"overlay_y"`
+	OverlayFontScale    float32 `json:"overlay_font_scale"`
+	OverlayOpacity      float32 `json:"overlay_opacity"`
+	OverlayPlaced       bool    `json:"overlay_placed"`
 }
 type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`
@@ -85,8 +86,9 @@ func GetConfig() (*Config, error) {
 		Events: make([]EventConfig, 0),
 		Volume: 0.5,
 		UIConfig: UIConfig{
-			OverlayFontScale: 1.0,
-			OverlayOpacity:   1.0,
+			OverlayFontScale:    1.0,
+			OverlayOpacity:      1.0,
+			MainWindowFontScale: 1.0,
 		},
 		EQLDbConfig: EQLDbConfig{
 			UploadSkyData: true,
@@ -114,6 +116,9 @@ func GetConfig() (*Config, error) {
 	}
 	if config.UIConfig.OverlayOpacity < 0.2 {
 		config.UIConfig.OverlayOpacity = 1.0
+	}
+	if config.UIConfig.MainWindowFontScale < 0.1 {
+		config.UIConfig.MainWindowFontScale = 1.0
 	}
 
 	return config, nil

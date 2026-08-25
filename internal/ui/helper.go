@@ -15,6 +15,12 @@ import (
 	"gioui.org/x/component"
 )
 
+var FontScaling float32 = 1.0
+
+func Sp(val float32) unit.Sp {
+	return unit.Sp(val * FontScaling)
+}
+
 func Fill(gtx layout.Context, background color.NRGBA) {
 	defer clip.Rect(image.Rectangle{Max: gtx.Constraints.Min}).Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: background}.Add(gtx.Ops)

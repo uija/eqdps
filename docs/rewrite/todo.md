@@ -1,7 +1,6 @@
 # TODO Rewrite
 
  - eqldb: send items / kills
- - Overlay: Combat timeout / Remove last fight
 
 ## Not in v1
  - DPS: Combat History row limit?
@@ -11,6 +10,7 @@
  - Parser: ?Logrotate
 
  ## Done
+ - ~~Overlay: Combat timeout / Remove last fight~~
  - ~~Store "Last Logfiles" and make them selectable~~
  - ~~Event: Spell Icon extraction~~
  - ~~Event: Spell Icon settings~~
