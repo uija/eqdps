@@ -15,7 +15,7 @@ import (
 	"gioui.org/x/component"
 )
 
-var FontScaling float32 = 0.5
+var FontScaling float32 = 1.0
 
 func Sp(val float32) unit.Sp {
 	return unit.Sp(val * FontScaling)
