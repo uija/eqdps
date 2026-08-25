@@ -44,6 +44,33 @@ Linux users can build and install eqdps using the included Makefile.
 - Native Windows support for DPS-overlay position, opacity, and
   always-on-top behavior.
 
+## Why a Rewrite?
+
+The original eqdps proved that the parser and its companion tools were useful,
+but rapid development left behavior spread across multiple frontends and made
+changes increasingly difficult to reason about.
+
+This rewrite is intentionally human-written around a smaller, consistent Gio
+application. It gives parsing, application modules, persistent data, reusable
+UI controls, and the separate overlay clearer ownership. The goal is easier
+maintenance, more predictable concurrency, and one coherent interface in
+which new features do not need to be implemented several times.
+
+## LLM Use
+
+This project is human-directed and human-reviewed. OpenAI Codex was used as a
+development assistant for bounded tasks, including:
+
+- explaining Gio APIs and acting as searchable Gio documentation
+- investigating bugs and comparing behavior with the legacy implementation
+- mechanical work such as searches and repetitive replacements
+- reusable form controls and other self-contained UI work and
+- HTTP/Web API client implementations
+
+Product requirements, architecture, behavior, and final integration decisions
+remain the responsibility of the maintainer. Suggested code was reviewed,
+tested, and changed where necessary rather than accepted as an authority.
+
 ## Screenshots
 
 ### DPS meter
@@ -218,36 +245,6 @@ logfile as:
 ```text
 eqdps_CHARACTER_SERVER_PoS.json
 ```
-
-## Why a Rewrite?
-
-The original eqdps proved that the parser and its companion tools were useful,
-but rapid development left behavior spread across multiple frontends and made
-changes increasingly difficult to reason about.
-
-This rewrite is intentionally human-written around a smaller, consistent Gio
-application. It gives parsing, application modules, persistent data, reusable
-UI controls, and the separate overlay clearer ownership. The goal is easier
-maintenance, more predictable concurrency, and one coherent interface in
-which new features do not need to be implemented several times.
-
-The legacy implementation remains valuable as a behavioral reference while
-the rewrite is developed.
-
-## LLM Use
-
-This project is human-directed and human-reviewed. OpenAI Codex was used as a
-development assistant for bounded tasks, including:
-
-- explaining Gio APIs and acting as searchable Gio documentation;
-- investigating bugs and comparing behavior with the legacy implementation;
-- mechanical work such as searches and repetitive replacements;
-- reusable form controls and other self-contained UI work; and
-- HTTP/Web API client implementations.
-
-Product requirements, architecture, behavior, and final integration decisions
-remain the responsibility of the maintainer. Suggested code was reviewed,
-tested, and changed where necessary rather than accepted as an authority.
 
 ## Community and Thanks
 
