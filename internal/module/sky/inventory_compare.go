@@ -26,8 +26,10 @@ func (m *Module) HandleInventoryUpload(event *data.LogRowEvent) {
 	for _, c := range m.db.Classes {
 		for _, q := range c.Quests {
 			for _, i := range q.Requirements {
-				if _, ok := inv[i.Name]; !ok {
-					inv[i.Name] = 0
+				if !strings.Contains(i.Name, "Wind Rune") {
+					if _, ok := inv[i.Name]; !ok {
+						inv[i.Name] = 0
+					}
 				}
 			}
 		}
