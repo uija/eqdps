@@ -34,15 +34,10 @@ Linux users can build and install eqdps using the included Makefile.
 - Session XP/hour, current-level progress, and estimated time to the next
   level.
 - Configurable spell-fade, spell-timer, text, and regular-expression events.
-- Desktop notifications, embedded notification sounds, shared volume control,
-  and selectable spell-icon sets extracted from the EverQuest installation.
+- Desktop notifications and sounds alerts
 - Plane of Sky quest, item, rune, watched-quest, and turn-in tracking.
 - Optional inventory and Plane of Sky uploads to
   [eqldb.org](https://eqldb.org/).
-- Recent logfile selection, font scaling, update checks, and persistent
-  application settings.
-- Native Windows support for DPS-overlay position, opacity, and
-  always-on-top behavior.
 
 ## Why a Rewrite?
 
