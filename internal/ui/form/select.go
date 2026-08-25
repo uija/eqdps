@@ -175,7 +175,7 @@ func (s *SelectBox) layoutControl(style *appui.Style, gtx layout.Context) layout
 			return layout.UniformInset(unit.Dp(9)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, unit.Sp(15), s.Value())
+						label := material.Label(style.Theme, appui.Sp(15), s.Value())
 						label.Color = style.Palette.Text
 						return label.Layout(gtx)
 					}),
@@ -257,7 +257,7 @@ func (s *SelectBox) layoutOption(style *appui.Style, gtx layout.Context, index i
 			},
 			func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(9)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Label(style.Theme, unit.Sp(15), s.options[index])
+					label := material.Label(style.Theme, appui.Sp(15), s.options[index])
 					label.Color = foreground
 					return label.Layout(gtx)
 				})

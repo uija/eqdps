@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"gioui.org/layout"
-	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/component"
@@ -478,7 +477,7 @@ func (m *Module) OnReplayEnd() {
 func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	label := material.Label(
 		style.Theme,
-		unit.Sp(15),
+		ui.Sp(15),
 		fmt.Sprintf("You find your PoS config file at: %s", m.configPath),
 	)
 	label.Color = style.Palette.Muted

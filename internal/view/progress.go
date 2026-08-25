@@ -60,7 +60,7 @@ func (s *Shell) layoutProgressContent(gtx layout.Context) layout.Dimensions {
 				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					label := material.Label(
 						s.Style.Theme,
-						unit.Sp(14),
+						ui.Sp(14),
 						detail,
 					)
 					label.Color = s.Style.Palette.Muted

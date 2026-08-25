@@ -183,7 +183,7 @@ func (m *Module) CheckBoxRow(field *widget.Bool, title string, hint string, styl
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Body1(style.Theme, title).Layout)
+				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -197,7 +197,7 @@ func (m *Module) SelectBoxRow(field *form.SelectBox, title string, style *ui.Sty
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Body1(style.Theme, title).Layout)
+				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -211,7 +211,7 @@ func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, s
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Body1(style.Theme, title).Layout)
+				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -256,14 +256,14 @@ func (m *Module) RenderVolumeRow(style *ui.Style, gtx layout.Context) layout.Dim
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
-				return layout.Inset{Top: unit.Dp(6), Right: unit.Dp(16)}.Layout(gtx, material.Body1(style.Theme, "Notification Volume:").Layout)
+				return layout.Inset{Top: unit.Dp(6), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Notification Volume:").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(300, gtx.Constraints.Max.X)
 				return material.Slider(style.Theme, &m.volume).Layout(gtx)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(6)}.Layout(gtx, material.Body1(style.Theme, fmt.Sprintf("%.02f%%", m.ctx.Config.Volume)).Layout)
+				return layout.Inset{Top: unit.Dp(6)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%.02f%%", m.ctx.Config.Volume)).Layout)
 			}),
 		)
 	})
@@ -273,7 +273,7 @@ func (m *Module) RenderSpellIconRow(style *ui.Style, gtx layout.Context) layout.
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
-				return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, unit.Sp(15), "Spell Icon Set:").Layout)
+				return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Spell Icon Set:").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return m.spell_icon_select.Layout(style, gtx, unit.Dp(gtx.Dp(200)))
@@ -353,7 +353,7 @@ func (m *Module) RenderEventsTableRow(index int, style *ui.Style, gtx layout.Con
 				case data.EventTypeTimer:
 					str = "Timer"
 				}
-				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(14), str).Layout)
+				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(14), str).Layout)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -363,7 +363,7 @@ func (m *Module) RenderEventsTableRow(index int, style *ui.Style, gtx layout.Con
 				})
 			}),
 			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, unit.Sp(14), sound).Layout)
+				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(14), sound).Layout)
 			}),
 		)
 	})
@@ -374,35 +374,35 @@ func (m *Module) RenderEventsTableHeader(style *ui.Style, gtx layout.Context) la
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx,
-						material.Label(style.Theme, unit.Sp(14), "ACTIVE").Layout,
+						material.Label(style.Theme, ui.Sp(14), "ACTIVE").Layout,
 					)
 				},
 			),
 			layout.Flexed(4,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, unit.Sp(14), "TITLE").Layout,
+						material.Label(style.Theme, ui.Sp(14), "TITLE").Layout,
 					)
 				},
 			),
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, unit.Sp(14), "TYPE").Layout,
+						material.Label(style.Theme, ui.Sp(14), "TYPE").Layout,
 					)
 				},
 			),
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, unit.Sp(14), "NOTIFY").Layout,
+						material.Label(style.Theme, ui.Sp(14), "NOTIFY").Layout,
 					)
 				},
 			),
 			layout.Flexed(2,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, unit.Sp(14), "SOUND").Layout,
+						material.Label(style.Theme, ui.Sp(14), "SOUND").Layout,
 					)
 				},
 			),
@@ -413,7 +413,7 @@ func (m *Module) RenderEventsTableHeader(style *ui.Style, gtx layout.Context) la
 func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return ui.ColoredRow(gtx, style.Palette.Window, func(gtx layout.Context) layout.Dimensions {
 		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(style.Theme, 18, "Events")
+			label := material.Label(style.Theme, ui.Sp(18), "Events")
 			label.Font.Weight = font.SemiBold
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {

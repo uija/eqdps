@@ -64,7 +64,7 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 			}
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, unit.Sp(15), "DPS Tracker").Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(15), "DPS Tracker").Layout(gtx)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					link := ui.IconLink(style, &m.overlayClick, icon, "Show Overlay")
@@ -80,7 +80,7 @@ func (m *Module) RenderFilterRow(style *ui.Style, gtx layout.Context) layout.Dim
 	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(7), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Filter").Layout)
+				return layout.Inset{Top: unit.Dp(7), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(16), "Filter").Layout)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return ui.MaxedTextField(&m.filterEditor, "Filter combat list", style, gtx)
@@ -133,7 +133,7 @@ func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layou
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							label := material.Body1(style.Theme, fight.Name)
-							label.TextSize = unit.Sp(18)
+							label.TextSize = ui.Sp(18)
 							label.Font.Weight = font.SemiBold
 							return layout.Inset{Top: unit.Dp(5)}.Layout(gtx, label.Layout)
 						}),

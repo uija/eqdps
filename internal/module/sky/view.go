@@ -18,13 +18,13 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context, tools layout.FlexChild) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			layout.Flexed(1, material.Label(style.Theme, unit.Sp(17), "Plane of Sky - "+active).Layout),
+			layout.Flexed(1, material.Label(style.Theme, ui.Sp(17), "Plane of Sky - "+active).Layout),
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					children := make([]layout.FlexChild, 0)
 					if active != "Progression" {
 						children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return material.Label(style.Theme, unit.Sp(14), "").Layout(gtx)
+							return material.Label(style.Theme, ui.Sp(14), "").Layout(gtx)
 						}))
 						children = append(children,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -193,7 +193,7 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 				return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						gtx.Constraints.Min.X = gtx.Constraints.Max.X
-						return material.Label(style.Theme, unit.Sp(17), "Class Quests").Layout(gtx)
+						return material.Label(style.Theme, ui.Sp(17), "Class Quests").Layout(gtx)
 					})
 				})
 			})
@@ -325,7 +325,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 							return ui.ColoredLabel(style.Theme, RowSize, title_color, missing_text).Layout(gtx)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return material.Label(style.Theme, unit.Sp(RowSize), "").Layout(gtx)
+							return material.Label(style.Theme, ui.Sp(RowSize), "").Layout(gtx)
 						}),
 						layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 							txt := fmt.Sprintf("%s - %s", quest.QuestGiver, quest.Reward)

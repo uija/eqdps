@@ -44,7 +44,7 @@ func (l LinkStyle) Layout(gtx layout.Context) layout.Dimensions {
 		} else if l.click.Pressed() {
 			col = l.ClickedColor
 		}
-		label := material.Label(l.style.Theme, unit.Sp(l.Size), l.Text)
+		label := material.Label(l.style.Theme, Sp(l.Size), l.Text)
 		label.Color = col
 		label.Font.Weight = l.FontWeight
 		if l.icon == nil {

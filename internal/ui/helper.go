@@ -15,7 +15,7 @@ import (
 	"gioui.org/x/component"
 )
 
-var FontScaling float32 = 1.0
+var FontScaling float32 = 0.5
 
 func Sp(val float32) unit.Sp {
 	return unit.Sp(val * FontScaling)
@@ -53,7 +53,7 @@ func TitleBar(gtx layout.Context, style Style, text string) func(gtx layout.Cont
 			Right: unit.Dp(14),
 			Top:   unit.Dp(8),
 		}.Layout(gtx, func(layout.Context) layout.Dimensions {
-			title := material.Label(style.Theme, unit.Sp(17), text)
+			title := material.Label(style.Theme, Sp(17), text)
 			title.Color = style.Palette.Text
 			return title.Layout(gtx)
 		})
@@ -123,7 +123,7 @@ func CenterAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dime
 	})
 }
 func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string) material.LabelStyle {
-	l := material.Label(th, unit.Sp(size), txt)
+	l := material.Label(th, Sp(size), txt)
 	l.Color = col
 	return l
 }
@@ -142,7 +142,7 @@ func IconLabel(gtx layout.Context, th *material.Theme, size float32, icon *widge
 			})
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, material.Label(th, unit.Sp(size), txt).Layout)
+			return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, material.Label(th, Sp(size), txt).Layout)
 		}),
 	)
 }
@@ -156,7 +156,7 @@ func ColoredIconLabel(gtx layout.Context, th *material.Theme, size float32, icon
 			})
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(th, unit.Sp(size), txt)
+			label := material.Label(th, Sp(size), txt)
 			label.Color = col
 			return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
 		}),
@@ -178,7 +178,9 @@ func TextFieldSized(editor *widget.Editor, hint string, width int, style *Style,
 						return layout.Dimensions{Size: gtx.Constraints.Min}
 					},
 					func(gtx layout.Context) layout.Dimensions {
-						return layout.UniformInset(unit.Dp(7)).Layout(gtx, material.Editor(style.Theme, editor, hint).Layout)
+						editor := material.Editor(style.Theme, editor, hint)
+						editor.TextSize = Sp(15)
+						return layout.UniformInset(unit.Dp(7)).Layout(gtx, editor.Layout)
 					},
 				)
 			})
@@ -203,7 +205,9 @@ func MaxedTextField(editor *widget.Editor, hint string, style *Style, gtx layout
 						return layout.Dimensions{Size: gtx.Constraints.Min}
 					},
 					func(gtx layout.Context) layout.Dimensions {
-						return layout.UniformInset(unit.Dp(7)).Layout(gtx, material.Editor(style.Theme, editor, hint).Layout)
+						editor := material.Editor(style.Theme, editor, hint)
+						editor.TextSize = Sp(15)
+						return layout.UniformInset(unit.Dp(7)).Layout(gtx, editor.Layout)
 					},
 				)
 			})
@@ -212,7 +216,7 @@ func MaxedTextField(editor *widget.Editor, hint string, style *Style, gtx layout
 }
 
 func PageTitle(style *Style, title string, gtx layout.Context) material.LabelStyle {
-	label := material.Label(style.Theme, unit.Sp(18), title)
+	label := material.Label(style.Theme, Sp(18), title)
 	label.Font.Weight = font.SemiBold
 	return label
 }

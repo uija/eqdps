@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"gioui.org/layout"
-	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
@@ -248,7 +247,7 @@ func (m *Module) OpenOverlay() {
 func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	label := material.Label(
 		style.Theme,
-		unit.Sp(15),
+		ui.Sp(15),
 		"This is awesome DPS Meter help content!",
 	)
 	label.Color = style.Palette.Muted

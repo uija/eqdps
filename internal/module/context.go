@@ -225,7 +225,7 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 			items = append(items,
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					_, filename := filepath.Split(c.parserPath)
-					return material.Label(style.Theme, unit.Sp(14), filename).Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(14), filename).Layout(gtx)
 				}),
 			)
 		}
@@ -393,7 +393,7 @@ func (c *Context) RegisterModule(m Module) error {
 }
 func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if c.currentMainView != nil {
-		//return material.Label(style.Theme, unit.Sp(14), "Test").Layout(gtx)
+		//return material.Label(style.Theme, ui.Sp(14), "Test").Layout(gtx)
 		if c.updateAvailable == nil {
 			return c.currentMainView(style, gtx)
 		} else {
@@ -404,7 +404,7 @@ func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions 
 		}
 	} else {
 		return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(style.Theme, unit.Sp(15), "No modules registered")
+			label := material.Label(style.Theme, ui.Sp(15), "No modules registered")
 			//label.Color = palette.muted
 			return label.Layout(gtx)
 		})
@@ -421,7 +421,7 @@ func (c *Context) RenderNewVersionOverlay(style *ui.Style, gtx layout.Context) l
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, unit.Sp(17), fmt.Sprintf("Version %s is ready for download!", c.updateAvailable.TagName))
+						label := material.Label(style.Theme, ui.Sp(17), fmt.Sprintf("Version %s is ready for download!", c.updateAvailable.TagName))
 						label.Font.Weight = font.SemiBold
 						return label.Layout(gtx)
 					}),
@@ -430,7 +430,7 @@ func (c *Context) RenderNewVersionOverlay(style *ui.Style, gtx layout.Context) l
 							list := material.List(style.Theme, &c.updateBodyList)
 
 							return list.Layout(gtx, 1, func(gtx layout.Context, index int) layout.Dimensions {
-								label := material.Label(style.Theme, unit.Sp(15), c.updateAvailable.Body)
+								label := material.Label(style.Theme, ui.Sp(15), c.updateAvailable.Body)
 								label.Color = style.Palette.Muted
 								return label.Layout(gtx)
 							})

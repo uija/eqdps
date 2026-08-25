@@ -121,7 +121,7 @@ func RenderContainerRow(container []InventoryRow, index int, col color.NRGBA, st
 		return layout.Inset{Left: unit.Dp(16), Top: unit.Dp(4), Bottom: unit.Dp(4)}.Layout(gtx, func(layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, unit.Sp(14), item.Name).Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(14), item.Name).Layout(gtx)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					label := ui.ColoredLabel(style.Theme, 14, col, f(&item))
@@ -129,7 +129,7 @@ func RenderContainerRow(container []InventoryRow, index int, col color.NRGBA, st
 					return layout.Inset{Right: unit.Dp(32)}.Layout(gtx, label.Layout)
 				}),
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, unit.Sp(14), item.Hint).Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(14), item.Hint).Layout(gtx)
 				}),
 			)
 		})
@@ -146,13 +146,13 @@ func RenderOthersRow(container *Container, index int, style *ui.Style, gtx layou
 		return layout.Inset{Left: unit.Dp(16), Top: unit.Dp(4), Bottom: unit.Dp(4)}.Layout(gtx, func(layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, unit.Sp(14), item.Name).Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(14), item.Name).Layout(gtx)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return ui.ColoredLabel(style.Theme, 14, style.Palette.Yes, fmt.Sprintf("%d/%d +%d", item.Have, item.Need, item.Have-item.Need)).Layout(gtx)
 				}),
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, unit.Sp(14), item.Hint).Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(14), item.Hint).Layout(gtx)
 				}),
 			)
 		})

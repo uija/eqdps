@@ -117,7 +117,7 @@ func (p *Preferences) Update(gtx layout.Context) {
 	}
 }
 func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, unit.Sp(16), "Preferences").Layout)
+	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, ui.Sp(16), "Preferences").Layout)
 }
 func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	children := make([]layout.FlexChild, 0)
@@ -132,7 +132,7 @@ func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) 
 func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "DPS Overlay opacity").Layout),
+			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "DPS Overlay opacity").Layout),
 			layout.Rigid(material.Slider(style.Theme, &p.overlay_opacity).Layout),
 		)
 	})
@@ -140,7 +140,7 @@ func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) 
 func (p *Preferences) RenderMainWindowFontScale(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "Main font scale").Layout),
+			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "Main font scale").Layout),
 			layout.Rigid(material.Slider(style.Theme, &p.mainwindow_font_scale).Layout),
 		)
 	})
@@ -148,7 +148,7 @@ func (p *Preferences) RenderMainWindowFontScale(style *ui.Style, gtx layout.Cont
 func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, unit.Sp(15), "DPS Overlay font scale").Layout),
+			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "DPS Overlay font scale").Layout),
 			layout.Rigid(material.Slider(style.Theme, &p.overlay_font_scale).Layout),
 		)
 	})
@@ -184,7 +184,7 @@ func (p *Preferences) RenderEQLDbSettings(style *ui.Style, gtx layout.Context) l
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
-					return material.Label(style.Theme, unit.Sp(17), "eqldb.org").Layout(gtx)
+					return material.Label(style.Theme, ui.Sp(17), "eqldb.org").Layout(gtx)
 				})
 			}),
 			p.RenderEQLDbConnect(style, gtx),

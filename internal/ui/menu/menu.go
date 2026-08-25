@@ -196,7 +196,7 @@ func (b *Bar) LayoutBar(gtx layout.Context) layout.Dimensions {
 		}))
 	}
 	children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-		label := material.Label(b.style.Theme, unit.Sp(14), b.title)
+		label := material.Label(b.style.Theme, ui.Sp(14), b.title)
 		label.Color = b.style.Palette.Muted
 		label.Alignment = text.End
 		return layout.E.Layout(gtx, label.Layout)
@@ -292,7 +292,7 @@ func (b *Bar) layoutButton(gtx layout.Context, entry *Menu) layout.Dimensions {
 			fill(gtx, b.style.Palette.Hover)
 		}
 		return layout.Inset{Left: unit.Dp(10), Right: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(b.style.Theme, unit.Sp(15), entry.label)
+			label := material.Label(b.style.Theme, ui.Sp(15), entry.label)
 			label.Color = b.style.Palette.Text
 			return layout.Center.Layout(gtx, label.Layout)
 		})
@@ -312,7 +312,7 @@ func (b *Bar) layoutItem(gtx layout.Context, item *Item) layout.Dimensions {
 			if item.label == SEPARATOR_TEXT {
 				caption = "----"
 			}
-			label := material.Label(b.style.Theme, unit.Sp(15), caption)
+			label := material.Label(b.style.Theme, ui.Sp(15), caption)
 			if item.enabled {
 				label.Color = b.style.Palette.Text
 			} else {
@@ -326,7 +326,7 @@ func (b *Bar) layoutItem(gtx layout.Context, item *Item) layout.Dimensions {
 					if item.submenu == nil {
 						return layout.Dimensions{}
 					}
-					arrow := material.Label(b.style.Theme, unit.Sp(15), ">")
+					arrow := material.Label(b.style.Theme, ui.Sp(15), ">")
 					arrow.Color = b.style.Palette.Muted
 					return arrow.Layout(gtx)
 				}),
@@ -340,7 +340,7 @@ func (b *Bar) layoutEmptyItem(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints.Min.Y = height
 	gtx.Constraints.Max.Y = height
 	return layout.Inset{Left: unit.Dp(12), Right: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		label := material.Label(b.style.Theme, unit.Sp(15), "No items available")
+		label := material.Label(b.style.Theme, ui.Sp(15), "No items available")
 		label.Color = b.style.Palette.Muted
 		return layout.W.Layout(gtx, label.Layout)
 	})
