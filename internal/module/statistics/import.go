@@ -96,6 +96,10 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 		}
 		m.currentZone = zoneID
 		m.currentVisit = visitID
+		m.currentVisitAt = e.Timestamp
+		m.pendingCamp = time.Time{}
+		m.loginSequence = time.Time{}
+		m.preLoginRow = time.Time{}
 		m.pendingKills = m.pendingKills[:0]
 		m.clearCoinReward()
 
@@ -227,7 +231,9 @@ func (m *Module) updateSessionState(e *data.LogRowEvent, previousTimestamp time.
 	case loginMessage:
 		if m.currentVisit > 0 {
 			leftAt := previousTimestamp
-			if !m.loginSequence.IsZero() && !m.preLoginRow.IsZero() {
+			if !m.loginSequence.IsZero() &&
+				!m.preLoginRow.IsZero() &&
+				(m.currentVisitAt.IsZero() || !m.preLoginRow.Before(m.currentVisitAt)) {
 				leftAt = m.preLoginRow
 			}
 			if leftAt.IsZero() || leftAt.After(e.Timestamp) {
@@ -239,6 +245,7 @@ func (m *Module) updateSessionState(e *data.LogRowEvent, previousTimestamp time.
 		}
 		m.currentZone = 0
 		m.currentVisit = 0
+		m.currentVisitAt = time.Time{}
 		m.pendingCamp = time.Time{}
 		m.loginSequence = time.Time{}
 		m.preLoginRow = time.Time{}
@@ -253,12 +260,17 @@ func (m *Module) updateSessionState(e *data.LogRowEvent, previousTimestamp time.
 func (m *Module) closeCurrentZoneVisit(leftAt time.Time) error {
 	if m.currentVisit < 1 {
 		m.currentZone = 0
+		m.currentVisitAt = time.Time{}
+		return nil
+	}
+	if !m.currentVisitAt.IsZero() && leftAt.Before(m.currentVisitAt) {
 		return nil
 	}
 	if err := m.activeImport.CloseZoneVisit(m.currentVisit, leftAt); err != nil {
 		return err
 	}
 	m.currentVisit = 0
+	m.currentVisitAt = time.Time{}
 	m.currentZone = 0
 	return nil
 }
@@ -578,7 +590,7 @@ func (m *Module) RunImport() {
 			return
 		}
 
-		currentVisit, currentZone, _, err := GetOpenZoneVisit(m.db)
+		currentVisit, currentZone, currentVisitAt, _, err := GetOpenZoneVisit(m.db)
 		if err != nil {
 			log.Printf("Unable to restore open statistics zone visit. %v", err)
 			return
@@ -604,6 +616,7 @@ func (m *Module) RunImport() {
 		m.activeImport = activeImport
 		m.currentZone = currentZone
 		m.currentVisit = currentVisit
+		m.currentVisitAt = currentVisitAt
 		m.lastImportRow = lastTimestamp
 		m.pendingKills = m.pendingKills[:0]
 		m.clearCoinReward()

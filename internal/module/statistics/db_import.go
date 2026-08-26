@@ -108,25 +108,26 @@ func GetLastLogTimestamp(db *sql.DB) (time.Time, error) {
 	return timestamp.Time, nil
 }
 
-func GetOpenZoneVisit(db *sql.DB) (int64, int64, bool, error) {
+func GetOpenZoneVisit(db *sql.DB) (int64, int64, time.Time, bool, error) {
 	if db == nil {
-		return 0, 0, false, errors.New("get open statistics zone visit: database is nil")
+		return 0, 0, time.Time{}, false, errors.New("get open statistics zone visit: database is nil")
 	}
 	var visitID, zoneID int64
+	var enteredAt time.Time
 	err := db.QueryRow(`
-		SELECT id, zone_id
+		SELECT id, zone_id, entered_at
 		FROM zone_visits
 		WHERE left_at IS NULL
 		ORDER BY id DESC
 		LIMIT 1
-	`).Scan(&visitID, &zoneID)
+	`).Scan(&visitID, &zoneID, &enteredAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return 0, 0, false, nil
+		return 0, 0, time.Time{}, false, nil
 	}
 	if err != nil {
-		return 0, 0, false, fmt.Errorf("get open statistics zone visit: %w", err)
+		return 0, 0, time.Time{}, false, fmt.Errorf("get open statistics zone visit: %w", err)
 	}
-	return visitID, zoneID, true, nil
+	return visitID, zoneID, enteredAt, true, nil
 }
 
 func nullableInt64(value *int64) any {

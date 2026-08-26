@@ -83,8 +83,8 @@ func (i *Import) CloseZoneVisit(visitID int64, leftAt time.Time) error {
 	if err != nil {
 		return fmt.Errorf("check closed statistics zone visit %d: %w", visitID, err)
 	}
-	if rows != 1 {
-		return fmt.Errorf("close statistics zone visit %d: open visit was not found", visitID)
+	if rows == 0 {
+		return nil
 	}
 	return nil
 }
