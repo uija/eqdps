@@ -84,9 +84,14 @@ tested, and changed where necessary rather than accepted as an authority.
 
 ![eqdps Events configuration](img/eqdps_mainwindow_events.png)
 
+### Statistics
+
+![eqdps Events configuration](img/eqdps_mainwindow_stats.png)
+
 ### DPS overlay
 
 ![eqdps DPS overlay](img/eqdps_overlay.png)
+
 
 ### Legacy terminal interface
 
