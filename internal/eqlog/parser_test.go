@@ -42,6 +42,9 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 		{"trade offer", "You offered 1 Wind Rune Caza to Cilin Spellsinger.", data.LogRowEventTypeTradeOffer},
 		{"trade complete", "You complete the trade with Cilin Spellsinger.", data.LogRowEventTypeTradeComplete},
 		{"trade cancel", "Cilin Spellsinger has cancelled the trade.", data.LogRowEventTypeTradeCancel},
+		{"parcel sent", "Garu Nokel told you, 'I will deliver the Efreeti Scimitar to Slacks as soon as possible!'", data.LogRowEventTypeParcelSent},
+		{"parcel received", "You have received a new parcel delivery containing 1 Fishbone Earring from Sonar!", data.LogRowEventTypeParcelReceived},
+		{"parcel collected", "Garu Nokel hands you the Fishbone Earring that was sent from Sonar.", data.LogRowEventTypeParcelCollected},
 		{"who", "[50 PAL/DRU/MNK] Wyrmberg (Dwarf) <Guild> ZONE:", data.LogRowEventTypeWho},
 		{"anonymous who", "[ANONYMOUS] Someone", data.LogRowEventTypeAnonymousWho},
 		{"inventory export", "Outputfile Complete: Wyrmberg_rivervale-Inventory.txt", data.LogRowEventTypeInventoryExport},
@@ -60,6 +63,69 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 			}
 			if len(event.Data) == 0 || event.Data[0] != test.message {
 				t.Fatalf("regexp data = %#v", event.Data)
+			}
+		})
+	}
+}
+
+func TestParseRowExtractsParcelData(t *testing.T) {
+	tests := []struct {
+		name      string
+		message   string
+		eventType data.LogRowEventType
+		data      []string
+	}{
+		{
+			name:      "sent item",
+			message:   "Garu Nokel told you, 'I will deliver the Efreeti Scimitar to Slacks as soon as possible!'",
+			eventType: data.LogRowEventTypeParcelSent,
+			data:      []string{"Garu Nokel", "", "Efreeti Scimitar", "Slacks"},
+		},
+		{
+			name:      "sent stack",
+			message:   "Garu Nokel told you, 'I will deliver the stack of 100 Bone Chips to Moth as soon as possible!'",
+			eventType: data.LogRowEventTypeParcelSent,
+			data:      []string{"Garu Nokel", "100", "Bone Chips", "Moth"},
+		},
+		{
+			name:      "sent money",
+			message:   "Garu Nokel told you, 'I will deliver the Money (100p) to Oakpine as soon as possible!'",
+			eventType: data.LogRowEventTypeParcelSent,
+			data:      []string{"Garu Nokel", "", "Money (100p)", "Oakpine"},
+		},
+		{
+			name:      "received item",
+			message:   "You have received a new parcel delivery containing 1 Fishbone Earring from Sonar!",
+			eventType: data.LogRowEventTypeParcelReceived,
+			data:      []string{"1", "Fishbone Earring", "Sonar"},
+		},
+		{
+			name:      "collected item",
+			message:   "Garu Nokel hands you the Fishbone Earring that was sent from Sonar.",
+			eventType: data.LogRowEventTypeParcelCollected,
+			data:      []string{"Garu Nokel", "", "Fishbone Earring", "Sonar"},
+		},
+		{
+			name:      "collected stack",
+			message:   "Garu Nokel hands you the stack of 100 Bone Chips that was sent from Moth.",
+			eventType: data.LogRowEventTypeParcelCollected,
+			data:      []string{"Garu Nokel", "100", "Bone Chips", "Moth"},
+		},
+	}
+
+	parser := NewParser(0)
+	for index, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			row := "[Sun Jul 26 12:00:00 2026] " + test.message
+			event, ok := parser.ParseRow(row, int64(index+1), false)
+			if !ok {
+				t.Fatal("row was not parsed")
+			}
+			if event.Type != test.eventType {
+				t.Fatalf("type = %v, want %v", event.Type, test.eventType)
+			}
+			if !slices.Equal(event.Data[1:], test.data) {
+				t.Fatalf("data = %#v, want %#v", event.Data[1:], test.data)
 			}
 		})
 	}

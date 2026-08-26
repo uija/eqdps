@@ -240,3 +240,14 @@ func LayoutTooltip(
 
 	return area.Layout(tipGtx, tip, child)
 }
+
+func RenderLinkAsButton(style *Style, clickable *widget.Clickable, icon *widget.Icon, text string) layout.Widget {
+	link := IconLink(style, clickable, icon, text)
+	link.Padding[PADDING_TOP] = 4
+	link.Padding[PADDING_BOTTOM] = 4
+	link.Padding[PADDING_LEFT] = 8
+	link.Padding[PADDING_RIGHT] = 8
+	return func(gtx layout.Context) layout.Dimensions {
+		return ColoredBorderedRow(gtx, style.Palette.Panel, link.Layout)
+	}
+}

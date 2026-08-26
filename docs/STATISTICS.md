@@ -11,6 +11,53 @@ Existing parser event types are defined in
 `internal/data/logrowevent.go`. Their patterns are in
 `internal/eqlog/patterns.go`.
 
+## Implementation roadmap
+
+1. Define the schema:
+   - decide on tables, columns, relationships, constraints, and indexes;
+   - decide which observations are stored individually and which values are
+     calculated;
+   - delete and recreate the development database or introduce a schema
+     version because the existing schema is incompatible.
+2. Add the missing parser event types and patterns:
+   - guild chat sent and received;
+   - tells sent and received;
+   - parcels sent, received, and collected;
+   - captured denominations for corpse-money events.
+3. Implement `CREATE TABLE IF NOT EXISTS` for every table:
+   - add indexes for timestamps, zone IDs, mob IDs, item IDs, and names;
+   - enable foreign-key enforcement.
+4. Implement the database functions needed during parsing:
+   - find or create zones, mobs, and items;
+   - insert visits, kills, loot, money, XP, levels, chat, and parcels;
+   - find and update received parcels when they are collected;
+   - read and update the logfile offset.
+5. Implement efficient importing:
+   - use transactions and prepared statements instead of separately committed
+     writes for every event;
+   - commit large imports in batches;
+   - update the logfile offset in the same transaction as the corresponding
+     imported events so a crash cannot lose or duplicate committed data.
+6. Implement the state needed while parsing:
+   - the current zone;
+   - recent kills used to associate loot with a kill;
+   - pending received parcels used to associate collection messages;
+   - player/NPC knowledge needed to classify tells and kills.
+7. Implement the manually started statistics parser:
+   - use a separate parser instance;
+   - begin at the stored offset;
+   - show progress;
+   - support cancellation;
+   - report parsing and database errors;
+   - advance the offset only for committed batches.
+8. Verify imported data:
+   - test new parser patterns with real log lines;
+   - test database relationships and totals;
+   - parse a small known logfile sample and compare its results manually.
+9. Decide which statistics and relationships the UI should display.
+10. Implement database queries for those views.
+11. Implement the statistics UI.
+
 ## Database structure
 
 Suggested tables:
@@ -295,4 +342,3 @@ You receive 7 platinum, 7 gold, 8 silver and 7 copper from the corpse.
 It currently captures no denominations. The pattern needs to provide the coin
 text to the event, or the statistics importer needs a secondary coin parser,
 before it can populate `money.amount_copper`.
-

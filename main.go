@@ -13,6 +13,7 @@ import (
 	"github.com/uija/eqdps/internal/module/eqldb"
 	"github.com/uija/eqdps/internal/module/events"
 	"github.com/uija/eqdps/internal/module/sky"
+	"github.com/uija/eqdps/internal/module/statistics"
 	"github.com/uija/eqdps/internal/module/xphour"
 	"github.com/uija/eqdps/internal/view"
 )
@@ -26,7 +27,7 @@ func main() {
 		context.RegisterModule(sky.NewModule())
 		context.RegisterModule(events.NewModule())
 		context.RegisterModule(eqldb.NewModule())
-		//context.RegisterModule(statistics.NewModule())
+		context.RegisterModule(statistics.NewModule())
 		width := max(1100, context.Config.UIConfig.MainWindowWidth)
 		height := max(640, context.Config.UIConfig.MainWindowHeight)
 		window.Option(

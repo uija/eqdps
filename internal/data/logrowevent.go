@@ -31,6 +31,9 @@ const (
 	LogRowEventTypeAnonymousWho
 	LogRowEventTypeInventoryExport
 	LogRowEventTypeSomeoneDied
+	LogRowEventTypeParcelSent
+	LogRowEventTypeParcelReceived
+	LogRowEventTypeParcelCollected
 )
 
 type LogLandmark struct {
