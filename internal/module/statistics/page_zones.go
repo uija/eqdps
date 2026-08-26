@@ -139,7 +139,7 @@ func (p *ZonesPage) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dim
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ui.IconLink(style, &p.visit_click, ui.Sort, "Visist").Layout(gtx)
+						return ui.IconLink(style, &p.visit_click, ui.Sort, "Visits").Layout(gtx)
 					})
 				})
 			}),
