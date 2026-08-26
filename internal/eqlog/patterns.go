@@ -12,6 +12,10 @@ const timestampLayout = "Mon Jan 02 15:04:05 2006"
 var levelUpExpression = regexp.MustCompile(`^You have gained a level! Welcome to level ([0-9]+)!$`)
 var zoneChangeExpression = regexp.MustCompile(`^You have entered (.+)\.$`)
 
+var ignoredMessages = map[string]bool{
+	"You have entered an area where levitation effects do not function.": true,
+}
+
 type eventPattern struct {
 	eventType  data.LogRowEventType
 	expression *regexp.Regexp
@@ -51,6 +55,9 @@ var eventPatterns = []eventPattern{
 }
 
 func classify(message string) (data.LogRowEventType, []string, bool) {
+	if ignoredMessages[message] {
+		return data.LogRowEventTypeUnknown, nil, false
+	}
 	for _, pattern := range eventPatterns {
 		containsAll := true
 		for _, required := range pattern.contains {

@@ -68,6 +68,14 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 	}
 }
 
+func TestParseRowDoesNotClassifyLevitationWarningAsZone(t *testing.T) {
+	parser := NewParser(0)
+	row := "[Sun Jul 26 12:00:00 2026] You have entered an area where levitation effects do not function."
+	if event, ok := parser.ParseRow(row, 1, false); ok {
+		t.Fatalf("warning was parsed as event type %v", event.Type)
+	}
+}
+
 func TestParseRowExtractsParcelData(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -169,6 +177,34 @@ func TestParseRowEmitsUnknownRowsOnlyWhenLive(t *testing.T) {
 	}
 	if event.Message != "Your Charm spell has worn off of a Teir`Dal rogue." {
 		t.Fatalf("message = %q", event.Message)
+	}
+}
+
+func TestReplayCanIncludeUnknownRowsWithoutMarkingThemLive(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "eqlog_Wyrmberg_rivervale.txt")
+	const row = "[Thu Aug 13 23:55:24 2026] Your Charm spell has worn off of a Teir`Dal rogue.\n"
+	if err := os.WriteFile(path, []byte(row), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	parser := NewParser(0)
+	if err := parser.Open(path); err != nil {
+		t.Fatal(err)
+	}
+	var events []*data.LogRowEvent
+	if err := parser.Replay(Loopback{IncludeUnknown: true}, func(event *data.LogRowEvent) {
+		events = append(events, event)
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("received %d events, want 1", len(events))
+	}
+	if events[0].Type != data.LogRowEventTypeUnknown {
+		t.Fatalf("type = %v, want %v", events[0].Type, data.LogRowEventTypeUnknown)
+	}
+	if events[0].Live {
+		t.Fatal("unknown replay row was marked live")
 	}
 }
 

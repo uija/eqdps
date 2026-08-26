@@ -55,10 +55,11 @@ type Parser struct {
 }
 
 type Loopback struct {
-	ByteOffset int64
-	TimeOffset time.Duration
-	Timestamp  time.Time
-	Skip       bool
+	ByteOffset     int64
+	TimeOffset     time.Duration
+	Timestamp      time.Time
+	Skip           bool
+	IncludeUnknown bool
 }
 
 func NewParser(session uint64) *Parser {
@@ -270,9 +271,9 @@ func (p *Parser) Replay(lookback Loopback, handler EventHandler, onProgress Repl
 			offset += int64(len(line))
 			lines++
 			if cutoff.IsZero() {
-				p.emit(line, offset, false, handler)
+				p.emit(line, offset, false, lookback.IncludeUnknown, handler)
 			} else if timestamp, ok := rowTimestamp(line); ok && !timestamp.Before(cutoff) {
-				p.emit(line, offset, false, handler)
+				p.emit(line, offset, false, lookback.IncludeUnknown, handler)
 			} else {
 				p.advanceOffset(offset)
 			}
@@ -389,7 +390,7 @@ func (p *Parser) Follow(handler EventHandler) error {
 		line, readErr := reader.ReadString('\n')
 		if strings.HasSuffix(line, "\n") {
 			offset += int64(len(line))
-			p.emit(line, offset, true, handler)
+			p.emit(line, offset, true, false, handler)
 		}
 		if readErr == nil {
 			continue
@@ -426,6 +427,10 @@ func (p *Parser) Close() {
 }
 
 func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowEvent, bool) {
+	return p.parseRow(row, endOffset, live, false)
+}
+
+func (p *Parser) parseRow(row string, endOffset int64, live, includeUnknown bool) (*data.LogRowEvent, bool) {
 	num_rows++
 	row = strings.TrimRight(row, "\r\n")
 	timestampText, message, validEnvelope := splitEnvelope(row)
@@ -438,7 +443,7 @@ func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowE
 	}
 
 	eventType, eventData, known := classify(message)
-	if !known && !live {
+	if !known && !live && !includeUnknown {
 		return nil, false
 	}
 	//timestamp, err := time.Parse(timestampLayout, timestampText)
@@ -461,8 +466,8 @@ func (p *Parser) ParseRow(row string, endOffset int64, live bool) (*data.LogRowE
 	return event, true
 }
 
-func (p *Parser) emit(row string, endOffset int64, live bool, handler EventHandler) {
-	event, ok := p.ParseRow(row, endOffset, live)
+func (p *Parser) emit(row string, endOffset int64, live, includeUnknown bool, handler EventHandler) {
+	event, ok := p.parseRow(row, endOffset, live, includeUnknown)
 	if ok && handler != nil {
 		handler(event)
 	}

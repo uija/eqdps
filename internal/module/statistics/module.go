@@ -2,18 +2,21 @@ package statistics
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"gioui.org/layout"
 	"gioui.org/widget"
+	_ "github.com/glebarez/go-sqlite"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
-	"github.com/uija/eqdps/internal/module/statistics/page"
-	//_ "github.com/glebarez/go-sqlite"
 )
 
 var zoneVariantSuffixRE = regexp.MustCompile(`(?: - (?:Group|Solo)(?: [0-9]+)?(?: \([^)]+\))?| [0-9]+ \([^)]+\))$`)
@@ -28,18 +31,29 @@ type Module struct {
 	list widget.List
 	db   *sql.DB
 
+	replay         atomic.Bool
+	importRunning  atomic.Bool
+	activeImport   *Import
+	currentZone    int64
+	pendingKills   []pendingStatisticsKill
+	lastCoinReward time.Time
+
 	logPath     string
 	updateClick widget.Clickable
-	Pages       []page.StatsPage
+	Pages       []StatsPage
+	currentPage StatsPage
 
 	replayProgress *eqlog.ReplayProgress
+
+	lastKnownOffset   int64
+	lastLogfileOffset int64
 
 	invalidateFunc func()
 }
 
 func NewModule() *Module {
 	return &Module{
-		Pages:          make([]page.StatsPage, 0),
+		Pages:          make([]StatsPage, 0),
 		invalidateFunc: func() {},
 	}
 }
@@ -49,42 +63,76 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 		ctx.SetMainView(m.Layout)
 	})
 	ctx.RegisterLogOpen(m.OnLogOpen)
+	ctx.RegisterReplayStart(m.OnExternalReplayStart)
+	ctx.RegisterReplayEnd(m.OnExternalReplayEnd)
+	ctx.RegisterLogRow(m.OnExternalLogRow)
 	m.ctx = ctx
 	m.invalidateFunc = invalidFunc
 	m.list.Axis = layout.Vertical
 
-	m.Pages = append(m.Pages, page.NewOverviewPage())
-	m.Pages = append(m.Pages, page.NewZonesPage())
+	m.Pages = append(m.Pages, NewOverviewPage())
+	m.Pages = append(m.Pages, NewZonesPage())
+	m.currentPage = m.Pages[0]
+
 	return nil
 }
 func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, path string) bool {
+	m.lastLogfileOffset = filesize
+	logdir := filepath.Dir(path)
+	database_dir := filepath.Join(logdir, fmt.Sprintf("eqdps_%s_%s.sqlite", characterName, serverName))
+	db, err := sql.Open("sqlite", database_dir+"?_pragma=foreign_keys(1)")
+	if err != nil {
+		log.Printf("Unable to initialize database. %v", err)
+	} else {
+		if m.db != nil {
+			m.db.Close()
+		}
+		if err := PrepareDb(db); err != nil {
+			db.Close()
+			log.Printf("Unable to prepare statistics database. %v", err)
+			m.db = nil
+			m.logPath = path
+			return true
+		}
+		m.db = db
+		offset, err := GetLogOffset(m.db)
+		if err == nil {
+			m.lastKnownOffset = offset
+		}
+	}
+	for idx := range m.Pages {
+		m.Pages[idx].SetDb(db)
+	}
 	m.logPath = path
 	return true
 }
 
 func (m *Module) Update(gtx layout.Context) {
 	if m.updateClick.Clicked(gtx) {
-		if m.logPath == "" {
-			return
+		m.RunImport()
+	}
+	for idx := range m.Pages {
+		if m.Pages[idx].Clickable().Clicked(gtx) {
+			m.currentPage = m.Pages[idx]
 		}
-		parser := eqlog.NewParser(2)
-		parser.Open(m.logPath)
-		go func() {
-			parser.Replay(eqlog.Loopback{}, m.OnLogRow, m.OnProgress)
-			log.Printf("Done with parsing")
-		}()
+		m.Pages[idx].Update(gtx)
 	}
 }
-func (m *Module) OnLogRow(lre *data.LogRowEvent) {
-
-}
-func (m *Module) OnProgress(rp eqlog.ReplayProgress) {
-	defer m.invalidateFunc()
-	if rp.Bytes == rp.Total {
-		m.replayProgress = nil
+func (m *Module) OnExternalLogRow(e *data.LogRowEvent) {
+	// we try to keep track of the current file size, to estimate backlog
+	if m.replay.Load() || e.Offset < m.lastLogfileOffset {
 		return
 	}
-	m.replayProgress = &rp
+	m.lastLogfileOffset = e.Offset
+}
+func (m *Module) OnExternalReplayStart() {
+	m.replay.Store(true)
+}
+func (m *Module) OnExternalReplayEnd() {
+	m.replay.Store(false)
 }
 func (m *Module) Shutdown() {
+	if m.db != nil {
+		m.db.Close()
+	}
 }

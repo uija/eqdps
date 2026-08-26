@@ -35,6 +35,7 @@ var Download *widget.Icon
 
 var Import *widget.Icon
 var Export *widget.Icon
+var Sort *widget.Icon
 
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
@@ -64,6 +65,7 @@ func Init() {
 
 	Import = loadIcon(icons.FileFolderOpen)
 	Export = loadIcon(icons.ContentSave)
+	Sort = loadIcon(icons.ContentSort)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)

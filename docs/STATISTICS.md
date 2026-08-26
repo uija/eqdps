@@ -155,11 +155,10 @@ confirmed kills should enter the denominator used for estimated loot chances.
 ```text
 id
 name
-normalized_name
 ```
 
-The original name can retain an item's upgrade suffix while the normalized
-name permits combined statistics for all upgrades.
+`name` is normalized, so upgrade variants share one item row. The exact name
+observed in an individual loot message is stored on that loot row.
 
 ### `loot`
 
@@ -169,6 +168,7 @@ zone_id
 mob_id
 kill_id       nullable
 item_id
+raw_item_name
 quantity
 looted_at
 destination

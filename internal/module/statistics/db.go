@@ -46,8 +46,7 @@ func PrepareDb(db *sql.DB) error {
 		)`,
 		`CREATE TABLE IF NOT EXISTS items (
 			id INTEGER PRIMARY KEY,
-			name TEXT NOT NULL COLLATE NOCASE UNIQUE,
-			normalized_name TEXT NOT NULL COLLATE NOCASE
+			name TEXT NOT NULL COLLATE NOCASE UNIQUE
 		)`,
 		`CREATE TABLE IF NOT EXISTS loot (
 			id INTEGER PRIMARY KEY,
@@ -55,6 +54,7 @@ func PrepareDb(db *sql.DB) error {
 			mob_id INTEGER NOT NULL,
 			kill_id INTEGER,
 			item_id INTEGER NOT NULL,
+			raw_item_name TEXT NOT NULL,
 			quantity INTEGER NOT NULL CHECK (quantity > 0),
 			looted_at DATETIME NOT NULL,
 			destination TEXT NOT NULL CHECK (destination IN (
@@ -120,7 +120,8 @@ func PrepareDb(db *sql.DB) error {
 		)`,
 		`CREATE TABLE IF NOT EXISTS log_state (
 			id INTEGER PRIMARY KEY CHECK (id = 1),
-			byte_offset INTEGER NOT NULL DEFAULT 0 CHECK (byte_offset >= 0)
+			byte_offset INTEGER NOT NULL DEFAULT 0 CHECK (byte_offset >= 0),
+			last_timestamp DATETIME
 		)`,
 		`INSERT INTO log_state (id, byte_offset)
 		VALUES (1, 0)
@@ -132,8 +133,6 @@ func PrepareDb(db *sql.DB) error {
 		ON kills (zone_id, killed_at)`,
 		`CREATE INDEX IF NOT EXISTS kills_mob_time_idx
 		ON kills (mob_id, killed_at)`,
-		`CREATE INDEX IF NOT EXISTS items_normalized_name_idx
-		ON items (normalized_name)`,
 		`CREATE INDEX IF NOT EXISTS loot_zone_time_idx
 		ON loot (zone_id, looted_at)`,
 		`CREATE INDEX IF NOT EXISTS loot_mob_item_idx
