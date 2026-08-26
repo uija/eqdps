@@ -36,6 +36,10 @@ func NewPlayback(audioDir string) (*Playback, error) {
 	}, nil
 }
 
+func (p *Playback) AudioDir() string {
+	return p.audioDir
+}
+
 func (p *Playback) Play(ctx context.Context, id string, volume float64, reportError func(error)) error {
 	select {
 	case <-ctx.Done():

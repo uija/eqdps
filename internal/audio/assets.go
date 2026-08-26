@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"os"
 	"path"
 	"sort"
 	"strings"
@@ -20,6 +21,30 @@ var embeddedFiles embed.FS
 type Sound struct {
 	ID    string
 	Label string
+}
+
+func UserSounds(audiopath string) ([]Sound, error) {
+	if audiopath == "" {
+		return nil, fmt.Errorf("No path given.")
+	}
+	entries, err := os.ReadDir(audiopath)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read path. %v", err)
+	}
+	var sounds []Sound
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(path.Ext(entry.Name()), ".mp3") {
+			continue
+		}
+		sounds = append(sounds, Sound{
+			ID:    UserPrefix + entry.Name(),
+			Label: entry.Name() + " (user)",
+		})
+	}
+	sort.Slice(sounds, func(i, j int) bool {
+		return sounds[i].Label < sounds[j].Label
+	})
+	return sounds, nil
 }
 
 func EmbeddedSounds() ([]Sound, error) {

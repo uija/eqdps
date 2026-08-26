@@ -134,7 +134,14 @@ func NewContext(invalidateFunc func()) *Context {
 		Config:          config,
 		updateFound:     make(chan github.Release, 1),
 	}
-	p, err := audio.NewPlayback("")
+	audioDir := func() string {
+		ad, err := audio.AudioPath()
+		if err == nil {
+			return ad
+		}
+		return ""
+	}()
+	p, err := audio.NewPlayback(audioDir)
 	if err != nil {
 		panic("Unable to initialize audio playback")
 	}

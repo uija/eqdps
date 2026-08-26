@@ -137,15 +137,27 @@ func NewModule() *Module {
 	mustRegister(m.event_form.AddButton("save", &m.save_button_click, m.OnSave))
 	mustRegister(m.event_form.AddButton("cancel", &m.close_button_click, m.OnCancel))
 
+	list := make([]string, 0)
+	audioDir, err := audio.AudioPath()
+	if err == nil {
+		sounds, err := audio.UserSounds(audioDir)
+		if err == nil {
+			list = append(list, "")
+			for _, s := range sounds {
+				list = append(list, s.ID)
+			}
+		}
+	}
 	sounds, err := audio.EmbeddedSounds()
 	if err == nil {
-		list := make([]string, 0)
-		list = append(list, "")
+		if len(list) == 0 {
+			list = append(list, "")
+		}
 		for _, s := range sounds {
 			list = append(list, s.ID)
 		}
-		m.sound_select.SetOptions(list)
 	}
+	m.sound_select.SetOptions(list)
 	return m
 }
 
