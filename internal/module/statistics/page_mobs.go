@@ -6,6 +6,7 @@ import (
 	"image"
 	"log"
 	"sort"
+	"strings"
 	"sync/atomic"
 
 	"gioui.org/font"
@@ -24,11 +25,13 @@ type MobRow struct {
 }
 
 type MobsPage struct {
-	db         *sql.DB
-	tabClick   widget.Clickable
-	list       widget.List
-	mobs       []MobRow
-	mob_clicks []widget.Clickable
+	db           *sql.DB
+	tabClick     widget.Clickable
+	list         widget.List
+	all_mobs     []MobRow
+	mobs         []*MobRow
+	filter       widget.Editor
+	filter_clear widget.Clickable
 
 	loading atomic.Bool
 
@@ -45,19 +48,52 @@ type MobsPage struct {
 func NewMobsPage(iv func()) *MobsPage {
 	p := &MobsPage{
 		invalidateFunc: iv,
-		mob_clicks:     make([]widget.Clickable, 0),
 	}
 	p.list.Axis = layout.Vertical
+	p.filter.SingleLine = true
 	return p
 }
 
 func (p *MobsPage) Title() string                { return "Mobs" }
 func (p *MobsPage) Clickable() *widget.Clickable { return &p.tabClick }
 func (p *MobsPage) SetDb(db *sql.DB)             { p.db = db }
-func (p *MobsPage) Reset()                       { p.mobs = nil }
+func (p *MobsPage) Reset() {
+	p.all_mobs = nil
+	p.mobs = nil
+	p.filter.SetText("")
+}
+func (p *MobsPage) ApplyFilter() {
+	if p.all_mobs == nil {
+		return
+	}
+	if p.mobs == nil {
+		p.mobs = make([]*MobRow, 0)
+	} else {
+		p.mobs = p.mobs[:0]
+	}
+	lsearch := strings.ToLower(p.filter.Text())
+	for idx, m := range p.all_mobs {
+		if lsearch == "" || strings.Contains(strings.ToLower(m.Statistic.Name), lsearch) {
+			p.mobs = append(p.mobs, &p.all_mobs[idx])
+		}
+	}
+}
 func (p *MobsPage) Update(gtx layout.Context) {
 	if p.mobs == nil {
 		return
+	}
+	for {
+		event, ok := p.filter.Update(gtx)
+		if !ok {
+			break
+		}
+		if _, ok := event.(widget.ChangeEvent); ok {
+			p.ApplyFilter()
+		}
+	}
+	if p.filter_clear.Clicked(gtx) {
+		p.filter.SetText("")
+		p.ApplyFilter()
 	}
 	switch {
 	case p.nameClick.Clicked(gtx):
@@ -117,12 +153,13 @@ func (p *MobsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions
 				log.Printf("Unable to load mob statistics. %v", err)
 				return
 			}
-			p.mobs = make([]MobRow, 0)
+			p.all_mobs = make([]MobRow, 0)
 			for _, s := range stats {
-				p.mobs = append(p.mobs, MobRow{
+				p.all_mobs = append(p.all_mobs, MobRow{
 					Statistic: s,
 				})
 			}
+			p.ApplyFilter()
 		}()
 	}
 	if p.mobs == nil {
@@ -140,13 +177,28 @@ func (p *MobsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions
 	list := material.List(style.Theme, &p.list)
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter: ").Layout)
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return ui.MaxedTextField(&p.filter, "", style, gtx)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Right: unit.Dp(8), Top: unit.Dp(8), Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.IconLink(style, &p.filter_clear, ui.Close, "Clear").Layout(gtx)
+					})
+				}),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return p.renderHeader(style, gtx)
 			})
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return list.Layout(gtx, len(p.mobs), func(gtx layout.Context, index int) layout.Dimensions {
-				return p.renderRow(&p.mobs[index], index%2 == 0, style, gtx)
+				return p.renderRow(p.mobs[index], index%2 == 0, style, gtx)
 			})
 		}),
 	)
