@@ -148,7 +148,6 @@ func NewContext(invalidateFunc func()) *Context {
 	ctx.Playback = p
 	ctx.updateBodyList.Axis = layout.Vertical
 	if ctx.Config.CheckForUpdates {
-
 		go func() {
 			result, newUpdate, err := github.CheckNewVersion(ctx.Config.LastSeenVersion)
 			if err != nil {
@@ -178,6 +177,8 @@ func (c *Context) ParserLogFileOpened(path string) {
 			c.Config.RecentLogFiles = c.Config.RecentLogFiles[1:]
 		}
 	}
+	c.Config.LastLogfile = path
+	c.Config.Save()
 	c.startParser(path, c.runIndexFile)
 }
 func (c *Context) RegisterProgressHandler(h ProgressHandler) {

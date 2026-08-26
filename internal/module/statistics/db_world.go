@@ -144,6 +144,31 @@ func (i *Import) InsertKill(zoneID, mobID int64, killedAt time.Time, killType Ki
 	return id, nil
 }
 
+func (i *Import) InsertPlayerDeath(zoneID, mobID int64, diedAt time.Time) (int64, error) {
+	tx, err := i.activeTx()
+	if err != nil {
+		return 0, err
+	}
+	if zoneID < 1 || mobID < 1 {
+		return 0, errors.New("insert statistics player death: invalid zone or mob ID")
+	}
+	if diedAt.IsZero() {
+		return 0, errors.New("insert statistics player death: timestamp is zero")
+	}
+	result, err := tx.Exec(`
+		INSERT INTO player_deaths (zone_id, mob_id, died_at)
+		VALUES (?, ?, ?)
+	`, zoneID, mobID, diedAt)
+	if err != nil {
+		return 0, fmt.Errorf("insert statistics player death: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("read statistics player death ID: %w", err)
+	}
+	return id, nil
+}
+
 func (i *Import) FindRecentKill(zoneID, mobID int64, at time.Time, maximumAge time.Duration) (Kill, bool, error) {
 	tx, err := i.activeTx()
 	if err != nil {

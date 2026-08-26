@@ -97,15 +97,17 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 		m.currentZone = zoneID
 		m.currentVisit = visitID
 		m.pendingKills = m.pendingKills[:0]
-		m.lastCoinReward = time.Time{}
+		m.clearCoinReward()
 
 	case data.LogRowEventTypeYouSlain:
 		if m.currentZone < 1 || len(e.Data) < 2 {
 			return nil
 		}
-		m.lastCoinReward = time.Time{}
-		_, err := m.insertKill(strings.TrimSpace(e.Data[1]), e.Timestamp, KillPlayer)
-		return err
+		killID, err := m.insertKill(strings.TrimSpace(e.Data[1]), e.Timestamp, KillPlayer)
+		if err != nil {
+			return err
+		}
+		return m.associateRecentCoinReward(killID, e.Timestamp)
 
 	case data.LogRowEventTypeSlainBy:
 		if m.currentZone < 1 || len(e.Data) < 2 {
@@ -114,13 +116,28 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 		target := strings.TrimSpace(e.Data[1])
 		if strings.EqualFold(target, "You") {
 			m.pendingKills = m.pendingKills[:0]
-			return nil
+			m.clearCoinReward()
+			if len(e.Data) < 3 {
+				return nil
+			}
+			killer := strings.TrimSpace(e.Data[2])
+			if killer == "" {
+				return nil
+			}
+			mobID, err := m.activeImport.GetOrCreateMob(m.currentZone, killer)
+			if err != nil {
+				return err
+			}
+			_, err = m.activeImport.InsertPlayerDeath(m.currentZone, mobID, e.Timestamp)
+			return err
 		}
 		elapsed := e.Timestamp.Sub(m.lastCoinReward)
 		if !m.lastCoinReward.IsZero() && elapsed >= 0 && elapsed <= coinConfirmationWindow {
-			m.lastCoinReward = time.Time{}
-			_, err := m.insertKill(target, e.Timestamp, KillOther)
-			return err
+			killID, err := m.insertKill(target, e.Timestamp, KillOther)
+			if err != nil {
+				return err
+			}
+			return m.associateRecentCoinReward(killID, e.Timestamp)
 		}
 		m.pendingKills = append(m.pendingKills, pendingStatisticsKill{
 			zoneID:   m.currentZone,
@@ -137,7 +154,7 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 			return err
 		}
 		m.lastCoinReward = e.Timestamp
-		_, err = m.activeImport.InsertMoney(m.currentZonePointer(), e.Timestamp, amount, MoneyCorpse)
+		m.lastCoinID, err = m.activeImport.InsertMoney(m.currentZonePointer(), e.Timestamp, amount, MoneyCorpse)
 		return err
 
 	case data.LogRowEventTypeExperience:
@@ -226,7 +243,7 @@ func (m *Module) updateSessionState(e *data.LogRowEvent, previousTimestamp time.
 		m.loginSequence = time.Time{}
 		m.preLoginRow = time.Time{}
 		m.pendingKills = m.pendingKills[:0]
-		m.lastCoinReward = time.Time{}
+		m.clearCoinReward()
 	case campStartMessage:
 		m.pendingCamp = e.Timestamp
 	}
@@ -252,6 +269,22 @@ func (m *Module) currentZonePointer() *int64 {
 	}
 	zoneID := m.currentZone
 	return &zoneID
+}
+
+func (m *Module) associateRecentCoinReward(killID int64, killedAt time.Time) error {
+	elapsed := killedAt.Sub(m.lastCoinReward)
+	if m.lastCoinReward.IsZero() || m.lastCoinID < 1 || elapsed < 0 || elapsed > coinConfirmationWindow {
+		m.clearCoinReward()
+		return nil
+	}
+	moneyID := m.lastCoinID
+	m.clearCoinReward()
+	return m.activeImport.AssociateMoneyWithKill(moneyID, killID)
+}
+
+func (m *Module) clearCoinReward() {
+	m.lastCoinReward = time.Time{}
+	m.lastCoinID = 0
 }
 
 func (m *Module) insertKill(name string, killedAt time.Time, killType KillType) (int64, error) {
@@ -573,7 +606,7 @@ func (m *Module) RunImport() {
 		m.currentVisit = currentVisit
 		m.lastImportRow = lastTimestamp
 		m.pendingKills = m.pendingKills[:0]
-		m.lastCoinReward = time.Time{}
+		m.clearCoinReward()
 
 		finalOffset := offset
 		var finalTimestamp time.Time

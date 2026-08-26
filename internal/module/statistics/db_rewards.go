@@ -141,6 +141,32 @@ func (i *Import) InsertMoney(
 	return id, nil
 }
 
+func (i *Import) AssociateMoneyWithKill(moneyID, killID int64) error {
+	tx, err := i.activeTx()
+	if err != nil {
+		return err
+	}
+	if moneyID < 1 || killID < 1 {
+		return errors.New("associate statistics money: invalid money or kill ID")
+	}
+	result, err := tx.Exec(`
+		UPDATE money
+		SET kill_id = ?
+		WHERE id = ? AND kill_id IS NULL
+	`, killID, moneyID)
+	if err != nil {
+		return fmt.Errorf("associate statistics money with kill: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check statistics money association: %w", err)
+	}
+	if rows != 1 {
+		return errors.New("associate statistics money with kill: money record was not found")
+	}
+	return nil
+}
+
 func (i *Import) InsertExperience(zoneID *int64, receivedAt time.Time, percent *float64) (int64, error) {
 	tx, err := i.activeTx()
 	if err != nil {

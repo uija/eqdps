@@ -46,6 +46,14 @@ func PrepareDb(db *sql.DB) error {
 			FOREIGN KEY (zone_id) REFERENCES zones(id),
 			FOREIGN KEY (mob_id) REFERENCES mobs(id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS player_deaths (
+			id INTEGER PRIMARY KEY,
+			zone_id INTEGER NOT NULL,
+			mob_id INTEGER NOT NULL,
+			died_at DATETIME NOT NULL,
+			FOREIGN KEY (zone_id) REFERENCES zones(id),
+			FOREIGN KEY (mob_id) REFERENCES mobs(id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS items (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL COLLATE NOCASE UNIQUE
@@ -76,6 +84,7 @@ func PrepareDb(db *sql.DB) error {
 		`CREATE TABLE IF NOT EXISTS money (
 			id INTEGER PRIMARY KEY,
 			zone_id INTEGER,
+			kill_id INTEGER,
 			received_at DATETIME NOT NULL,
 			amount_copper INTEGER NOT NULL CHECK (amount_copper >= 0),
 			source TEXT NOT NULL CHECK (source IN (
@@ -85,7 +94,8 @@ func PrepareDb(db *sql.DB) error {
 				'trade',
 				'merchant'
 			)),
-			FOREIGN KEY (zone_id) REFERENCES zones(id)
+			FOREIGN KEY (zone_id) REFERENCES zones(id),
+			FOREIGN KEY (kill_id) REFERENCES kills(id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS experience (
 			id INTEGER PRIMARY KEY,
@@ -131,10 +141,14 @@ func PrepareDb(db *sql.DB) error {
 
 		`CREATE INDEX IF NOT EXISTS zone_visits_zone_time_idx
 		ON zone_visits (zone_id, entered_at)`,
+		`CREATE INDEX IF NOT EXISTS mobs_name_idx
+		ON mobs (name COLLATE NOCASE)`,
 		`CREATE INDEX IF NOT EXISTS kills_zone_time_idx
 		ON kills (zone_id, killed_at)`,
 		`CREATE INDEX IF NOT EXISTS kills_mob_time_idx
 		ON kills (mob_id, killed_at)`,
+		`CREATE INDEX IF NOT EXISTS player_deaths_mob_time_idx
+		ON player_deaths (mob_id, died_at)`,
 		`CREATE INDEX IF NOT EXISTS loot_zone_time_idx
 		ON loot (zone_id, looted_at)`,
 		`CREATE INDEX IF NOT EXISTS loot_mob_item_idx
@@ -147,6 +161,8 @@ func PrepareDb(db *sql.DB) error {
 		ON money (zone_id, received_at)`,
 		`CREATE INDEX IF NOT EXISTS money_source_idx
 		ON money (source)`,
+		`CREATE INDEX IF NOT EXISTS money_kill_idx
+		ON money (kill_id)`,
 		`CREATE INDEX IF NOT EXISTS experience_zone_time_idx
 		ON experience (zone_id, received_at)`,
 		`CREATE INDEX IF NOT EXISTS levels_time_idx

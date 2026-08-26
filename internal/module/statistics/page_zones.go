@@ -3,9 +3,9 @@ package statistics
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"image"
 	"sort"
-	"time"
+	"sync/atomic"
 
 	"gioui.org/layout"
 	"gioui.org/unit"
@@ -18,6 +18,7 @@ type ZonesPage struct {
 	tabClick widget.Clickable
 	list     widget.List
 	db       *sql.DB
+	loading  atomic.Bool
 
 	zonestats []ZoneStatistics
 
@@ -87,28 +88,42 @@ func (p *ZonesPage) Update(gtx layout.Context) {
 	}
 }
 func (p *ZonesPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	if p.zonestats == nil {
-		stats, err := GetZoneStatistics(p.db)
-		if err == nil {
-			p.zonestats = stats
-		}
-		var dur time.Duration = 0
-		for _, s := range stats {
-			dur += s.TimeSpent
-		}
-		log.Printf("Sum: %v", dur)
+	if p.zonestats == nil && !p.loading.Load() {
+		p.loading.Store(true)
+		go func() {
+			defer p.loading.Store(false)
+			stats, err := GetZoneStatistics(p.db)
+			if err == nil {
+				p.zonestats = stats
+				p.name_click.Click()
+			}
+		}()
 	}
 	if p.zonestats == nil {
-		return layout.Dimensions{}
+		str := "No data available"
+		if p.loading.Load() {
+			str = "Loading please wait..."
+		}
+		width := gtx.Constraints.Max.X
+		height := gtx.Constraints.Max.Y
+		gtx.Constraints = layout.Exact(image.Pt(width, height))
+		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return material.Label(style.Theme, unit.Sp(15), str).Layout(gtx)
+		})
 	}
 	list := material.List(style.Theme, &p.list)
-
-	return list.Layout(gtx, len(p.zonestats)+1, func(gtx layout.Context, index int) layout.Dimensions {
-		if index == 0 {
-			return p.RenderHeader(style, gtx)
-		}
-		return p.RenderZoneRow(p.zonestats[index-1], index%2 == 0, style, gtx)
-	})
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return p.RenderHeader(style, gtx)
+			})
+		}),
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			return list.Layout(gtx, len(p.zonestats), func(gtx layout.Context, index int) layout.Dimensions {
+				return p.RenderZoneRow(p.zonestats[index], index%2 == 0, style, gtx)
+			})
+		}),
+	)
 }
 func (p *ZonesPage) SetDb(db *sql.DB) {
 	p.db = db
