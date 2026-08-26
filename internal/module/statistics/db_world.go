@@ -58,6 +58,37 @@ func (i *Import) InsertZoneVisit(zoneID int64, rawName string, enteredAt time.Ti
 	return id, nil
 }
 
+func (i *Import) CloseZoneVisit(visitID int64, leftAt time.Time) error {
+	tx, err := i.activeTx()
+	if err != nil {
+		return err
+	}
+	if visitID < 1 {
+		return fmt.Errorf("close statistics zone visit: visit ID %d is invalid", visitID)
+	}
+	if leftAt.IsZero() {
+		return errors.New("close statistics zone visit: timestamp is zero")
+	}
+	result, err := tx.Exec(`
+		UPDATE zone_visits
+		SET left_at = ?
+		WHERE id = ?
+			AND left_at IS NULL
+			AND entered_at <= ?
+	`, leftAt, visitID, leftAt)
+	if err != nil {
+		return fmt.Errorf("close statistics zone visit %d: %w", visitID, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check closed statistics zone visit %d: %w", visitID, err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("close statistics zone visit %d: open visit was not found", visitID)
+	}
+	return nil
+}
+
 func (i *Import) GetOrCreateMob(zoneID int64, name string) (int64, error) {
 	tx, err := i.activeTx()
 	if err != nil {

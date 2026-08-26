@@ -90,24 +90,43 @@ func GetLogOffset(db *sql.DB) (int64, error) {
 	return offset, nil
 }
 
-func GetCurrentZone(db *sql.DB) (int64, bool, error) {
+func GetLastLogTimestamp(db *sql.DB) (time.Time, error) {
 	if db == nil {
-		return 0, false, errors.New("get current statistics zone: database is nil")
+		return time.Time{}, errors.New("get statistics last log timestamp: database is nil")
 	}
-	var zoneID int64
+	var timestamp sql.NullTime
+	if err := db.QueryRow(`
+		SELECT last_timestamp
+		FROM log_state
+		WHERE id = 1
+	`).Scan(&timestamp); err != nil {
+		return time.Time{}, fmt.Errorf("get statistics last log timestamp: %w", err)
+	}
+	if !timestamp.Valid {
+		return time.Time{}, nil
+	}
+	return timestamp.Time, nil
+}
+
+func GetOpenZoneVisit(db *sql.DB) (int64, int64, bool, error) {
+	if db == nil {
+		return 0, 0, false, errors.New("get open statistics zone visit: database is nil")
+	}
+	var visitID, zoneID int64
 	err := db.QueryRow(`
-		SELECT zone_id
+		SELECT id, zone_id
 		FROM zone_visits
+		WHERE left_at IS NULL
 		ORDER BY id DESC
 		LIMIT 1
-	`).Scan(&zoneID)
+	`).Scan(&visitID, &zoneID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return 0, false, nil
+		return 0, 0, false, nil
 	}
 	if err != nil {
-		return 0, false, fmt.Errorf("get current statistics zone: %w", err)
+		return 0, 0, false, fmt.Errorf("get open statistics zone visit: %w", err)
 	}
-	return zoneID, true, nil
+	return visitID, zoneID, true, nil
 }
 
 func nullableInt64(value *int64) any {

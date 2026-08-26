@@ -16,4 +16,5 @@ type StatsPage interface {
 	Layout(*ui.Style, layout.Context) layout.Dimensions
 	SetDb(db *sql.DB)
 	Update(layout.Context)
+	Reset()
 }

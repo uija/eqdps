@@ -16,6 +16,7 @@ type OverviewPage struct {
 	db       *sql.DB
 	tabClick widget.Clickable
 	list     widget.List
+	stats    *OverviewStatistics
 }
 
 func NewOverviewPage() *OverviewPage {
@@ -31,29 +32,36 @@ func (p *OverviewPage) Clickable() *widget.Clickable {
 	return &p.tabClick
 }
 func (p *OverviewPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	stats, err := GetOverviewStatistics(p.db)
-	if err != nil {
-		log.Printf("Unable to load statistics. %v", err)
+	if p.stats == nil {
+		stats, err := GetOverviewStatistics(p.db)
+		if err != nil {
+			log.Printf("Unable to load statistics. %v", err)
+		}
+		p.stats = &stats
+	}
+	if p.stats == nil {
 		return layout.Dimensions{}
 	}
 	list := material.List(style.Theme, &p.list)
 
-	return list.Layout(gtx, 7, func(gtx layout.Context, index int) layout.Dimensions {
+	return list.Layout(gtx, 8, func(gtx layout.Context, index int) layout.Dimensions {
 		switch index {
 		case 0:
-			return RenderIntStatsRow("Zones visited", stats.ZonesVisited, index%2 == 0, style, gtx)
+			return RenderIntStatsRow("Zones visited", p.stats.ZonesVisited, index%2 == 0, style, gtx)
 		case 1:
-			return RenderIntStatsRow("Mobs killed", stats.MobsKilled, index%2 == 0, style, gtx)
+			return RenderIntStatsRow("Mobs killed", p.stats.MobsKilled, index%2 == 0, style, gtx)
 		case 2:
-			return RenderIntStatsRow("Items looted", stats.ItemsLooted, index%2 == 0, style, gtx)
+			return RenderIntStatsRow("Items looted", p.stats.ItemsLooted, index%2 == 0, style, gtx)
 		case 3:
-			return RenderStatsRow("Money collected", FormatMoney(stats.MoneyCollected), index%2 == 0, style, gtx)
+			return RenderStatsRow("Money collected", FormatMoney(p.stats.MoneyCollected), index%2 == 0, style, gtx)
 		case 4:
-			return RenderFloatStatsRow("Experience gained", stats.ExperienceGained, index%2 == 0, style, gtx)
+			return RenderFloatStatsRow("Experience gained", p.stats.ExperienceGained, index%2 == 0, style, gtx)
 		case 5:
-			return RenderIntStatsRow("Motes collected", stats.MotesCollected, index%2 == 0, style, gtx)
+			return RenderFloatStatsRow("Levels gained", float64(p.stats.LevelsGained), index%2 == 0, style, gtx)
 		case 6:
-			return RenderIntStatsRow("Chat messages sent", stats.ChatMessagesSent, index%2 == 0, style, gtx)
+			return RenderIntStatsRow("Motes collected", p.stats.MotesCollected, index%2 == 0, style, gtx)
+		case 7:
+			return RenderIntStatsRow("Chat messages sent", p.stats.ChatMessagesSent, index%2 == 0, style, gtx)
 		default:
 			return material.Label(style.Theme, ui.Sp(15), "Index missing").Layout(gtx)
 		}
@@ -64,6 +72,9 @@ func (p *OverviewPage) SetDb(db *sql.DB) {
 }
 func (p *OverviewPage) Update(layout.Context) {
 
+}
+func (p *OverviewPage) Reset() {
+	p.stats = nil
 }
 
 func RenderIntStatsRow(name string, num int64, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {

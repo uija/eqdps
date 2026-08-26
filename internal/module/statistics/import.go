@@ -18,6 +18,13 @@ import (
 const (
 	killConfirmationWindow = 2 * time.Minute
 	coinConfirmationWindow = 2 * time.Second
+	campCompletionTime     = 30 * time.Second
+	loginSequenceTimeout   = 5 * time.Minute
+
+	loginMessage          = "Welcome to EverQuest Legends!"
+	loginAdventureMessage = "You are not currently assigned to an adventure."
+	campStartMessage      = "It will take you about 30 seconds to prepare your camp."
+	campAbandonMessage    = "You abandon your preparations to camp."
 )
 
 var (
@@ -52,6 +59,15 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	if e == nil || m.activeImport == nil {
 		return nil
 	}
+	previousTimestamp := m.lastImportRow
+	defer func() {
+		if e.Timestamp.After(m.lastImportRow) {
+			m.lastImportRow = e.Timestamp
+		}
+	}()
+	if err := m.updateSessionState(e, previousTimestamp); err != nil {
+		return err
+	}
 
 	m.pendingKills = slices.DeleteFunc(m.pendingKills, func(kill pendingStatisticsKill) bool {
 		age := e.Timestamp.Sub(kill.killedAt)
@@ -71,10 +87,15 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 		if err != nil {
 			return err
 		}
-		if _, err := m.activeImport.InsertZoneVisit(zoneID, rawName, e.Timestamp); err != nil {
+		if err := m.closeCurrentZoneVisit(e.Timestamp); err != nil {
+			return err
+		}
+		visitID, err := m.activeImport.InsertZoneVisit(zoneID, rawName, e.Timestamp)
+		if err != nil {
 			return err
 		}
 		m.currentZone = zoneID
+		m.currentVisit = visitID
 		m.pendingKills = m.pendingKills[:0]
 		m.lastCoinReward = time.Time{}
 
@@ -157,6 +178,71 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	case data.LogRowEventTypeUnknown:
 		return m.importChat(e)
 	}
+	return nil
+}
+
+func (m *Module) updateSessionState(e *data.LogRowEvent, previousTimestamp time.Time) error {
+	if !m.loginSequence.IsZero() {
+		elapsed := e.Timestamp.Sub(m.loginSequence)
+		if elapsed < 0 || elapsed > loginSequenceTimeout {
+			m.loginSequence = time.Time{}
+			m.preLoginRow = time.Time{}
+		}
+	}
+	if e.Message == loginAdventureMessage {
+		m.loginSequence = e.Timestamp
+		m.preLoginRow = previousTimestamp
+	}
+
+	if e.Message == campAbandonMessage {
+		m.pendingCamp = time.Time{}
+	} else if !m.pendingCamp.IsZero() {
+		campEndedAt := m.pendingCamp.Add(campCompletionTime)
+		if !e.Timestamp.Before(campEndedAt) {
+			if err := m.closeCurrentZoneVisit(campEndedAt); err != nil {
+				return err
+			}
+			m.pendingCamp = time.Time{}
+		}
+	}
+
+	switch e.Message {
+	case loginMessage:
+		if m.currentVisit > 0 {
+			leftAt := previousTimestamp
+			if !m.loginSequence.IsZero() && !m.preLoginRow.IsZero() {
+				leftAt = m.preLoginRow
+			}
+			if leftAt.IsZero() || leftAt.After(e.Timestamp) {
+				leftAt = e.Timestamp
+			}
+			if err := m.closeCurrentZoneVisit(leftAt); err != nil {
+				return err
+			}
+		}
+		m.currentZone = 0
+		m.currentVisit = 0
+		m.pendingCamp = time.Time{}
+		m.loginSequence = time.Time{}
+		m.preLoginRow = time.Time{}
+		m.pendingKills = m.pendingKills[:0]
+		m.lastCoinReward = time.Time{}
+	case campStartMessage:
+		m.pendingCamp = e.Timestamp
+	}
+	return nil
+}
+
+func (m *Module) closeCurrentZoneVisit(leftAt time.Time) error {
+	if m.currentVisit < 1 {
+		m.currentZone = 0
+		return nil
+	}
+	if err := m.activeImport.CloseZoneVisit(m.currentVisit, leftAt); err != nil {
+		return err
+	}
+	m.currentVisit = 0
+	m.currentZone = 0
 	return nil
 }
 
@@ -459,9 +545,14 @@ func (m *Module) RunImport() {
 			return
 		}
 
-		currentZone, _, err := GetCurrentZone(m.db)
+		currentVisit, currentZone, _, err := GetOpenZoneVisit(m.db)
 		if err != nil {
-			log.Printf("Unable to restore current statistics zone. %v", err)
+			log.Printf("Unable to restore open statistics zone visit. %v", err)
+			return
+		}
+		lastTimestamp, err := GetLastLogTimestamp(m.db)
+		if err != nil {
+			log.Printf("Unable to restore last statistics timestamp. %v", err)
 			return
 		}
 
@@ -479,6 +570,8 @@ func (m *Module) RunImport() {
 		defer activeImport.Rollback()
 		m.activeImport = activeImport
 		m.currentZone = currentZone
+		m.currentVisit = currentVisit
+		m.lastImportRow = lastTimestamp
 		m.pendingKills = m.pendingKills[:0]
 		m.lastCoinReward = time.Time{}
 
@@ -524,6 +617,7 @@ func (m *Module) RunImport() {
 			log.Printf("Unable to commit statistics import. %v", err)
 			return
 		}
+		m.importDone <- struct{}{}
 
 		m.mu.Lock()
 		m.lastKnownOffset = finalOffset

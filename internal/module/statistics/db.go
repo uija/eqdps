@@ -25,7 +25,9 @@ func PrepareDb(db *sql.DB) error {
 			id INTEGER PRIMARY KEY,
 			zone_id INTEGER NOT NULL,
 			entered_at DATETIME NOT NULL,
+			left_at DATETIME,
 			raw_zone_name TEXT NOT NULL,
+			CHECK (left_at IS NULL OR left_at >= entered_at),
 			FOREIGN KEY (zone_id) REFERENCES zones(id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS mobs (

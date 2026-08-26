@@ -3,7 +3,9 @@ package statistics
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"sort"
+	"time"
 
 	"gioui.org/layout"
 	"gioui.org/unit"
@@ -39,6 +41,9 @@ func (p *ZonesPage) Title() string {
 }
 func (p *ZonesPage) Clickable() *widget.Clickable {
 	return &p.tabClick
+}
+func (p *ZonesPage) Reset() {
+	p.zonestats = nil
 }
 func (p *ZonesPage) Update(gtx layout.Context) {
 	if p.zonestats == nil {
@@ -87,6 +92,11 @@ func (p *ZonesPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 		if err == nil {
 			p.zonestats = stats
 		}
+		var dur time.Duration = 0
+		for _, s := range stats {
+			dur += s.TimeSpent
+		}
+		log.Printf("Sum: %v", dur)
 	}
 	if p.zonestats == nil {
 		return layout.Dimensions{}

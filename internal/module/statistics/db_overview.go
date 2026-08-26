@@ -12,6 +12,7 @@ type OverviewStatistics struct {
 	ItemsLooted      int64
 	MoneyCollected   int64
 	ExperienceGained float64
+	LevelsGained     int64
 	MotesCollected   int64
 	ChatMessagesSent int64
 }
@@ -29,6 +30,7 @@ func GetOverviewStatistics(db *sql.DB) (OverviewStatistics, error) {
 			(SELECT COALESCE(SUM(quantity), 0) FROM loot),
 			(SELECT COALESCE(SUM(amount_copper), 0) FROM money),
 			(SELECT COALESCE(SUM(percent), 0) FROM experience),
+			(SELECT COUNT(*) FROM levels),
 			(
 				SELECT COALESCE(SUM(loot.quantity), 0)
 				FROM loot
@@ -42,6 +44,7 @@ func GetOverviewStatistics(db *sql.DB) (OverviewStatistics, error) {
 		&result.ItemsLooted,
 		&result.MoneyCollected,
 		&result.ExperienceGained,
+		&result.LevelsGained,
 		&result.MotesCollected,
 		&result.ChatMessagesSent,
 	)

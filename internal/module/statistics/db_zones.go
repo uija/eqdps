@@ -33,7 +33,7 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 	}
 
 	rows, err := db.Query(`
-		SELECT zones.name, zone_visits.entered_at
+		SELECT zones.name, zone_visits.entered_at, zone_visits.left_at
 		FROM zone_visits
 		JOIN zones ON zones.id = zone_visits.zone_id
 		ORDER BY zone_visits.entered_at, zone_visits.id
@@ -46,11 +46,12 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 	type visit struct {
 		zoneName string
 		entered  time.Time
+		left     sql.NullTime
 	}
 	visits := make([]visit, 0)
 	for rows.Next() {
 		var value visit
-		if err := rows.Scan(&value.zoneName, &value.entered); err != nil {
+		if err := rows.Scan(&value.zoneName, &value.entered, &value.left); err != nil {
 			return nil, fmt.Errorf("scan zone visit: %w", err)
 		}
 		visits = append(visits, value)
@@ -61,7 +62,7 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 
 	result := make([]ZoneStatistics, 0)
 	indices := make(map[string]int)
-	for index, value := range visits {
+	for _, value := range visits {
 		key := strings.ToLower(value.zoneName)
 		resultIndex, found := indices[key]
 		if !found {
@@ -72,8 +73,8 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 		result[resultIndex].Visits++
 
 		var leftAt time.Time
-		if index+1 < len(visits) {
-			leftAt = visits[index+1].entered
+		if value.left.Valid {
+			leftAt = value.left.Time
 		} else if lastTimestamp.Valid {
 			leftAt = lastTimestamp.Time
 		}

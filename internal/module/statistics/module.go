@@ -35,8 +35,14 @@ type Module struct {
 	importRunning  atomic.Bool
 	activeImport   *Import
 	currentZone    int64
+	currentVisit   int64
+	lastImportRow  time.Time
+	pendingCamp    time.Time
+	loginSequence  time.Time
+	preLoginRow    time.Time
 	pendingKills   []pendingStatisticsKill
 	lastCoinReward time.Time
+	importDone     chan struct{}
 
 	logPath     string
 	updateClick widget.Clickable
@@ -55,6 +61,7 @@ func NewModule() *Module {
 	return &Module{
 		Pages:          make([]StatsPage, 0),
 		invalidateFunc: func() {},
+		importDone:     make(chan struct{}, 1),
 	}
 }
 func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
@@ -108,6 +115,13 @@ func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, pat
 }
 
 func (m *Module) Update(gtx layout.Context) {
+	select {
+	case <-m.importDone:
+		for idx := range m.Pages {
+			m.Pages[idx].Reset()
+		}
+	default:
+	}
 	if m.updateClick.Clicked(gtx) {
 		m.RunImport()
 	}
