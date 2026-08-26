@@ -5,6 +5,66 @@ import (
 	"fmt"
 )
 
+func GetUserVersion(db *sql.DB) (int, error) {
+	if db == nil {
+		return 0, fmt.Errorf("get statistics database version: database is nil")
+	}
+	var version int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+		return 0, fmt.Errorf("get statistics database version: %w", err)
+	}
+	return version, nil
+}
+
+func SetUserVersion(db *sql.DB, version int) error {
+	if db == nil {
+		return fmt.Errorf("set statistics database version: database is nil")
+	}
+	if version < 0 {
+		return fmt.Errorf("set statistics database version: version %d is negative", version)
+	}
+	if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", version)); err != nil {
+		return fmt.Errorf("set statistics database version to %d: %w", version, err)
+	}
+	return nil
+}
+
+func DropTables(db *sql.DB) error {
+	if db == nil {
+		return fmt.Errorf("drop statistics tables: database is nil")
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin dropping statistics tables: %w", err)
+	}
+	defer tx.Rollback()
+
+	tables := []string{
+		"loot",
+		"money",
+		"parcels",
+		"player_deaths",
+		"kills",
+		"experience",
+		"levels",
+		"chat",
+		"mobs",
+		"zone_visits",
+		"items",
+		"zones",
+		"log_state",
+	}
+	for _, table := range tables {
+		if _, err := tx.Exec("DROP TABLE IF EXISTS " + table); err != nil {
+			return fmt.Errorf("drop statistics table %s: %w", table, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit dropping statistics tables: %w", err)
+	}
+	return nil
+}
+
 func PrepareDb(db *sql.DB) error {
 	if _, err := db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
 		return fmt.Errorf("enable foreign keys: %w", err)

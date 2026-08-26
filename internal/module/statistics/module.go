@@ -19,6 +19,8 @@ import (
 	"github.com/uija/eqdps/internal/module"
 )
 
+const DATABASE_VERSION = 0
+
 var zoneVariantSuffixRE = regexp.MustCompile(`(?: - (?:Group|Solo)(?: [0-9]+)?(?: \([^)]+\))?| [0-9]+ \([^)]+\))$`)
 
 func normalizeZoneName(name string) string {
@@ -98,6 +100,23 @@ func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, pat
 		if m.db != nil {
 			m.db.Close()
 		}
+		id, err := GetUserVersion(db)
+		if err != nil {
+			db.Close()
+			log.Printf("Unable to lead user version. %v", err)
+			m.db = nil
+			m.logPath = path
+			return true
+		}
+		if id != DATABASE_VERSION {
+			if err = DropTables(db); err != nil {
+				db.Close()
+				log.Printf("Unable to drop old tables. %v", err)
+				m.db = nil
+				m.logPath = path
+				return true
+			}
+		}
 		if err := PrepareDb(db); err != nil {
 			db.Close()
 			log.Printf("Unable to prepare statistics database. %v", err)
@@ -106,6 +125,13 @@ func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, pat
 			return true
 		}
 		m.db = db
+		if err := SetUserVersion(m.db, DATABASE_VERSION); err != nil {
+			db.Close()
+			log.Printf("Unable to prepare statistics database. %v", err)
+			m.db = nil
+			m.logPath = path
+			return true
+		}
 		offset, err := GetLogOffset(m.db)
 		if err == nil {
 			m.lastKnownOffset = offset
