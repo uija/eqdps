@@ -50,6 +50,7 @@ type Module struct {
 
 	logPath     string
 	updateClick widget.Clickable
+	reloadClick widget.Clickable
 	Pages       []StatsPage
 	currentPage StatsPage
 
@@ -154,6 +155,23 @@ func (m *Module) Update(gtx layout.Context) {
 	default:
 	}
 	if m.updateClick.Clicked(gtx) {
+		m.RunImport()
+	}
+	if m.reloadClick.Clicked(gtx) {
+		if m.importRunning.Load() || m.db == nil {
+			return
+		}
+		for idx := range m.Pages {
+			m.Pages[idx].Reset()
+		}
+		if err := DropTables(m.db); err != nil {
+			log.Printf("Unable to drop tables. %v", err)
+			return
+		}
+		if err := PrepareDb(m.db); err != nil {
+			log.Printf("Unable to prepare db. %v", err)
+			return
+		}
 		m.RunImport()
 	}
 	for idx := range m.Pages {

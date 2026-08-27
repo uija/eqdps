@@ -37,7 +37,14 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 		layout.Flexed(1, material.Label(style.Theme, ui.Sp(15), "").Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			bytesMissing := m.lastLogfileOffset - m.lastKnownOffset
-			return ui.IconLink(style, &m.updateClick, ui.Refresh, fmt.Sprintf("Stats is %d bytes behind.", bytesMissing)).Layout(gtx)
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{}.Layout(gtx, ui.IconLink(style, &m.updateClick, ui.Refresh, fmt.Sprintf("Stats is %d bytes behind.", bytesMissing)).Layout)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &m.reloadClick, ui.Refresh, "Full reload").Layout)
+				}),
+			)
 		}),
 		layout.Flexed(1, material.Label(style.Theme, ui.Sp(15), "").Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
