@@ -251,3 +251,18 @@ func RenderLinkAsButton(style *Style, clickable *widget.Clickable, icon *widget.
 		return ColoredBorderedRow(gtx, style.Palette.Panel, link.Layout)
 	}
 }
+func Overlay(gtx layout.Context, width int, bgcolor color.NRGBA, bordercolor color.NRGBA, widget layout.Widget) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		w := min(gtx.Dp(unit.Dp(width)), gtx.Constraints.Max.X)
+		gtx.Constraints.Min.X = w
+		gtx.Constraints.Max.X = w
+		gtx.Constraints.Min.Y = 0
+		return layout.Background{}.Layout(gtx,
+			func(gtx layout.Context) layout.Dimensions {
+				FillOverlay(gtx, bgcolor, bordercolor)
+				return layout.Dimensions{Size: gtx.Constraints.Min}
+			},
+			widget,
+		)
+	})
+}

@@ -25,8 +25,7 @@ type Config struct {
 	HideWatched  bool                 `json:"hide_watched"`
 }
 
-func LoadConfig(path string) (Config, error) {
-	bytes, err := os.ReadFile(path)
+func EmptyConfig(path string) Config {
 	config := Config{
 		QuestItems: make(map[string]int),
 		Quests:     make(map[string]int),
@@ -38,6 +37,11 @@ func LoadConfig(path string) (Config, error) {
 			LastTimestamp: time.Time{},
 		},
 	}
+	return config
+}
+func LoadConfig(path string) (Config, error) {
+	bytes, err := os.ReadFile(path)
+	config := EmptyConfig(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return config, nil

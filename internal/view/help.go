@@ -61,7 +61,7 @@ func (v *helpView) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min = gtx.Constraints.Max
-				ui.Fill(gtx, v.style.Palette.Panel)
+				ui.FillOverlay(gtx, v.style.Palette.Panel, v.style.Palette.Border)
 				if v.helpItem == nil {
 					return layout.UniformInset(unit.Dp(24)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,

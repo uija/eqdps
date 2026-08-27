@@ -2,7 +2,6 @@ package view
 
 import (
 	"fmt"
-	"image"
 
 	"gioui.org/layout"
 	"gioui.org/text"
@@ -17,20 +16,15 @@ func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
 	}
 
 	ui.Fill(gtx, s.Style.Palette.Shadow)
-
-	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		width := min(gtx.Dp(unit.Dp(420)), gtx.Constraints.Max.X)
-		height := min(gtx.Dp(unit.Dp(120)), gtx.Constraints.Max.Y)
-		gtx.Constraints = layout.Exact(image.Pt(width, height))
-
-		ui.Fill(gtx, s.Style.Palette.Panel)
-
-		return layout.Flex{
-			Axis: layout.Vertical,
-		}.Layout(gtx,
-			layout.Rigid(ui.TitleBar(gtx, *s.Style, s.progress.title)),
-			layout.Flexed(1, s.layoutProgressContent),
-		)
+	return ui.Overlay(gtx, 420, s.Style.Palette.Panel, s.Style.Palette.Border, func(gtx layout.Context) layout.Dimensions {
+		return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{
+				Axis: layout.Vertical,
+			}.Layout(gtx,
+				layout.Rigid(ui.TitleBar(gtx, *s.Style, s.progress.title)),
+				layout.Rigid(s.layoutProgressContent),
+			)
+		})
 	})
 }
 

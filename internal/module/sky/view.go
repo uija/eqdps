@@ -13,7 +13,40 @@ import (
 )
 
 func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return m.mainView(style, gtx)
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions { return m.mainView(style, gtx) }),
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions { return m.showOverlay(style, gtx) }),
+	)
+}
+func (m *Module) showOverlay(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	if m.show_reset_reload_overlay {
+		ui.Fill(gtx, style.Palette.Shadow)
+		return ui.Overlay(gtx, 420, style.Palette.Panel, style.Palette.Border,
+			func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Reset and Reload").Layout)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							label := material.Label(style.Theme, ui.Sp(15), "This will reset the collected Plane of Sky database and trigger a full reparse of the logfile.\nIf you needed to use inventory updates and/or edited runes manually, you will have to do that again.")
+							label.Color = style.Palette.Muted
+							return layout.Inset{Top: unit.Dp(16), Bottom: unit.Dp(16)}.Layout(gtx, label.Layout)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+								layout.Flexed(1, ui.RenderLinkAsButton(style, &m.cancel_reset_reload_click, ui.Close, "Cancel")),
+								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+									return layout.E.Layout(gtx, ui.RenderLinkAsButton(style, &m.confirm_reset_reload_click, ui.Refresh, " OK "))
+								}),
+							)
+						}),
+					)
+				})
+			},
+		)
+	}
+	return layout.Dimensions{}
 }
 func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context, tools layout.FlexChild) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -61,7 +94,7 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 	}
 	children := make([]layout.FlexChild, 0)
 	children = append(children, m.RenderTopRow("Progression", style, gtx,
-		layout.Flexed(1,
+		layout.Flexed(2,
 			func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -69,6 +102,9 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return ui.IconLink(style, &m.hide_empty, empty_icon, "Show empty Quest").Layout(gtx)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return ui.IconLink(style, &m.reset_reload_click, ui.Refresh, "Reset & Reload").Layout(gtx)
 					}),
 				)
 			},

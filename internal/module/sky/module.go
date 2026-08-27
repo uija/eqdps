@@ -61,6 +61,11 @@ type Module struct {
 	progression_click widget.Clickable
 	inventory_click   widget.Clickable
 
+	reset_reload_click         widget.Clickable
+	show_reset_reload_overlay  bool
+	confirm_reset_reload_click widget.Clickable
+	cancel_reset_reload_click  widget.Clickable
+
 	status_click       widget.Clickable
 	ready_turnin_click widget.Clickable
 	watched_click      widget.Clickable
@@ -440,6 +445,24 @@ func (m *Module) Update(gtx layout.Context) {
 				}
 			}
 		}
+	}
+	if m.cancel_reset_reload_click.Clicked(gtx) {
+		m.show_reset_reload_overlay = false
+		m.invalidFunc()
+	}
+	if m.reset_reload_click.Clicked(gtx) {
+		m.show_reset_reload_overlay = true
+		m.invalidFunc()
+	}
+	if m.confirm_reset_reload_click.Clicked(gtx) {
+		defer m.invalidFunc()
+		m.show_reset_reload_overlay = false
+		if m.configPath == "" {
+			return
+		}
+		m.config = EmptyConfig(m.configPath)
+		m.config.Save()
+		m.ctx.RequestReplay(eqlog.Loopback{ByteOffset: m.config.Log.Offset})
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
