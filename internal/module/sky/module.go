@@ -344,10 +344,11 @@ func (m *Module) RecalculateStatus() {
 
 func (m *Module) Notify(num int) {
 	beeep.AppName = "eqDps"
-	err := beeep.Notify("Plane of Sky", fmt.Sprintf("%d new Quests ready to turn in", num), "dialog-information")
-	if err != nil {
-		log.Printf("Unable to start notification %v", err)
-	}
+	go func() {
+		if err := beeep.Notify("Plane of Sky", fmt.Sprintf("%d new Quests ready to turn in", num), "dialog-information"); err != nil {
+			log.Printf("Unable to send Notification: %v", err)
+		}
+	}()
 	m.notification = &Notification{
 		Text: fmt.Sprintf("%d new Quests", num),
 		Ends: time.Now().Add(5 * time.Second),
