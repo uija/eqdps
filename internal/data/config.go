@@ -63,7 +63,7 @@ type Config struct {
 	EQLDbConfig     EQLDbConfig   `json:"eqldb"`
 	SkyConfig       SkyConfig     `json:"sky"`
 	UIConfig        UIConfig      `json:"ui"`
-	CheckForUpdates bool          `json:"check_for_updates"`
+	CheckForUpdates bool          `json:"checkforupdates"`
 	LastSeenVersion string        `json:"last_seen_version"`
 }
 
