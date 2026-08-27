@@ -199,3 +199,21 @@ func (m *Module) Shutdown() {
 		m.db.Close()
 	}
 }
+
+func FormatBytes(bytes int64) string {
+	const step = 1024
+
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
+	value := float64(bytes)
+	unit := 0
+
+	for value >= step && unit < len(units)-1 {
+		value /= step
+		unit++
+	}
+
+	if unit == 0 {
+		return fmt.Sprintf("%dB", bytes)
+	}
+	return fmt.Sprintf("%.1f%s", value, units[unit])
+}

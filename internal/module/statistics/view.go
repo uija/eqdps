@@ -39,10 +39,10 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 			bytesMissing := m.lastLogfileOffset - m.lastKnownOffset
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{}.Layout(gtx, ui.IconLink(style, &m.updateClick, ui.Refresh, fmt.Sprintf("Stats is %d bytes behind.", bytesMissing)).Layout)
+					return layout.Inset{}.Layout(gtx, ui.IconLink(style, &m.updateClick, ui.Refresh, fmt.Sprintf("Stats is %s behind.", FormatBytes(bytesMissing))).Layout)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &m.reloadClick, ui.Refresh, "Full reload").Layout)
+					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &m.reloadClick, ui.Refresh, fmt.Sprintf("Full reload (%s)", FormatBytes(m.lastLogfileOffset))).Layout)
 				}),
 			)
 		}),
