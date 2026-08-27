@@ -138,6 +138,7 @@ func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, pat
 		}
 	}
 	for idx := range m.Pages {
+		m.Pages[idx].Reset()
 		m.Pages[idx].SetDb(db)
 	}
 	m.logPath = path

@@ -257,7 +257,7 @@ func (c *Context) runFollow() {
 }
 func (c *Context) runReplay() {
 	c.isReplay.Store(true)
-	started := time.Now()
+	//started := time.Now()
 	for _, f := range c.replayStartListener {
 		f()
 	}
@@ -267,7 +267,7 @@ func (c *Context) runReplay() {
 	for _, f := range c.replayEndListener {
 		f()
 	}
-	log.Printf("Replay took: %v", time.Since(started))
+	//log.Printf("Replay took: %v", time.Since(started))
 	c.isReplay.Store(false)
 	c.readyForFollow <- struct{}{}
 }
@@ -295,8 +295,6 @@ func (c *Context) Update(gtx layout.Context) {
 					follow = false
 				}
 			}
-		} else {
-			log.Printf("Unable to open it!")
 		}
 		if follow {
 			c.readyForFollow <- struct{}{}
@@ -326,7 +324,7 @@ func (c *Context) startParser(path string, runFunc func()) {
 	c.Parser = eqlog.NewParser(c.ParserSession)
 	err := c.Parser.Open(path)
 	if err != nil {
-		log.Printf("Unable to upen log. %v", err)
+		log.Printf("Unable to open log. %v", err)
 		c.stopParser()
 		return
 	}

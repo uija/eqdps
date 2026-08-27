@@ -678,6 +678,5 @@ func (m *Module) RunImport() {
 		m.mu.Lock()
 		m.lastKnownOffset = finalOffset
 		m.mu.Unlock()
-		log.Printf("Done with statistics import")
 	}()
 }

@@ -36,7 +36,6 @@ func (m *Module) ExportEvents() {
 		log.Printf("Error selecting save file. %v", err)
 		return
 	}
-	log.Printf("Selected file: %s", path)
 
 	m.mu.Lock()
 	events := slices.Clone(m.ctx.Config.Events)
@@ -75,7 +74,6 @@ func (m *Module) ImportEvents() {
 		log.Printf("Error selecting save file. %v", err)
 		return
 	}
-	log.Printf("Selected file: %s", path)
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		log.Printf("Unable to read file")

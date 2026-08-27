@@ -3,11 +3,13 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	"gioui.org/app"
 	"gioui.org/io/system"
 	"gioui.org/op"
 	"gioui.org/unit"
+	"github.com/joho/godotenv"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/module/dps"
 	"github.com/uija/eqdps/internal/module/eqldb"
@@ -19,6 +21,30 @@ import (
 )
 
 func main() {
+
+	godotenv.Load() // ignore error
+
+	var logfile *os.File
+
+	mode := os.Getenv("EQDPS_MODE")
+	if mode != "development" {
+		baseDir, err := os.UserConfigDir()
+		if err == nil {
+			configDir := filepath.Join(baseDir, "eqdps")
+			if err := os.MkdirAll(configDir, 0o700); err != nil {
+				log.Printf("Unable to create config dir. %v", err)
+			} else {
+				logpath := filepath.Join(configDir, "eqdps.log")
+				logfile, err = os.OpenFile(logpath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+				if err != nil {
+					log.Printf("Unable to create logfile. %v", err)
+				} else {
+					log.SetOutput(logfile)
+				}
+			}
+		}
+	}
+
 	go func() {
 		window := new(app.Window)
 		context := module.NewContext(window.Invalidate)
@@ -39,6 +65,9 @@ func main() {
 			log.Print(err)
 		}
 		context.Shutdown()
+		if logfile != nil {
+			logfile.Close()
+		}
 		os.Exit(0)
 	}()
 	app.Main()

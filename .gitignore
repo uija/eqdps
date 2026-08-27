@@ -33,3 +33,4 @@ eqlog_*.txt
 *_PoS.json
 images/
 dist/
+.env

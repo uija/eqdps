@@ -7,7 +7,9 @@ require (
 	gioui.org/x v0.10.2
 	github.com/ebitengine/oto/v3 v3.5.0-alpha.8
 	github.com/gen2brain/beeep v0.11.2
+	github.com/glebarez/go-sqlite v1.23.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
+	github.com/joho/godotenv v1.5.1
 	github.com/ncruces/zenity v0.10.14
 	golang.org/x/exp/shiny v0.0.0-20250408133849-7e4ce0ab07d0
 	golang.org/x/sys v0.46.0
@@ -21,7 +23,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
-	github.com/glebarez/go-sqlite v1.23.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
