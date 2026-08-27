@@ -92,7 +92,8 @@ func GetConfig() (*Config, error) {
 		EQLDbConfig: EQLDbConfig{
 			UploadSkyData: true,
 		},
-		RecentLogFiles: make([]string, 0),
+		RecentLogFiles:  make([]string, 0),
+		CheckForUpdates: true,
 	}
 	path, err := AppDataPath("config.json")
 	if err != nil {
