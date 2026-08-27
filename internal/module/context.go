@@ -52,6 +52,7 @@ type ProgressHandler func(title string, current int64, max int64)
 type UpdateListener func(layout.Context)
 
 type Context struct {
+	modules         []Module
 	Parser          *eqlog.Parser
 	ParserSession   uint64
 	currentMainView ui.Widget
@@ -114,6 +115,7 @@ func NewContext(invalidateFunc func()) *Context {
 	ctx := &Context{
 		ParserSession:          0,
 		Parser:                 nil,
+		modules:                make([]Module, 0),
 		ViewMenuItems:          make([]MenuItem, 0),
 		progressHandler:        func(title string, current int64, max int64) {},
 		logOpenListener:        make([]LogOpenListener, 0),
@@ -146,6 +148,7 @@ func NewContext(invalidateFunc func()) *Context {
 		panic("Unable to initialize audio playback")
 	}
 	ctx.Playback = p
+	p.RunAudioQueue()
 	ctx.updateBodyList.Axis = layout.Vertical
 	if ctx.Config.CheckForUpdates {
 		go func() {
@@ -399,6 +402,7 @@ func (c *Context) AddHelpItem(name string, layout ui.Widget) {
 	c.HelpItems = append(c.HelpItems, HelpItem{Name: name, Layout: layout})
 }
 func (c *Context) RegisterModule(m Module) error {
+	c.modules = append(c.modules, m)
 	return m.Init(c, c.invalidateFunc)
 }
 func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
@@ -468,4 +472,11 @@ func (c *Context) GetLastLevelOffset() time.Time {
 }
 func (c *Context) GetLastZoningOffset() time.Time {
 	return c.lastZoneChange.Timestamp
+}
+
+func (c *Context) Shutdown() {
+	for _, m := range c.modules {
+		m.Shutdown()
+	}
+	c.Playback.Shutdown()
 }

@@ -105,6 +105,8 @@ func (o *Overlay) Send(update any) bool {
 		return true
 	case <-o.done:
 		return false
+	default:
+		return false
 	}
 }
 func (o *Overlay) handleUpdates() {

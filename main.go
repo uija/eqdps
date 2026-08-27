@@ -38,6 +38,7 @@ func main() {
 		if err := run(context, window); err != nil {
 			log.Print(err)
 		}
+		context.Shutdown()
 		os.Exit(0)
 	}()
 	app.Main()

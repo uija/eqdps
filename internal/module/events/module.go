@@ -1,7 +1,6 @@
 package events
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -192,6 +191,8 @@ func (m *Module) TimerRun() {
 	for {
 		select {
 		case <-ticker.C:
+			ready_to_notify := make([]data.EventConfig, 0)
+			overlay_timers := make([]data.TimerTracker, 0)
 			m.tmu.Lock()
 			// move spells that are not interrupted anymore
 			now := time.Now()
@@ -203,22 +204,13 @@ func (m *Module) TimerRun() {
 			}
 			for name, tt := range m.runningTimers {
 				if tt.StopsAt.Before(now) {
-					m.Notify(tt.Event)
+					ready_to_notify = append(ready_to_notify, tt.Event)
 					delete(m.runningTimers, name)
 				}
 			}
 			if m.ctx.Overlay != nil {
-				timers := make([]data.TimerTracker, 0)
 				for _, tt := range m.runningTimers {
-					timers = append(timers, tt)
-				}
-				if len(timers) > 0 {
-					sort.Slice(timers, func(i, j int) bool {
-						return timers[i].Event.Spell < timers[j].Event.Spell
-					})
-				}
-				if m.ctx.Overlay != nil {
-					m.ctx.Overlay.Send(timers)
+					overlay_timers = append(overlay_timers, tt)
 				}
 			}
 			if !m.export_success.IsZero() && time.Now().Sub(m.export_success) > 5*time.Second {
@@ -230,6 +222,19 @@ func (m *Module) TimerRun() {
 				m.invalidateFunc()
 			}
 			m.tmu.Unlock()
+			if len(ready_to_notify) > 0 {
+				for _, e := range ready_to_notify {
+					m.Notify(e)
+				}
+			}
+			if len(overlay_timers) > 0 {
+				sort.Slice(overlay_timers, func(i, j int) bool {
+					return overlay_timers[i].Event.Spell < overlay_timers[j].Event.Spell
+				})
+			}
+			if m.ctx.Overlay != nil {
+				m.ctx.Overlay.Send(overlay_timers)
+			}
 		case <-m.stop:
 			return
 		}
@@ -346,7 +351,7 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.play_sound_click.Clicked(gtx) {
 		sound := m.sound_select.Value()
 		if sound != "" {
-			m.ctx.Playback.Play(context.Background(), sound, float64(m.ctx.Config.Volume), func(err error) {
+			m.ctx.Playback.Play(sound, float64(m.ctx.Config.Volume), func(err error) {
 				log.Printf("Unable to play sound: %v", err)
 			})
 		}
@@ -650,10 +655,14 @@ func (m *Module) Notify(event data.EventConfig) {
 				iconId,
 			)
 		}
-		beeep.Notify(event.Title, not, iconPath)
+		go func(event data.EventConfig) {
+			if err := beeep.Notify(event.Title, not, iconPath); err != nil {
+				log.Printf("Unable to send Notification: %v", err)
+			}
+		}(event)
 	}
 	if event.Sound != "" {
-		m.ctx.Playback.Play(context.Background(), event.Sound, float64(m.ctx.Config.Volume), func(err error) {
+		m.ctx.Playback.Play(event.Sound, float64(m.ctx.Config.Volume), func(err error) {
 			log.Printf("Unable to play sound. %v", err)
 		})
 	}
