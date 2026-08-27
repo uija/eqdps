@@ -33,7 +33,7 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 	}
 
 	rows, err := db.Query(`
-		SELECT zones.name, zone_visits.entered_at, zone_visits.left_at
+		SELECT zone_visits.id, zones.name, zone_visits.entered_at, zone_visits.left_at
 		FROM zone_visits
 		JOIN zones ON zones.id = zone_visits.zone_id
 		ORDER BY zone_visits.entered_at, zone_visits.id
@@ -44,15 +44,20 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 	defer rows.Close()
 
 	type visit struct {
+		id       int64
 		zoneName string
 		entered  time.Time
 		left     sql.NullTime
 	}
 	visits := make([]visit, 0)
+	var newestVisitID int64
 	for rows.Next() {
 		var value visit
-		if err := rows.Scan(&value.zoneName, &value.entered, &value.left); err != nil {
+		if err := rows.Scan(&value.id, &value.zoneName, &value.entered, &value.left); err != nil {
 			return nil, fmt.Errorf("scan zone visit: %w", err)
+		}
+		if value.id > newestVisitID {
+			newestVisitID = value.id
 		}
 		visits = append(visits, value)
 	}
@@ -75,7 +80,7 @@ func GetZoneStatistics(db *sql.DB) ([]ZoneStatistics, error) {
 		var leftAt time.Time
 		if value.left.Valid {
 			leftAt = value.left.Time
-		} else if lastTimestamp.Valid {
+		} else if value.id == newestVisitID && lastTimestamp.Valid {
 			leftAt = lastTimestamp.Time
 		}
 		if leftAt.After(value.entered) {

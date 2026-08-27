@@ -61,9 +61,10 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	}
 	previousTimestamp := m.lastImportRow
 	defer func() {
-		if e.Timestamp.After(m.lastImportRow) {
-			m.lastImportRow = e.Timestamp
-		}
+		// Log timestamps can move backwards between client sessions. Keep the
+		// timestamp of the previous row in file order rather than the greatest
+		// timestamp seen so session boundaries can be evaluated correctly.
+		m.lastImportRow = e.Timestamp
 	}()
 	if err := m.updateSessionState(e, previousTimestamp); err != nil {
 		return err
@@ -231,13 +232,20 @@ func (m *Module) updateSessionState(e *data.LogRowEvent, previousTimestamp time.
 	case loginMessage:
 		if m.currentVisit > 0 {
 			leftAt := previousTimestamp
-			if !m.loginSequence.IsZero() &&
+			campEndedAt := m.pendingCamp.Add(campCompletionTime)
+			if !m.pendingCamp.IsZero() &&
+				(m.currentVisitAt.IsZero() || !campEndedAt.Before(m.currentVisitAt)) {
+				// A later login confirms that an un-abandoned camp completed,
+				// even when the new session's clock is behind the old one.
+				leftAt = campEndedAt
+			} else if !m.loginSequence.IsZero() &&
 				!m.preLoginRow.IsZero() &&
 				(m.currentVisitAt.IsZero() || !m.preLoginRow.Before(m.currentVisitAt)) {
 				leftAt = m.preLoginRow
 			}
-			if leftAt.IsZero() || leftAt.After(e.Timestamp) {
-				leftAt = e.Timestamp
+			if leftAt.IsZero() ||
+				(!m.currentVisitAt.IsZero() && leftAt.Before(m.currentVisitAt)) {
+				leftAt = m.currentVisitAt
 			}
 			if err := m.closeCurrentZoneVisit(leftAt); err != nil {
 				return err
@@ -264,7 +272,9 @@ func (m *Module) closeCurrentZoneVisit(leftAt time.Time) error {
 		return nil
 	}
 	if !m.currentVisitAt.IsZero() && leftAt.Before(m.currentVisitAt) {
-		return nil
+		// A clock change or reordered log segment must not leave an orphaned
+		// open visit. Count zero time when no valid later timestamp exists.
+		leftAt = m.currentVisitAt
 	}
 	if err := m.activeImport.CloseZoneVisit(m.currentVisit, leftAt); err != nil {
 		return err
@@ -630,9 +640,9 @@ func (m *Module) RunImport() {
 				if rowErr != nil {
 					return
 				}
-				if event.Timestamp.After(finalTimestamp) {
-					finalTimestamp = event.Timestamp
-				}
+				// Persist the last row in file order. It may be earlier than rows
+				// from a preceding client session after a clock change.
+				finalTimestamp = event.Timestamp
 				if err := m.OnLogRow(event); err != nil {
 					var unsupported *unsupportedObservationError
 					if errors.As(err, &unsupported) {

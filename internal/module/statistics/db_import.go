@@ -117,9 +117,8 @@ func GetOpenZoneVisit(db *sql.DB) (int64, int64, time.Time, bool, error) {
 	err := db.QueryRow(`
 		SELECT id, zone_id, entered_at
 		FROM zone_visits
-		WHERE left_at IS NULL
-		ORDER BY id DESC
-		LIMIT 1
+		WHERE id = (SELECT MAX(id) FROM zone_visits)
+			AND left_at IS NULL
 	`).Scan(&visitID, &zoneID, &enteredAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, 0, time.Time{}, false, nil
