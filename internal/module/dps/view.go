@@ -41,6 +41,20 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(style.Theme, &m.table)
 				size := len(m.displayHistory)
+				filter := m.filterEditor.Text()
+				if m.displayCombat == combat && m.displayFilter == filter && size > m.displaySize {
+					added := size - m.displaySize
+					atTop := m.table.Position.First == 0 && m.table.Position.Offset == 0
+					if atTop {
+						m.table.Position.First = 0
+						m.table.Position.Offset = 0
+					} else {
+						m.table.Position.First += added
+					}
+				}
+				m.displayCombat = combat
+				m.displayFilter = filter
+				m.displaySize = size
 				return list.Layout(
 					gtx,
 					size,

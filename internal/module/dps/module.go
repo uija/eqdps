@@ -44,6 +44,9 @@ type Module struct {
 	invalidateFunc func()
 
 	displayHistory []*data.Fight
+	displaySize    int
+	displayFilter  string
+	displayCombat  *Combat
 }
 
 func NewModule() *Module {
