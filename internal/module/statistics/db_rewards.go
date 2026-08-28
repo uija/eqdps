@@ -105,6 +105,58 @@ func (i *Import) InsertLoot(
 	return id, nil
 }
 
+func (i *Import) InsertItemDisposition(
+	zoneID *int64,
+	itemID int64,
+	disposition ItemDisposition,
+	quantity int,
+	observedAt time.Time,
+	valueCopper *int64,
+	otherCharacter string,
+) (int64, error) {
+	tx, err := i.activeTx()
+	if err != nil {
+		return 0, err
+	}
+	if zoneID != nil && *zoneID < 1 {
+		return 0, fmt.Errorf("insert statistics item disposition: zone ID %d is invalid", *zoneID)
+	}
+	if itemID < 1 {
+		return 0, fmt.Errorf("insert statistics item disposition: item ID %d is invalid", itemID)
+	}
+	if !disposition.valid() {
+		return 0, fmt.Errorf("insert statistics item disposition: disposition %q is invalid", disposition)
+	}
+	if quantity < 1 {
+		return 0, fmt.Errorf("insert statistics item disposition: quantity %d is invalid", quantity)
+	}
+	if observedAt.IsZero() {
+		return 0, errors.New("insert statistics item disposition: timestamp is zero")
+	}
+	if valueCopper != nil && *valueCopper < 0 {
+		return 0, fmt.Errorf("insert statistics item disposition: value %d is negative", *valueCopper)
+	}
+	otherCharacter = strings.TrimSpace(otherCharacter)
+	var otherValue any
+	if otherCharacter != "" {
+		otherValue = otherCharacter
+	}
+	result, err := tx.Exec(`
+		INSERT INTO item_dispositions (
+			zone_id, item_id, disposition, quantity, observed_at, value_copper, other_character
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, nullableInt64(zoneID), itemID, disposition, quantity, observedAt, nullableInt64(valueCopper), otherValue)
+	if err != nil {
+		return 0, fmt.Errorf("insert statistics item disposition: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("read statistics item disposition ID: %w", err)
+	}
+	return id, nil
+}
+
 func (i *Import) InsertMoney(
 	zoneID *int64,
 	receivedAt time.Time,

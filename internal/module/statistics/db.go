@@ -40,6 +40,7 @@ func DropTables(db *sql.DB) error {
 	defer tx.Rollback()
 
 	tables := []string{
+		"item_dispositions",
 		"loot",
 		"money",
 		"parcels",
@@ -141,6 +142,18 @@ func PrepareDb(db *sql.DB) error {
 			FOREIGN KEY (kill_id) REFERENCES kills(id),
 			FOREIGN KEY (item_id) REFERENCES items(id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS item_dispositions (
+			id INTEGER PRIMARY KEY,
+			zone_id INTEGER,
+			item_id INTEGER NOT NULL,
+			disposition TEXT NOT NULL CHECK (disposition IN ('sold', 'destroyed')),
+			quantity INTEGER NOT NULL CHECK (quantity > 0),
+			observed_at DATETIME NOT NULL,
+			value_copper INTEGER CHECK (value_copper IS NULL OR value_copper >= 0),
+			other_character TEXT COLLATE NOCASE,
+			FOREIGN KEY (zone_id) REFERENCES zones(id),
+			FOREIGN KEY (item_id) REFERENCES items(id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS money (
 			id INTEGER PRIMARY KEY,
 			zone_id INTEGER,
@@ -217,6 +230,8 @@ func PrepareDb(db *sql.DB) error {
 		ON loot (item_id, looted_at)`,
 		`CREATE INDEX IF NOT EXISTS loot_kill_idx
 		ON loot (kill_id)`,
+		`CREATE INDEX IF NOT EXISTS item_dispositions_item_idx
+		ON item_dispositions (item_id, disposition)`,
 		`CREATE INDEX IF NOT EXISTS money_zone_time_idx
 		ON money (zone_id, received_at)`,
 		`CREATE INDEX IF NOT EXISTS money_source_idx

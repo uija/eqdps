@@ -25,17 +25,21 @@ type ItemRow struct {
 }
 
 type ItemsPage struct {
-	db           *sql.DB
-	tabClick     widget.Clickable
-	list         widget.List
-	allItems     []ItemRow
-	items        []*ItemRow
-	filter       widget.Editor
-	filterClear  widget.Clickable
-	loading      atomic.Bool
-	nameClick    widget.Clickable
-	dropsClick   widget.Clickable
-	invalidateFn func()
+	db             *sql.DB
+	tabClick       widget.Clickable
+	list           widget.List
+	allItems       []ItemRow
+	items          []*ItemRow
+	filter         widget.Editor
+	filterClear    widget.Clickable
+	loading        atomic.Bool
+	nameClick      widget.Clickable
+	dropsClick     widget.Clickable
+	autoSoldClick  widget.Clickable
+	soldClick      widget.Clickable
+	destroyedClick widget.Clickable
+	parceledClick  widget.Clickable
+	invalidateFn   func()
 }
 
 func NewItemsPage(invalidate func()) *ItemsPage {
@@ -97,6 +101,22 @@ func (p *ItemsPage) Update(gtx layout.Context) {
 	case p.dropsClick.Clicked(gtx):
 		sort.Slice(p.items, func(i, j int) bool {
 			return p.items[i].Statistic.Drops > p.items[j].Statistic.Drops
+		})
+	case p.autoSoldClick.Clicked(gtx):
+		sort.Slice(p.items, func(i, j int) bool {
+			return p.items[i].Statistic.AutoSold > p.items[j].Statistic.AutoSold
+		})
+	case p.soldClick.Clicked(gtx):
+		sort.Slice(p.items, func(i, j int) bool {
+			return p.items[i].Statistic.Sold > p.items[j].Statistic.Sold
+		})
+	case p.destroyedClick.Clicked(gtx):
+		sort.Slice(p.items, func(i, j int) bool {
+			return p.items[i].Statistic.Destroyed > p.items[j].Statistic.Destroyed
+		})
+	case p.parceledClick.Clicked(gtx):
+		sort.Slice(p.items, func(i, j int) bool {
+			return p.items[i].Statistic.Parceled > p.items[j].Statistic.Parceled
 		})
 	}
 	for _, item := range p.items {
@@ -180,8 +200,12 @@ func (p *ItemsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 func (p *ItemsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			itemHeaderCell(4, "Item", &p.nameClick, false, style),
+			itemHeaderCell(5, "Item", &p.nameClick, false, style),
 			itemHeaderCell(1, "Drops", &p.dropsClick, true, style),
+			itemHeaderCell(1, "Autosold", &p.autoSoldClick, true, style),
+			itemHeaderCell(1, "Sold", &p.soldClick, true, style),
+			itemHeaderCell(1, "Destroyed", &p.destroyedClick, true, style),
+			itemHeaderCell(1, "Parceled", &p.parceledClick, true, style),
 		)
 	})
 }
@@ -195,8 +219,12 @@ func (p *ItemsPage) renderRow(item *ItemRow, alternate bool, style *ui.Style, gt
 		children := []layout.FlexChild{
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					itemLinkCell(4, item, style),
+					itemLinkCell(5, item, style),
 					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Drops), true, style),
+					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.AutoSold), true, style),
+					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Sold), true, style),
+					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Destroyed), true, style),
+					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Parceled), true, style),
 				)
 			}),
 		}

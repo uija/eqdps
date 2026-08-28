@@ -38,6 +38,7 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 		{"zone", "You have entered The Plane of Sky.", data.LogRowEventTypeZoneChange},
 		{"loot", "--You have looted a Wind Rune Caza from a thunder spirit's corpse.--", data.LogRowEventTypeLoot},
 		{"loot result", "You looted a Wind Rune Caza from a thunder spirit's corpse and stored it in your bank", data.LogRowEventTypeLootResult},
+		{"merchant sale", "You receive 2 gold 2 silver 4 copper from Grop for the Rusty Two Handed Sword(s).", data.LogRowEventTypeMerchantSale},
 		{"destroyed", "You successfully destroyed 1 Wind Rune Caza.", data.LogRowEventTypeItemDestroyed},
 		{"trade offer", "You offered 1 Wind Rune Caza to Cilin Spellsinger.", data.LogRowEventTypeTradeOffer},
 		{"trade complete", "You complete the trade with Cilin Spellsinger.", data.LogRowEventTypeTradeComplete},

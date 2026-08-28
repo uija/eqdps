@@ -153,6 +153,12 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	case data.LogRowEventTypeLoot, data.LogRowEventTypeLootResult:
 		return m.importLoot(e)
 
+	case data.LogRowEventTypeMerchantSale:
+		return m.importMerchantSale(e)
+
+	case data.LogRowEventTypeItemDestroyed:
+		return m.importDestroyedItem(e)
+
 	case data.LogRowEventTypeCorpseCoinReward:
 		amount, err := parseLongCoinAmount(e.Message)
 		if err != nil {
@@ -400,6 +406,53 @@ func (m *Module) importLoot(e *data.LogRowEvent) error {
 	if saleValue != nil && *saleValue > 0 {
 		_, err = m.activeImport.InsertMoney(m.currentZonePointer(), e.Timestamp, *saleValue, MoneyLootSale)
 	}
+	return err
+}
+
+func (m *Module) importMerchantSale(e *data.LogRowEvent) error {
+	if len(e.Data) < 4 {
+		return unsupportedObservation("statistics merchant sale event has incomplete data")
+	}
+	_, _, normalizedName, err := parseObservedItem(e.Data[3])
+	if err != nil {
+		return err
+	}
+	itemID, err := m.activeImport.GetOrCreateItem(normalizedName)
+	if err != nil {
+		return err
+	}
+	value, err := parseLongCoinAmount(e.Data[1])
+	if err != nil {
+		return err
+	}
+	if _, err := m.activeImport.InsertItemDisposition(
+		m.currentZonePointer(), itemID, ItemSold, 1, e.Timestamp, &value, e.Data[2],
+	); err != nil {
+		return err
+	}
+	_, err = m.activeImport.InsertMoney(m.currentZonePointer(), e.Timestamp, value, MoneyMerchant)
+	return err
+}
+
+func (m *Module) importDestroyedItem(e *data.LogRowEvent) error {
+	if len(e.Data) < 3 {
+		return unsupportedObservation("statistics destroyed item event has incomplete data")
+	}
+	quantity, err := parseQuantity(e.Data[1])
+	if err != nil {
+		return err
+	}
+	_, normalizedName := data.NormalizeItemName(e.Data[2])
+	if normalizedName == "" {
+		return unsupportedObservation("statistics destroyed item has an empty name")
+	}
+	itemID, err := m.activeImport.GetOrCreateItem(normalizedName)
+	if err != nil {
+		return err
+	}
+	_, err = m.activeImport.InsertItemDisposition(
+		m.currentZonePointer(), itemID, ItemDestroyed, quantity, e.Timestamp, nil, "",
+	)
 	return err
 }
 

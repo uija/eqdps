@@ -22,6 +22,7 @@ const (
 	LogRowEventTypeZoneChange
 	LogRowEventTypeLoot
 	LogRowEventTypeLootResult
+	LogRowEventTypeMerchantSale
 	LogRowEventTypeItemDestroyed
 	LogRowEventTypeTradeOffer
 	LogRowEventTypeTradeComplete

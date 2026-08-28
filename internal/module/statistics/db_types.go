@@ -39,6 +39,17 @@ func (value LootDestination) valid() bool {
 	}
 }
 
+type ItemDisposition string
+
+const (
+	ItemSold      ItemDisposition = "sold"
+	ItemDestroyed ItemDisposition = "destroyed"
+)
+
+func (value ItemDisposition) valid() bool {
+	return value == ItemSold || value == ItemDestroyed
+}
+
 type MoneySource string
 
 const (
