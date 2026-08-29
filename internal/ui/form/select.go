@@ -151,9 +151,28 @@ func (s *SelectBox) Update(gtx layout.Context) {
 	}
 }
 
+func (s *SelectBox) Layout(style *appui.Style, gtx layout.Context, width unit.Dp) layout.Dimensions {
+	pixelWidth := min(gtx.Dp(width), gtx.Constraints.Max.X)
+	gtx.Constraints.Min.X = pixelWidth
+	gtx.Constraints.Max.X = pixelWidth
+
+	dimensions := (widget.Border{
+		Color: style.Palette.Border,
+		Width: unit.Dp(1),
+	}).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return s.layoutControl(style, gtx)
+	})
+
+	if s.open && len(s.options) > 0 {
+		s.deferPopup(style, gtx, dimensions.Size)
+	}
+
+	return dimensions
+}
+
 // Layout renders the current selector state and, while open, its anchored
 // option popup. It does not consume input or change the selection.
-func (s *SelectBox) Layout(style *appui.Style, gtx layout.Context, width unit.Dp) layout.Dimensions {
+func (s *SelectBox) LayoutNoBorder(style *appui.Style, gtx layout.Context, width unit.Dp) layout.Dimensions {
 	pixelWidth := min(gtx.Dp(width), gtx.Constraints.Max.X)
 	gtx.Constraints.Min.X = pixelWidth
 	gtx.Constraints.Max.X = pixelWidth
