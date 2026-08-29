@@ -24,15 +24,6 @@ func (m *Module) ImportInventory(path string, datapath string) (*inventory.Inven
 	if err != nil {
 		return nil, err
 	}
-	bytes, err := json.Marshal(inv)
-	if err != nil {
-		return nil, err
-	}
-	err = os.WriteFile("inv_temp.json", bytes, 0o644)
-	if err != nil {
-		return nil, err
-	}
-
 	ids := make([]string, 0)
 	for _, storage := range inv.Storage {
 		for _, root := range storage.Slots {
@@ -93,7 +84,7 @@ func (m *Module) ImportInventory(path string, datapath string) (*inventory.Inven
 		}
 	}
 
-	bytes, err = json.Marshal(inv)
+	bytes, err := json.Marshal(inv)
 	if err != nil {
 		return nil, err
 	}

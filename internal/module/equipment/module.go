@@ -191,11 +191,9 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 			filepath.Dir(filepath.Dir(m.configPath)),
 			event.Data[1],
 		)
-		log.Printf("Inventory export found at %s", exportPath)
 		go func() {
 			defer m.importRunning.Store(false)
 
-			log.Printf("Calling ImportInventory")
 			inv, err := m.ImportInventory(exportPath, m.databasePath)
 			if err != nil {
 				log.Printf("Unable to import Inventory. %v", err)
@@ -203,10 +201,8 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 			}
 			select {
 			case m.importDone <- inv:
-				log.Printf("Sent it!")
 			case <-m.stop:
 			}
-			log.Printf("done!")
 		}()
 	}
 }
