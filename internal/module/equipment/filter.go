@@ -11,6 +11,9 @@ import (
 )
 
 func (m *Module) PrepareItems() {
+	if m.inv == nil {
+		return
+	}
 	classes := []string{""}
 	slots := []string{""}
 	m.items = make([]ClickableItems, 0)
@@ -35,7 +38,6 @@ func (m *Module) PrepareItems() {
 			}
 		}
 	}
-
 	for storage, s := range m.inv.Storage {
 		for root, r := range s.Slots {
 			cl, sl := m.AppendItem(&r, storage, root)
