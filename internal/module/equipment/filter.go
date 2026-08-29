@@ -128,7 +128,7 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 
 	classes := m.SelectedClasses()
 	match = func() bool {
-		if !m.exaltation.Value {
+		if m.hide_exaltations {
 			if strings.Contains(id.Name, "Exalt") || strings.Contains(id.Name, "Ornamentation") {
 				return false
 			}

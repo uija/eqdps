@@ -40,13 +40,14 @@ type Module struct {
 	stop           chan struct{}
 	invalidateFunc func()
 
-	filter       widget.Editor
-	filter_clear widget.Clickable
-	class1       *form.SelectBox
-	class2       *form.SelectBox
-	class3       *form.SelectBox
-	slots        *form.SelectBox
-	exaltation   widget.Bool
+	filter              widget.Editor
+	filter_clear        widget.Clickable
+	class1              *form.SelectBox
+	class2              *form.SelectBox
+	class3              *form.SelectBox
+	slots               *form.SelectBox
+	exaltation_checkbox widget.Bool
+	hide_exaltations    bool
 
 	selected_item       *inventory.ItemData
 	selected_item_click widget.Clickable
@@ -73,7 +74,8 @@ func (m *Module) Init(ctx *module.Context, invFunc func()) error {
 	m.ctx.RegisterUpdate(m.Update)
 	m.itemsList.Axis = layout.Vertical
 	m.invalidateFunc = invFunc
-	m.exaltation.Value = false
+	m.exaltation_checkbox.Value = false
+	m.hide_exaltations = false
 
 	go func() {
 		for {
@@ -97,9 +99,16 @@ func (m *Module) Update(gtx layout.Context) {
 	m.class2.Update(gtx)
 	m.class3.Update(gtx)
 	m.slots.Update(gtx)
-	if m.class1.Changed() || m.class2.Changed() || m.class3.Changed() || m.exaltation.Pressed() || m.slots.Changed() {
+	if m.class1.Changed() || m.class2.Changed() || m.class3.Changed() || m.slots.Changed() {
 		m.PrepareItems()
 		m.invalidateFunc()
+	}
+	if m.exaltation_checkbox.Update(gtx) {
+		if m.hide_exaltations != m.exaltation_checkbox.Value {
+			m.hide_exaltations = m.exaltation_checkbox.Value
+			m.PrepareItems()
+			m.invalidateFunc()
+		}
 	}
 	if event, ok := m.filter.Update(gtx); ok {
 		if _, changed := event.(widget.ChangeEvent); changed {

@@ -59,26 +59,36 @@ func (m *Module) RenderFilter(style *ui.Style, gtx layout.Context) layout.Dimens
 						return ui.MaxedTextField(&m.filter, "", style, gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16)}.Layout(gtx, ui.RenderLinkAsButton(style, &m.filter_clear, ui.Close, "Clear"))
+						return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx,
+							ui.IconLink(style, &m.filter_clear, ui.Close, "Clear").Layout,
+						)
 					}),
 				)
 			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return m.class1.Layout(style, gtx, unit.Dp(70))
+						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return m.class1.Layout(style, gtx, unit.Dp(70))
+						})
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return m.class2.Layout(style, gtx, unit.Dp(70))
+						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return m.class2.Layout(style, gtx, unit.Dp(70))
+						})
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return m.class3.Layout(style, gtx, unit.Dp(70))
+						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return m.class3.Layout(style, gtx, unit.Dp(70))
+						})
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return m.slots.Layout(style, gtx, unit.Dp(180))
+						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return m.slots.Layout(style, gtx, unit.Dp(180))
+						})
 					}),
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return material.CheckBox(style.Theme, &m.exaltation, "Hide Exaltations").Layout(gtx)
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return material.CheckBox(style.Theme, &m.exaltation_checkbox, "Hide Exaltations").Layout(gtx)
 					}),
 				)
 			}),
