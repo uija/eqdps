@@ -68,6 +68,8 @@ func (m *Module) Init(ctx *module.Context, invFunc func()) error {
 	m.ctx = ctx
 	m.ctx.RegisterLogOpen(m.OnLogOpen)
 	m.ctx.RegisterLogRow(m.OnLogRow)
+	m.ctx.RegisterReplayStart(m.OnReplayStart)
+	m.ctx.RegisterReplayEnd(m.OnReplayEnd)
 	m.ctx.AddSidebarItem("Equip", m.OpenMainView)
 	m.ctx.AddViewMenuItem("Equipment", m.OpenMainView)
 	m.ctx.RegisterUpdate(m.Update)
@@ -183,11 +185,11 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 	if m.replay.Load() {
 		return
 	}
-	if !m.importRunning.CompareAndSwap(false, true) {
-		return
-	}
 	switch event.Type {
 	case data.LogRowEventTypeInventoryExport:
+		if !m.importRunning.CompareAndSwap(false, true) {
+			return
+		}
 		exportPath := filepath.Join(
 			filepath.Dir(filepath.Dir(m.configPath)),
 			event.Data[1],
