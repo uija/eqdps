@@ -2,6 +2,7 @@ package equipment
 
 import (
 	"fmt"
+	"log"
 	"slices"
 	"sort"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 func (m *Module) PrepareItems() {
 	if m.inv == nil {
+		log.Printf("Inventory is nil")
 		return
 	}
 	classes := []string{""}
@@ -85,6 +87,7 @@ func (m *Module) PrepareItems() {
 	sl := m.slots.Value()
 	m.slots.SetOptions(slots)
 	m.slots.Select(sl)
+	log.Printf("Prepare items done...")
 }
 
 func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []string) {

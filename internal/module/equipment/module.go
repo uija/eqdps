@@ -82,6 +82,7 @@ func (m *Module) Init(ctx *module.Context, invFunc func()) error {
 			case <-m.stop:
 				return
 			case ptr := <-m.importDone:
+				log.Printf("We found import in channel")
 				m.mu.Lock()
 				m.inv = ptr
 				m.items = nil
@@ -191,14 +192,16 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 			filepath.Dir(filepath.Dir(m.configPath)),
 			event.Data[1],
 		)
+		log.Printf("we got a log exported at: %s", exportPath)
 		go func() {
 			defer m.importRunning.Store(false)
-
+			log.Printf("starting to import inventory")
 			inv, err := m.ImportInventory(exportPath, m.databasePath)
 			if err != nil {
 				log.Printf("Unable to import Inventory. %v", err)
 				return
 			}
+			log.Printf("We got the import. Sending it to channel")
 			select {
 			case m.importDone <- inv:
 			case <-m.stop:

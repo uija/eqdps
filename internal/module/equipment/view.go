@@ -1,6 +1,7 @@
 package equipment
 
 import (
+	"log"
 	"strings"
 
 	"gioui.org/layout"
@@ -113,6 +114,7 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 			}
 			return layout.Center.Layout(gtx, material.Label(style.Theme, ui.Sp(15), text).Layout)
 		}
+		log.Printf("Going to prepare items!")
 		m.PrepareItems()
 		m.mu.Unlock()
 	}
