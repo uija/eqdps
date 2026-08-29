@@ -1,0 +1,49 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build Windows amd64
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Windows executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          go build -trimpath -ldflags="-H=windowsgui" -o dist/eqdps-gui-windows-amd64.exe .
+
+      - name: Write SHA-256 checksum
+        shell: pwsh
+        run: |
+          $file = "dist/eqdps-gui-windows-amd64.exe"
+          $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  eqdps-gui-windows-amd64.exe" | Set-Content -Encoding ascii dist/SHA256SUMS
+          Get-Content dist/SHA256SUMS
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: eqdps-windows-amd64
+          path: |
+            dist/eqdps-gui-windows-amd64.exe
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
