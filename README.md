@@ -12,7 +12,7 @@ but EverQuest Legends is the project's main compatibility target.
 ## Download
 
 Windows users can download the prebuilt application directly from the 
-[eqdps v1.0.0 release](https://github.com/uija/eqdps/releases/tag/v1.0.0).
+[eqdps v1.0.2 release](https://github.com/uija/eqdps/releases/tag/v1.0.2).
 
 Published builds are available from the
 [GitHub releases page](https://github.com/uija/eqdps/releases).
