@@ -164,7 +164,6 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.ctx = ctx
 	ctx.AddViewMenuItem("Events", m.OpenMainView)
 	ctx.AddSidebarItem("Events", m.OpenMainView)
-	//ctx.SetMainView(m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterStatusWidget(m.LayoutStatus)

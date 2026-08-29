@@ -71,9 +71,8 @@ func NewModule() *Module {
 }
 func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 	ctx.RegisterUpdate(m.Update)
-	ctx.AddSidebarItem("Stats", func() {
-		ctx.SetMainView(m.Layout)
-	})
+	ctx.AddSidebarItem("Stats", m.OpenMainView)
+	ctx.AddViewMenuItem("Statistics", m.OpenMainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterReplayStart(m.OnExternalReplayStart)
 	ctx.RegisterReplayEnd(m.OnExternalReplayEnd)
@@ -89,6 +88,9 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 	m.currentPage = m.Pages[0]
 
 	return nil
+}
+func (m *Module) OpenMainView() {
+	m.ctx.SetMainView(m.Layout)
 }
 func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, path string) bool {
 	m.lastLogfileOffset = filesize

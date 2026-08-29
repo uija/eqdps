@@ -68,9 +68,8 @@ func (m *Module) Init(ctx *module.Context, invFunc func()) error {
 	m.ctx = ctx
 	m.ctx.RegisterLogOpen(m.OnLogOpen)
 	m.ctx.RegisterLogRow(m.OnLogRow)
-	m.ctx.AddSidebarItem("Equip", func() {
-		ctx.SetMainView(m.Layout)
-	})
+	m.ctx.AddSidebarItem("Equip", m.OpenMainView)
+	m.ctx.AddViewMenuItem("Equipment", m.OpenMainView)
 	m.ctx.RegisterUpdate(m.Update)
 	m.itemsList.Axis = layout.Vertical
 	m.invalidateFunc = invFunc
@@ -93,6 +92,9 @@ func (m *Module) Init(ctx *module.Context, invFunc func()) error {
 	}()
 
 	return nil
+}
+func (m *Module) OpenMainView() {
+	m.ctx.SetMainView(m.Layout)
 }
 func (m *Module) Update(gtx layout.Context) {
 	m.class1.Update(gtx)
