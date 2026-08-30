@@ -200,6 +200,9 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 		return true
 	}
 	switch e.Type {
+	case data.LogRowEventTypeFailedMelee:
+		//fight := c.getActiveFight(event)
+		//fight.AddFailEvent(e)
 	case data.LogRowEventTypeCast:
 		caster := normalizeName(e.Data[1])
 		c.lastCastSpell[caster] = CastSpell{
@@ -288,17 +291,51 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 	}
 	return true
 }
+func resultForLogFailedMelee(e *data.LogRowEvent) data.AttackResult {
+	if e.Type != data.LogRowEventTypeFailedMelee {
+		return data.AttackResultHit
+	}
+	if e.Data[4] == "Riposte" {
+		return data.AttackResultRisposte
+	}
+	failure := e.Data[3]
+
+	switch {
+	case strings.HasSuffix(failure, " dodges"):
+		return data.AttackResultDodge
+	case strings.HasSuffix(failure, " parries"):
+		return data.AttackResultParry
+	case strings.HasSuffix(failure, " blocks"):
+		return data.AttackResultBlock
+	case strings.HasSuffix(failure, " ripostes"):
+		return data.AttackResultRisposte
+	case strings.HasSuffix(failure, " magical skin absorbs the blow"):
+		return data.AttackResultAbsorb
+	}
+	return data.AttackResultMiss
+}
 func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool) {
 	if e == nil {
 		return nil, false
 	}
 
 	switch e.Type {
+	case data.LogRowEventTypeFailedMelee:
+		result := resultForLogFailedMelee(e)
+		de := data.NewDamageEvent(result, e.Timestamp, "You", e.Data[2], e.Data[1], "0", e.Data[1], "", e.Type)
+		if result == data.AttackResultRisposte {
+			de.Riposte = true
+		}
+		if !strings.EqualFold(de.Verb, "Cleave") && !strings.EqualFold(de.Verb, "Kick") && !de.Riposte {
+			de.Participation = true
+		}
+		return de, true
+
 	case data.LogRowEventTypeDamage:
 		if len(e.Data) < 8 {
 			return nil, false
 		}
-		de := data.NewDamageEvent(e.Timestamp, e.Data[1], e.Data[3], e.Data[2], e.Data[4], e.Data[6], e.Data[7], e.Type)
+		de := data.NewDamageEvent(data.AttackResultHit, e.Timestamp, e.Data[1], e.Data[3], e.Data[2], e.Data[4], e.Data[6], e.Data[7], e.Type)
 		if de.IsSpell() {
 			if cs, ok := c.lastCastSpell[de.NormalizedSource]; ok && cs.name == normalizeSpellName(de.Ability) {
 				elapsed := de.Time.Sub(cs.timestamp)
@@ -331,25 +368,25 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool)
 		if len(e.Data) < 6 {
 			return nil, false
 		}
-		return data.NewDamageEvent(e.Timestamp, e.Data[4], e.Data[1], "", e.Data[2], e.Data[3], e.Data[5], e.Type), true
+		return data.NewDamageEvent(data.AttackResultHit, e.Timestamp, e.Data[4], e.Data[1], "", e.Data[2], e.Data[3], e.Data[5], e.Type), true
 		// <a mob name> has taken 20 damage from Ignite by <a player name>.
 	case data.LogRowEventTypeDamageShield:
 		if len(e.Data) < 7 {
 			return nil, false
 		}
-		return data.NewDamageEvent(e.Timestamp, e.Data[2], e.Data[1], "", e.Data[4], e.Data[3], e.Data[6], e.Type), true
+		return data.NewDamageEvent(data.AttackResultHit, e.Timestamp, e.Data[2], e.Data[1], "", e.Data[4], e.Data[3], e.Data[6], e.Type), true
 		// <a mob name> is burned by <a player name>'s Shield of Flame for 20 points of non-melee damage.
 	case data.LogRowEventTypeYourDamageOverTime:
 		if len(e.Data) < 5 {
 			return nil, false
 		}
-		return data.NewDamageEvent(e.Timestamp, "You", e.Data[1], "", e.Data[2], e.Data[3], e.Data[4], data.LogRowEventTypeDamageOverTime), true
+		return data.NewDamageEvent(data.AttackResultHit, e.Timestamp, "You", e.Data[1], "", e.Data[2], e.Data[3], e.Data[4], data.LogRowEventTypeDamageOverTime), true
 		// <a mob name> has taken 20 damage from your Ignite.
 	case data.LogRowEventTypeYourDamageShield:
 		if len(e.Data) < 6 {
 			return nil, false
 		}
-		return data.NewDamageEvent(e.Timestamp, "You", e.Data[1], "", e.Data[3], e.Data[2], e.Data[5], data.LogRowEventTypeDamageShield), true
+		return data.NewDamageEvent(data.AttackResultHit, e.Timestamp, "You", e.Data[1], "", e.Data[3], e.Data[2], e.Data[5], data.LogRowEventTypeDamageShield), true
 		// <a mob name> is burned by YOUR Shield of Flame for 20 points of non-melee damage.
 	default:
 	}

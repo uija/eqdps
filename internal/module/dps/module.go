@@ -192,7 +192,8 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		data.LogRowEventTypeZoneChange,
 		data.LogRowEventTypeSlainBy,
 		data.LogRowEventTypeSomeoneDied,
-		data.LogRowEventTypeYouSlain:
+		data.LogRowEventTypeYouSlain,
+		data.LogRowEventTypeFailedMelee:
 
 		m.rows <- event
 	}

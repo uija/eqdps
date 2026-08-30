@@ -60,11 +60,12 @@ func (c *Combatant) AddDamageEvent(e *DamageEvent) {
 	if e.Participation && c.FirstParticipation.IsZero() {
 		c.FirstParticipation = e.Time
 	}
-
 	c.Overall.AddDamageEvent(e, !c.FirstParticipation.IsZero())
 
 	category := ""
 	switch e.Type {
+	case LogRowEventTypeFailedMelee:
+		category = CATEGORY_MELEE
 	case LogRowEventTypeDamage:
 		if e.IsSpell() {
 			if e.IsCast {

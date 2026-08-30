@@ -227,11 +227,12 @@ func (m *Module) GenerateFightCombatantDetails(c *data.Combatant, idx int, style
 	if idx%2 == 0 {
 		color = style.Palette.Window
 	}
+	combatantIsYou := strings.EqualFold(c.Name, "you")
 	rows = append(rows,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return c.Click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return ui.ColoredAccentedRow(gtx, color, style.Palette.Accent, strings.ToLower(c.Name) == "you", func(gtx layout.Context) layout.Dimensions {
-					return m.GenerateFightDetailsRow(0, fmt.Sprintf("%s%s", pre, c.Name), c, c.Overall, style, gtx)
+				return ui.ColoredAccentedRow(gtx, color, style.Palette.Accent, combatantIsYou, func(gtx layout.Context) layout.Dimensions {
+					return m.GenerateFightDetailsRow(0, false, "", fmt.Sprintf("%s%s", pre, c.Name), c, c.Overall, style, gtx)
 				})
 			})
 		}),
@@ -240,12 +241,13 @@ func (m *Module) GenerateFightCombatantDetails(c *data.Combatant, idx int, style
 	if c.Open {
 		for _, catname := range data.DamageCategories {
 			if cat, ok := c.Categories[catname]; ok {
+				showDetails := strings.EqualFold(catname, "melee") && combatantIsYou
 				rows = append(rows,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						// Spacing to the top, so Category names dont directly connect to Combatant rows
 						return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(layout.Context) layout.Dimensions {
 							return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
-								return m.GenerateFightDetailsRow(1, catname, c, cat.Overall, style, gtx)
+								return m.GenerateFightDetailsRow(1, showDetails, catname, catname, c, cat.Overall, style, gtx)
 							})
 						})
 					}),
@@ -258,7 +260,7 @@ func (m *Module) GenerateFightCombatantDetails(c *data.Combatant, idx int, style
 				for _, name := range names {
 					rows = append(rows,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return m.GenerateFightDetailsRow(2, name, c, cat.Abilities[name], style, gtx)
+							return m.GenerateFightDetailsRow(2, showDetails, catname, name, c, cat.Abilities[name], style, gtx)
 						}),
 					)
 				}
@@ -267,7 +269,7 @@ func (m *Module) GenerateFightCombatantDetails(c *data.Combatant, idx int, style
 	}
 	return rows
 }
-func (m *Module) GenerateFightDetailsRow(intent int, name string, combatant *data.Combatant, d *data.CombatDamageData, style *ui.Style, gtx layout.Context) layout.Dimensions {
+func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category string, name string, combatant *data.Combatant, d *data.CombatDamageData, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	cells := make([]layout.FlexChild, 0)
 
 	var sdps float64 = 0
@@ -278,8 +280,51 @@ func (m *Module) GenerateFightDetailsRow(intent int, name string, combatant *dat
 			sdps = 0
 		}
 	}
+	info := ""
+	if showDetails {
+		numHits := d.Hits
+		numAll := d.NumAttacks()
+		percent := 100 / float64(numAll) * float64(numHits)
+		addValue := func(str string, format string, val any) string {
+			if val == 0 {
+				return str
+			}
+			if str != "" {
+				str += ", "
+			}
+			str += fmt.Sprintf(format, val)
+			return str
+		}
+		info = addValue(info, "%d miss", d.Miss)
+		info = addValue(info, "%d dodge", d.Dodge)
+		info = addValue(info, "%d parry", d.Parry)
+		info = addValue(info, "%d block", d.Block)
+		info = addValue(info, "%d absorb", d.Absorb)
+		info = addValue(info, "%.01f%%", percent)
+	} else if category == data.CATEGORY_PROCS && category != name {
+		fight_duration := combatant.Overall.LastUpdate.Sub(combatant.FirstParticipation)
+		if fight_duration > 0 {
+			ppm := float64(d.Hits) / fight_duration.Minutes()
+			info = fmt.Sprintf("%.1f ppm", ppm)
+
+		}
+	}
 
 	cells = append(cells, layout.Flexed(float32(m.columns[0].weight), func(gtx layout.Context) layout.Dimensions {
+		if info != "" {
+			return layout.Inset{Left: unit.Dp(intent * 24)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					layout.Rigid(material.Body1(style.Theme, name).Layout),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							label := material.Label(style.Theme, ui.Sp(14), info)
+							label.Color = style.Palette.Muted
+							return layout.E.Layout(gtx, label.Layout)
+						})
+					}),
+				)
+			})
+		}
 		return layout.Inset{Left: unit.Dp(intent * 24)}.Layout(gtx, material.Body1(style.Theme, name).Layout)
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[1].weight), func(gtx layout.Context) layout.Dimensions {
@@ -300,7 +345,8 @@ func (m *Module) GenerateFightDetailsRow(intent int, name string, combatant *dat
 		return ui.CenterAlignLabel(gtx, ui.ColoredLabel(style.Theme, 16, style.Palette.Yes, sdpsstr))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[3].weight), func(gtx layout.Context) layout.Dimensions {
-		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, fmt.Sprintf("%d", d.Hits)))
+		val := fmt.Sprintf("%d", d.Hits)
+		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, val))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[4].weight), func(gtx layout.Context) layout.Dimensions {
 		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, fmt.Sprintf("%d", d.Crits)))

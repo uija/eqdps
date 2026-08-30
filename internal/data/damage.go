@@ -33,6 +33,11 @@ type CombatDamageData struct {
 	Dps          float32
 	Sdps         float32
 	Hits         int
+	Miss         int
+	Dodge        int
+	Parry        int
+	Block        int
+	Absorb       int
 	Crits        int
 	MinDamage    int
 	MaxDamage    int
@@ -40,16 +45,38 @@ type CombatDamageData struct {
 	LastUpdate   time.Time
 }
 
+func (d *CombatDamageData) NumAttacks() int {
+	return d.Hits + d.Miss + d.Dodge + d.Parry + d.Block + d.Absorb
+}
 func (d *CombatDamageData) AddDamageEvent(e *DamageEvent, active_damage bool) {
 	if d.Start.IsZero() {
 		d.Start = e.Time
 	}
 	d.LastUpdate = e.Time
+
+	switch e.Result {
+	case AttackResultMiss:
+		d.Miss++
+		return
+	case AttackResultDodge:
+		d.Dodge++
+		return
+	case AttackResultParry:
+		d.Parry++
+		return
+	case AttackResultBlock:
+		d.Block++
+		return
+	case AttackResultAbsorb:
+		d.Absorb++
+		return
+	}
+	d.Hits++
+
 	d.Damage += e.Amount
 	if active_damage {
 		d.ActiveDamage += e.Amount
 	}
-	d.Hits++
 	if d.MinDamage == 0 || d.MinDamage > e.Amount {
 		d.MinDamage = e.Amount
 	}
@@ -91,7 +118,20 @@ func NewCombatDamageData(name string) *CombatDamageData {
 	}
 }
 
+type AttackResult uint8
+
+const (
+	AttackResultHit AttackResult = iota
+	AttackResultMiss
+	AttackResultDodge
+	AttackResultParry
+	AttackResultBlock
+	AttackResultAbsorb
+	AttackResultRisposte
+)
+
 type DamageEvent struct {
+	Result           AttackResult
 	Time             time.Time
 	Source           string
 	Target           string
@@ -111,12 +151,13 @@ func (de *DamageEvent) IsSpell() bool {
 	return (de.Verb == "hit" || de.Verb == "hits") && de.Ability != ""
 }
 
-func NewDamageEvent(ts time.Time, source, target, verb, amount, ability, annotation string, t LogRowEventType) *DamageEvent {
+func NewDamageEvent(result AttackResult, ts time.Time, source, target, verb, amount, ability, annotation string, t LogRowEventType) *DamageEvent {
 	damage, err := strconv.Atoi(amount)
 	if err != nil {
 		damage = 0
 	}
 	return &DamageEvent{
+		Result:           result,
 		Time:             ts,
 		Source:           source,
 		NormalizedSource: normalizeName(source),
