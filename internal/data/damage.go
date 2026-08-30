@@ -38,6 +38,7 @@ type CombatDamageData struct {
 	Parry        int
 	Block        int
 	Absorb       int
+	Riposte      int
 	Crits        int
 	MinDamage    int
 	MaxDamage    int
@@ -69,6 +70,9 @@ func (d *CombatDamageData) AddDamageEvent(e *DamageEvent, active_damage bool) {
 		return
 	case AttackResultAbsorb:
 		d.Absorb++
+		return
+	case AttackResultRiposte:
+		d.Riposte++
 		return
 	}
 	d.Hits++
@@ -127,7 +131,7 @@ const (
 	AttackResultParry
 	AttackResultBlock
 	AttackResultAbsorb
-	AttackResultRisposte
+	AttackResultRiposte
 )
 
 type DamageEvent struct {

@@ -296,7 +296,7 @@ func resultForLogFailedMelee(e *data.LogRowEvent) data.AttackResult {
 		return data.AttackResultHit
 	}
 	if e.Data[4] == "Riposte" {
-		return data.AttackResultRisposte
+		return data.AttackResultRiposte
 	}
 	failure := e.Data[3]
 
@@ -308,7 +308,7 @@ func resultForLogFailedMelee(e *data.LogRowEvent) data.AttackResult {
 	case strings.HasSuffix(failure, " blocks"):
 		return data.AttackResultBlock
 	case strings.HasSuffix(failure, " ripostes"):
-		return data.AttackResultRisposte
+		return data.AttackResultRiposte
 	case strings.HasSuffix(failure, " magical skin absorbs the blow"):
 		return data.AttackResultAbsorb
 	}
@@ -323,7 +323,7 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool)
 	case data.LogRowEventTypeFailedMelee:
 		result := resultForLogFailedMelee(e)
 		de := data.NewDamageEvent(result, e.Timestamp, "You", e.Data[2], e.Data[1], "0", e.Data[1], "", e.Type)
-		if result == data.AttackResultRisposte {
+		if result == data.AttackResultRiposte {
 			de.Riposte = true
 		}
 		if !strings.EqualFold(de.Verb, "Cleave") && !strings.EqualFold(de.Verb, "Kick") && !de.Riposte {

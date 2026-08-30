@@ -284,7 +284,10 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 	if showDetails {
 		numHits := d.Hits
 		numAll := d.NumAttacks()
-		percent := 100 / float64(numAll) * float64(numHits)
+		percent := 0.0
+		if numHits > 0 {
+			percent = 100 / float64(numAll) * float64(numHits)
+		}
 		addValue := func(str string, format string, val any) string {
 			if val == 0 {
 				return str
@@ -300,6 +303,7 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 		info = addValue(info, "%d parry", d.Parry)
 		info = addValue(info, "%d block", d.Block)
 		info = addValue(info, "%d absorb", d.Absorb)
+		info = addValue(info, "%d riposte", d.Riposte)
 		info = addValue(info, "%.01f%%", percent)
 	} else if category == data.CATEGORY_PROCS && category != name {
 		fight_duration := combatant.Overall.LastUpdate.Sub(combatant.FirstParticipation)
