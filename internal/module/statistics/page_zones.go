@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync/atomic"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -29,6 +30,8 @@ type ZonesPage struct {
 	motes_click      widget.Clickable
 	perhour_click    widget.Clickable
 	dropchance_click widget.Clickable
+
+	Sum ZoneStatistics
 }
 
 func NewZonesPage() *ZonesPage {
@@ -95,6 +98,13 @@ func (p *ZonesPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 			stats, err := GetZoneStatistics(p.db)
 			if err == nil {
 				p.zonestats = stats
+				p.Sum = ZoneStatistics{}
+				for _, z := range p.zonestats {
+					p.Sum.Visits += z.Visits
+					p.Sum.TimeSpent += z.TimeSpent
+					p.Sum.MobsKilled += z.MobsKilled
+					p.Sum.MotesDropped += z.MotesDropped
+				}
 				p.name_click.Click()
 			}
 		}()
@@ -119,8 +129,8 @@ func (p *ZonesPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 			})
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return list.Layout(gtx, len(p.zonestats), func(gtx layout.Context, index int) layout.Dimensions {
-				return p.RenderZoneRow(p.zonestats[index], index%2 == 0, style, gtx)
+			return list.Layout(gtx, len(p.zonestats)+1, func(gtx layout.Context, index int) layout.Dimensions {
+				return p.RenderZoneRow(index, index%2 == 0, style, gtx)
 			})
 		}),
 	)
@@ -181,7 +191,15 @@ func (p *ZonesPage) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dim
 		)
 	})
 }
-func (p *ZonesPage) RenderZoneRow(zone ZoneStatistics, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
+func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
+	var zone ZoneStatistics
+	weight := font.Normal
+	if idx < len(p.zonestats) {
+		zone = p.zonestats[idx]
+	} else {
+		zone = p.Sum
+		weight = font.SemiBold
+	}
 	color := style.Palette.Window
 	if odd {
 		color = style.Palette.Panel
@@ -190,48 +208,70 @@ func (p *ZonesPage) RenderZoneRow(zone ZoneStatistics, odd bool, style *ui.Style
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), zone.Name).Layout(gtx)
+					label := material.Label(style.Theme, ui.Sp(15), zone.Name)
+					label.Font.Weight = weight
+					return label.Layout(gtx)
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.Visits)).Layout(gtx)
+						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.Visits))
+						label.Font.Weight = weight
+						return label.Layout(gtx)
 					})
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%v", zone.TimeSpent)).Layout(gtx)
+						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%v", zone.TimeSpent))
+						label.Font.Weight = weight
+						return label.Layout(gtx)
 					})
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.MobsKilled)).Layout(gtx)
+						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.MobsKilled))
+						label.Font.Weight = weight
+						return label.Layout(gtx)
 					})
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.MotesDropped)).Layout(gtx)
+						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.MotesDropped))
+						label.Font.Weight = weight
+						return label.Layout(gtx)
 					})
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%.01f", zone.MotesPerHour)).Layout(gtx)
+						val := ""
+						if zone.Name != "" {
+							val = fmt.Sprintf("%.01f", zone.MotesPerHour)
+						}
+						label := material.Label(style.Theme, ui.Sp(15), val)
+						label.Font.Weight = weight
+						return label.Layout(gtx)
 					})
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%.01f%%", zone.MoteDropChance)).Layout(gtx)
+						val := ""
+						if zone.Name != "" {
+							val = fmt.Sprintf("%.01f%%", zone.MoteDropChance)
+						}
+						label := material.Label(style.Theme, ui.Sp(15), val)
+						label.Font.Weight = weight
+						return label.Layout(gtx)
 					})
 				})
 			}),
