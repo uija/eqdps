@@ -87,7 +87,6 @@ func (m *Module) PrepareItems() {
 	sl := m.slots.Value()
 	m.slots.SetOptions(slots)
 	m.slots.Select(sl)
-	log.Printf("Prepare items done...")
 }
 
 func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []string) {

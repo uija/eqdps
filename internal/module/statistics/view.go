@@ -59,14 +59,5 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 func (m *Module) RenderTab(p StatsPage, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return ui.RenderLinkAsButton(style, p.Clickable(), ui.ActionVisibility, p.Title())(gtx)
-		/*
-			return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
-				return p.Clickable().Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), p.Title()).Layout(gtx)
-					})
-				})
-			})
-		*/
 	})
 }

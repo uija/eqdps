@@ -56,7 +56,7 @@ func (m *Module) RenderFilter(style *ui.Style, gtx layout.Context) layout.Dimens
 						return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter:").Layout)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return ui.MaxedTextField(&m.filter, "", style, gtx)
+						return ui.MaxedTextField(&m.filter, "Filter equipment", style, gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx,

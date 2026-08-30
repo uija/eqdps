@@ -298,6 +298,7 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 			str += fmt.Sprintf(format, val)
 			return str
 		}
+		info = addValue(info, "%d slay undead", d.SlayUndead)
 		info = addValue(info, "%d miss", d.Miss)
 		info = addValue(info, "%d dodge", d.Dodge)
 		info = addValue(info, "%d parry", d.Parry)

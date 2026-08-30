@@ -42,6 +42,7 @@ type CombatDamageData struct {
 	Crits        int
 	MinDamage    int
 	MaxDamage    int
+	SlayUndead   int
 	Start        time.Time
 	LastUpdate   time.Time
 }
@@ -76,6 +77,9 @@ func (d *CombatDamageData) AddDamageEvent(e *DamageEvent, active_damage bool) {
 		return
 	}
 	d.Hits++
+	if e.SlayUndead {
+		d.SlayUndead++
+	}
 
 	d.Damage += e.Amount
 	if active_damage {
@@ -147,6 +151,7 @@ type DamageEvent struct {
 	Crit             bool
 	Riposte          bool
 	IsCast           bool
+	SlayUndead       bool
 	Type             LogRowEventType
 	Participation    bool
 }
@@ -172,6 +177,7 @@ func NewDamageEvent(result AttackResult, ts time.Time, source, target, verb, amo
 		Ability:          ability,
 		Crit:             strings.Contains(annotation, "Critical"),
 		Riposte:          strings.Contains(annotation, "Riposte"),
+		SlayUndead:       strings.Contains(annotation, "Slay Undead"),
 		IsCast:           false,
 		Type:             t,
 		Participation:    false,

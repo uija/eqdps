@@ -175,7 +175,7 @@ func (p *ItemsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter: ").Layout)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return ui.MaxedTextField(&p.filter, "", style, gtx)
+					return ui.MaxedTextField(&p.filter, "Filter item list", style, gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Right: unit.Dp(8), Top: unit.Dp(8), Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
