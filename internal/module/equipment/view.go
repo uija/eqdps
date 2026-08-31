@@ -69,17 +69,17 @@ func (m *Module) RenderFilter(style *ui.Style, gtx layout.Context) layout.Dimens
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return m.class1.Layout(style, gtx, unit.Dp(70))
+							return m.class1.Layout(style, gtx, unit.Dp(80))
 						})
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return m.class2.Layout(style, gtx, unit.Dp(70))
+							return m.class2.Layout(style, gtx, unit.Dp(80))
 						})
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return m.class3.Layout(style, gtx, unit.Dp(70))
+							return m.class3.Layout(style, gtx, unit.Dp(80))
 						})
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
