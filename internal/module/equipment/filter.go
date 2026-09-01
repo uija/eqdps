@@ -18,6 +18,7 @@ func (m *Module) PrepareItems() {
 	}
 	classes := []string{""}
 	slots := []string{""}
+	stats := []string{""}
 	m.items = make([]ClickableItems, 0)
 
 	addClasses := func(list []string) {
@@ -36,27 +37,37 @@ func (m *Module) PrepareItems() {
 			}
 		}
 	}
+	addStats := func(list []string) {
+		for _, stat := range list {
+			if stat != "" && !slices.Contains(stats, stat) {
+				stats = append(stats, stat)
+			}
+		}
+	}
 	for storage, s := range m.inv.Storage {
 		for root, r := range s.Slots {
-			cl, sl := m.AppendItem(&r, storage, root)
+			cl, sl, st := m.AppendItem(&r, storage, root)
 			addClasses(cl)
 			addSlots(sl)
+			addStats(st)
 			for item, i := range r.Slots {
 				if r.IsBag {
-					cl, sl = m.AppendItem(&i, storage, root, item)
+					cl, sl, st = m.AppendItem(&i, storage, root, item)
 				} else {
-					cl, sl = m.AppendItem(&i, storage, root, r.Name)
+					cl, sl, st = m.AppendItem(&i, storage, root, r.Name)
 				}
 				addClasses(cl)
 				addSlots(sl)
+				addStats(st)
 				for aug, a := range i.Slots {
 					if i.IsBag {
-						cl, sl = m.AppendItem(&a, storage, root, item, aug)
+						cl, sl, st = m.AppendItem(&a, storage, root, item, aug)
 					} else {
-						cl, sl = m.AppendItem(&a, storage, root, item, i.Name)
+						cl, sl, st = m.AppendItem(&a, storage, root, item, i.Name)
 					}
 					addClasses(cl)
 					addSlots(sl)
+					addStats(st)
 				}
 			}
 		}
@@ -69,6 +80,9 @@ func (m *Module) PrepareItems() {
 	})
 	sort.Slice(slots, func(i, j int) bool {
 		return slots[i] < slots[j]
+	})
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i] < stats[j]
 	})
 	cl1 := m.class1.Value()
 	cl2 := m.class2.Value()
@@ -83,9 +97,13 @@ func (m *Module) PrepareItems() {
 	sl := m.slots.Value()
 	m.slots.SetOptions(slots)
 	m.slots.Select(sl)
+
+	selectedStat := m.stats.Value()
+	m.stats.SetOptions(stats)
+	m.stats.Select(selectedStat)
 }
 
-func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []string) {
+func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []string, []string) {
 	loc := ""
 	for _, name := range path {
 		if loc != "" {
@@ -96,6 +114,9 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 	var id inventory.ItemData
 	if item.Data != nil {
 		id = *item.Data
+		if item.Stats == nil {
+			item.Stats = item.Data.GetStats(item.Level)
+		}
 	} else {
 		id.Name = item.Name
 		id.ID = item.Id
@@ -105,8 +126,12 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 		id.Name = fmt.Sprintf("%s +%d", item.Name, item.Level)
 	}
 	id.Location = loc
+	statNames := make([]string, 0, len(item.Stats))
+	for stat := range item.Stats {
+		statNames = append(statNames, stat)
+	}
 	if m.filter.Text() != "" && !strings.Contains(strings.ToUpper(id.Name), strings.ToUpper(m.filter.Text())) {
-		return id.Classes, id.Slots
+		return id.Classes, id.Slots, statNames
 	}
 	match := func() bool {
 		if m.slots.Value() != "" {
@@ -123,7 +148,12 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 		return true
 	}()
 	if !match {
-		return id.Classes, id.Slots
+		return id.Classes, id.Slots, statNames
+	}
+	if selectedStat := m.stats.Value(); selectedStat != "" {
+		if _, found := item.Stats[selectedStat]; !found {
+			return id.Classes, id.Slots, statNames
+		}
 	}
 
 	classes := m.SelectedClasses()
@@ -150,9 +180,9 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 		return false
 	}()
 	if match {
-		m.items = append(m.items, ClickableItems{Item: id})
+		m.items = append(m.items, ClickableItems{Item: id, Stats: item.Stats})
 	}
-	return id.Classes, id.Slots
+	return id.Classes, id.Slots, statNames
 }
 func (m *Module) SelectedClasses() []string {
 	cl := []string{}

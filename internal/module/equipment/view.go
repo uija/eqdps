@@ -1,6 +1,7 @@
 package equipment
 
 import (
+	"fmt"
 	"strings"
 
 	"gioui.org/layout"
@@ -82,11 +83,11 @@ func (m *Module) RenderLabeledSelect(name string, sel *form.SelectBox, style *ui
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), name).Layout)
+				return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), name).Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return m.class1.Layout(style, gtx, unit.Dp(150))
+				return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return sel.Layout(style, gtx, unit.Dp(150))
 				})
 			}),
 		)
@@ -129,8 +130,41 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 		m.mu.Unlock()
 	}
 	list := material.List(style.Theme, &m.itemsList)
-	return list.Layout(gtx, len(m.items), func(gtx layout.Context, index int) layout.Dimensions {
-		return m.RenderRow(index, style, gtx)
+	return list.Layout(gtx, len(m.items)+1, func(gtx layout.Context, index int) layout.Dimensions {
+		if index == 0 {
+			return m.RenderTableHeader(style, gtx)
+		}
+		return m.RenderRow(index-1, style, gtx)
+	})
+}
+func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
+
+	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+				return ui.IconLink(style, &m.nameSort, ui.Sort, "Name").Layout(gtx)
+			}),
+			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return material.Label(style.Theme, ui.Sp(15), "Class").Layout(gtx)
+				})
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return material.Label(style.Theme, ui.Sp(15), "Slot").Layout(gtx)
+				})
+			}),
+			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+				return material.Label(style.Theme, ui.Sp(15), "Location").Layout(gtx)
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				value := "Stats"
+				if selectedStat := m.stats.Value(); selectedStat != "" {
+					value = selectedStat
+				}
+				return layout.E.Layout(gtx, ui.IconLink(style, &m.statSort, ui.Sort, value).Layout)
+			}),
+		)
 	})
 }
 func (m *Module) RenderRow(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
@@ -148,12 +182,12 @@ func (m *Module) RenderRow(index int, style *ui.Style, gtx layout.Context) layou
 	return ui.ColoredRow(gtx, col, func(gtx layout.Context) layout.Dimensions {
 		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					link := ui.Link(style, &m.items[index].Click, item.Item.Name)
 					link.TextColor = tcol
 					return link.Layout(gtx)
 				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return material.Label(style.Theme, ui.Sp(13), classes).Layout(gtx)
 					})
@@ -163,8 +197,17 @@ func (m *Module) RenderRow(index int, style *ui.Style, gtx layout.Context) layou
 						return material.Label(style.Theme, ui.Sp(13), slots).Layout(gtx)
 					})
 				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return material.Label(style.Theme, ui.Sp(13), item.Item.Location).Layout(gtx)
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					value := ""
+					if selectedStat := m.stats.Value(); selectedStat != "" {
+						if stat, found := item.Stats[selectedStat]; found {
+							value = fmt.Sprintf("%d", stat)
+						}
+					}
+					return layout.E.Layout(gtx, material.Label(style.Theme, ui.Sp(13), value).Layout)
 				}),
 			)
 		})

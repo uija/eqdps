@@ -28,3 +28,30 @@ func TestItemDataGetStatsBlockClampsTier(t *testing.T) {
 		t.Fatalf("GetStatsBlock(20) = %q, want %q", got, "AC: 13")
 	}
 }
+
+func TestItemDataGetStatsReturnsFilterableTierValues(t *testing.T) {
+	item := ItemData{Metadata: map[string]any{
+		"statsblock": "AC: 3<br>HP: +30<br>SV MAGIC: -10<br>DMG: 6<br>Haste: 41%<br>WT: 5.0<br>",
+	}}
+	want := map[string]int{
+		"AC":       5,
+		"HP":       36,
+		"SV_MAGIC": -8,
+		"HASTE":    43,
+	}
+	got := item.GetStats(2)
+	if len(got) != len(want) {
+		t.Fatalf("GetStats(2) = %#v, want %#v", got, want)
+	}
+	for key, value := range want {
+		if got[key] != value {
+			t.Fatalf("GetStats(2)[%q] = %d, want %d", key, got[key], value)
+		}
+	}
+	if _, found := got["DMG"]; found {
+		t.Fatal("GetStats(2) unexpectedly includes DMG")
+	}
+	if _, found := got["WT"]; found {
+		t.Fatal("GetStats(2) unexpectedly includes WT")
+	}
+}

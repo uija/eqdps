@@ -67,14 +67,17 @@ func (m *Module) ImportInventory(path string, datapath string) (*inventory.Inven
 		for ridx, root := range storage.Slots {
 			if d, ok := data[root.Id]; ok {
 				root.Data = &d
+				root.Stats = d.GetStats(root.Level)
 			}
 			for iidx, item := range root.Slots {
 				if d, ok := data[item.Id]; ok {
 					item.Data = &d
+					item.Stats = d.GetStats(item.Level)
 				}
 				for aidx, aug := range item.Slots {
 					if d, ok := data[aug.Id]; ok {
 						aug.Data = &d
+						aug.Stats = d.GetStats(aug.Level)
 					}
 					item.Slots[aidx] = aug
 				}

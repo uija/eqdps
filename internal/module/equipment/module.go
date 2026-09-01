@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"sync/atomic"
 
@@ -19,6 +20,7 @@ import (
 
 type ClickableItems struct {
 	Item  inventory.ItemData
+	Stats map[string]int
 	Click widget.Clickable
 }
 type Module struct {
@@ -31,6 +33,8 @@ type Module struct {
 	inv       *inventory.Inventory
 	items     []ClickableItems
 	itemsList widget.List
+	nameSort  widget.Clickable
+	statSort  widget.Clickable
 
 	hide_worn bool
 
@@ -127,6 +131,23 @@ func (m *Module) Update(gtx layout.Context) {
 		m.filter.SetText("")
 		m.PrepareItems()
 		m.invalidateFunc()
+	}
+	if m.nameSort.Clicked(gtx) {
+		sort.SliceStable(m.items, func(i, j int) bool {
+			return m.items[i].Item.Name < m.items[j].Item.Name
+		})
+	}
+	if m.statSort.Clicked(gtx) {
+		if selectedStat := m.stats.Value(); selectedStat != "" {
+			sort.SliceStable(m.items, func(i, j int) bool {
+				left := m.items[i].Stats[selectedStat]
+				right := m.items[j].Stats[selectedStat]
+				if left == right {
+					return m.items[i].Item.Name < m.items[j].Item.Name
+				}
+				return left > right
+			})
+		}
 	}
 	for idx, item := range m.items {
 		if m.items[idx].Click.Clicked(gtx) {

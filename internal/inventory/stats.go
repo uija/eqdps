@@ -44,6 +44,50 @@ var primaryItemStats = map[string]bool{
 	"SV_POISON": true, "SV_DISEASE": true,
 }
 
+var filterableItemStats = map[string]bool{
+	"AC": true, "HP": true, "MP": true, "END": true,
+	"STR": true, "STA": true, "AGI": true, "DEX": true,
+	"WIS": true, "INT": true, "CHA": true,
+	"SV_MAGIC": true, "SV_FIRE": true, "SV_COLD": true,
+	"SV_POISON": true, "SV_DISEASE": true,
+	"HP_REGEN": true, "HASTE": true,
+}
+
+// GetStats returns the filterable stats at the supplied item level. Stats not
+// present in the catalogue stats block are omitted from the result.
+func (item ItemData) GetStats(level int) map[string]int {
+	statsBlock := cleanWikiText(metadataString(item.Metadata, "statsblock"))
+	if statsBlock == "" {
+		return nil
+	}
+	level = max(0, min(level, 10))
+	result := make(map[string]int)
+	for _, parts := range itemStatRE.FindAllStringSubmatch(statsBlock, -1) {
+		if len(parts) != 6 {
+			continue
+		}
+		key := strings.ToUpper(parts[1])
+		if alias, found := itemStatAliases[key]; found {
+			key = alias
+		}
+		if !filterableItemStats[key] {
+			continue
+		}
+		base, err := strconv.ParseFloat(parts[4], 64)
+		if err != nil {
+			continue
+		}
+		if parts[3] == "-" {
+			base *= -1
+		}
+		result[key] = int(math.Round(tieredItemStat(key, base, level)))
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
 // GetStatsBlock returns the item's catalogue stats as plain text with the
 // EverQuest Legends tier adjustments applied. Level is clamped to 0 through 10.
 func (item ItemData) GetStatsBlock(level int) string {
