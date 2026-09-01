@@ -83,6 +83,7 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 
 	m.Pages = append(m.Pages, NewOverviewPage())
 	m.Pages = append(m.Pages, NewZonesPage())
+	m.Pages = append(m.Pages, NewSessionsPage(invalidFunc))
 	m.Pages = append(m.Pages, NewMobsPage(invalidFunc))
 	m.Pages = append(m.Pages, NewItemsPage(invalidFunc))
 	m.currentPage = m.Pages[0]

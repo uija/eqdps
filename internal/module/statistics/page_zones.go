@@ -43,6 +43,9 @@ func NewZonesPage() *ZonesPage {
 func (p *ZonesPage) Title() string {
 	return "Zones"
 }
+func (p *ZonesPage) GetIcon() *widget.Icon {
+	return ui.StatisticsZones
+}
 func (p *ZonesPage) Clickable() *widget.Clickable {
 	return &p.tabClick
 }

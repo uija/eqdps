@@ -28,6 +28,9 @@ func NewOverviewPage() *OverviewPage {
 func (p *OverviewPage) Title() string {
 	return "Overview"
 }
+func (p *OverviewPage) GetIcon() *widget.Icon {
+	return ui.StatisticsOverview
+}
 func (p *OverviewPage) Clickable() *widget.Clickable {
 	return &p.tabClick
 }

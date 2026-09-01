@@ -50,6 +50,7 @@ func NewItemsPage(invalidate func()) *ItemsPage {
 }
 
 func (p *ItemsPage) Title() string                { return "Items" }
+func (p *ItemsPage) GetIcon() *widget.Icon        { return ui.StatisticsItems }
 func (p *ItemsPage) Clickable() *widget.Clickable { return &p.tabClick }
 func (p *ItemsPage) SetDb(db *sql.DB)             { p.db = db }
 func (p *ItemsPage) Reset() {
@@ -255,19 +256,23 @@ func itemDetails(details *ItemDetails, style *ui.Style, gtx layout.Context) layo
 			itemDetailTextCell(1, "Chance", true, style),
 		)
 	}))
-	for _, drop := range details.Drops {
+	for index, drop := range details.Drops {
 		drop := drop
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				itemDetailTextCell(4, drop.Mob, false, style),
-				itemDetailTextCell(3, drop.Zone, false, style),
-				itemDetailTextCell(1, fmt.Sprintf("%d", drop.Kills), true, style),
-				itemDetailTextCell(1, fmt.Sprintf("%d", drop.Drops), true, style),
-				itemDetailTextCell(1, fmt.Sprintf("%.02f%%", drop.DropChance), true, style),
-			)
+			return statisticsDetailsRow(index, style, gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					itemDetailTextCell(4, drop.Mob, false, style),
+					itemDetailTextCell(3, drop.Zone, false, style),
+					itemDetailTextCell(1, fmt.Sprintf("%d", drop.Kills), true, style),
+					itemDetailTextCell(1, fmt.Sprintf("%d", drop.Drops), true, style),
+					itemDetailTextCell(1, fmt.Sprintf("%.02f%%", drop.DropChance), true, style),
+				)
+			})
 		}))
 	}
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	return statisticsDetailsLayout(style, gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	})
 }
 
 func itemHeaderCell(weight float32, title string, click *widget.Clickable, alignEnd bool, style *ui.Style) layout.FlexChild {

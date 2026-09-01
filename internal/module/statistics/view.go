@@ -58,6 +58,6 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 }
 func (m *Module) RenderTab(p StatsPage, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return ui.RenderLinkAsButton(style, p.Clickable(), ui.ActionVisibility, p.Title())(gtx)
+		return ui.RenderLinkAsButton(style, p.Clickable(), p.GetIcon(), p.Title())(gtx)
 	})
 }

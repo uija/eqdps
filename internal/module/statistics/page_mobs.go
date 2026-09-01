@@ -55,6 +55,7 @@ func NewMobsPage(iv func()) *MobsPage {
 }
 
 func (p *MobsPage) Title() string                { return "Mobs" }
+func (p *MobsPage) GetIcon() *widget.Icon        { return ui.StatisticsMobs }
 func (p *MobsPage) Clickable() *widget.Clickable { return &p.tabClick }
 func (p *MobsPage) SetDb(db *sql.DB)             { p.db = db }
 func (p *MobsPage) Reset() {
@@ -253,22 +254,24 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 				return label.Layout(gtx)
 			})
 		}))
-		for _, z := range details.Zones {
+		for index, z := range details.Zones {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", z.Kills)).Layout(gtx)
+				return statisticsDetailsRow(index, style, gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", z.Kills)).Layout(gtx)
+								})
 							})
-						})
-					}),
-					layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
-						return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return material.Label(style.Theme, ui.Sp(15), z.Name).Layout(gtx)
-						})
-					}),
-				)
+						}),
+						layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return material.Label(style.Theme, ui.Sp(15), z.Name).Layout(gtx)
+							})
+						}),
+					)
+				})
 			}))
 		}
 	}
@@ -280,26 +283,30 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 				return label.Layout(gtx)
 			})
 		}))
-		for _, i := range details.Items {
+		for index, i := range details.Items {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", i.Quantity)).Layout(gtx)
+				return statisticsDetailsRow(index, style, gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", i.Quantity)).Layout(gtx)
+								})
 							})
-						})
-					}),
-					layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
-						return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%s (%.02f%%)", i.Name, i.DropChance)).Layout(gtx)
-						})
-					}),
-				)
+						}),
+						layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%s (%.02f%%)", i.Name, i.DropChance)).Layout(gtx)
+							})
+						}),
+					)
+				})
 			}))
 		}
 	}
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	return statisticsDetailsLayout(style, gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	})
 }
 
 func mobHeaderCell(weight float32, title string, click *widget.Clickable, alignEnd bool, style *ui.Style) layout.FlexChild {

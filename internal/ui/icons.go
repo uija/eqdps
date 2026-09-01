@@ -37,6 +37,12 @@ var Import *widget.Icon
 var Export *widget.Icon
 var Sort *widget.Icon
 
+var StatisticsOverview *widget.Icon
+var StatisticsZones *widget.Icon
+var StatisticsSessions *widget.Icon
+var StatisticsMobs *widget.Icon
+var StatisticsItems *widget.Icon
+
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
 	ActionVisibilityOff = loadIcon(icons.ActionVisibilityOff)
@@ -66,6 +72,12 @@ func Init() {
 	Import = loadIcon(icons.FileFolderOpen)
 	Export = loadIcon(icons.ContentSave)
 	Sort = loadIcon(icons.ContentSort)
+
+	StatisticsOverview = loadIcon(icons.ActionDashboard)
+	StatisticsZones = loadIcon(icons.MapsMap)
+	StatisticsSessions = loadIcon(icons.ActionHistory)
+	StatisticsMobs = loadIcon(icons.ActionPets)
+	StatisticsItems = loadIcon(icons.ActionLoyalty)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)
