@@ -42,16 +42,18 @@ type SessionDetails struct {
 	Deaths []SessionDeathDetails
 }
 
-// GetSessionStatistics returns zone visits lasting at least one minute in
-// which the player landed the killing blow at least once. Kills includes all
-// confirmed kills observed during the visit.
+// GetSessionStatistics returns zone sessions lasting at least one minute in
+// which the player landed the killing blow at least once. Consecutive visits
+// to the same raw zone with no time gap are treated as one session, which
+// covers evacuating and zoning back into the same zone. Kills includes all
+// confirmed kills observed during the session.
 func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 	if db == nil {
 		return nil, errors.New("get session statistics: database is nil")
 	}
 
 	rows, err := db.Query(`
-		WITH visits AS (
+		WITH raw_visits AS (
 			SELECT
 				zone_visits.id,
 				zone_visits.zone_id,
@@ -65,12 +67,39 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 					END
 				) AS ended_at
 			FROM zone_visits
+		), visit_boundaries AS (
+			SELECT
+				raw_visits.*,
+				CASE
+					WHEN zone_id = LAG(zone_id) OVER (ORDER BY id)
+						AND LOWER(raw_zone_name) = LOWER(LAG(raw_zone_name) OVER (ORDER BY id))
+						AND entered_at = LAG(ended_at) OVER (ORDER BY id)
+					THEN 0
+					ELSE 1
+				END AS starts_session
+			FROM raw_visits
+		), numbered_visits AS (
+			SELECT
+				visit_boundaries.*,
+				SUM(starts_session) OVER (
+					ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+				) AS session_number
+			FROM visit_boundaries
+		), visits AS (
+			SELECT
+				MIN(id) AS id,
+				zone_id,
+				MIN(raw_zone_name) AS raw_zone_name,
+				MIN(entered_at) AS entered_at,
+				MAX(ended_at) AS ended_at
+			FROM numbered_visits
+			GROUP BY session_number, zone_id
 		)
 		SELECT
 			visits.id,
 			visits.zone_id,
 			visits.raw_zone_name,
-			visits.entered_at,
+			unixepoch(visits.entered_at),
 			unixepoch(visits.ended_at) - unixepoch(visits.entered_at),
 			(
 				SELECT COUNT(*)
@@ -117,12 +146,13 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 	result := make([]SessionStatistics, 0)
 	for rows.Next() {
 		var value SessionStatistics
+		var enteredAtSeconds int64
 		var durationSeconds int64
 		if err := rows.Scan(
 			&value.VisitID,
 			&value.ZoneID,
 			&value.Zone,
-			&value.EnteredAt,
+			&enteredAtSeconds,
 			&durationSeconds,
 			&value.Kills,
 			&value.ExperienceGained,
@@ -130,6 +160,7 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 		); err != nil {
 			return nil, fmt.Errorf("scan session statistics: %w", err)
 		}
+		value.EnteredAt = time.Unix(enteredAtSeconds, 0).In(time.Local)
 		value.Duration = time.Duration(durationSeconds) * time.Second
 		result = append(result, value)
 	}

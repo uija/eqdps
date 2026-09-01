@@ -36,7 +36,13 @@ func TestGetSessionStatisticsFiltersAndAggregatesVisits(t *testing.T) {
 	sessionInsertID(t, db, `
 		INSERT INTO zone_visits (zone_id, entered_at, left_at, raw_zone_name)
 		VALUES (?, ?, ?, ?)
-	`, zoneID, start, start.Add(10*time.Minute), "Befallen 4 (Refined)")
+	`, zoneID, start, start.Add(4*time.Minute), "Befallen 4 (Refined)")
+	// Re-entering the same zone without a gap represents an evacuation and
+	// must remain part of the same session.
+	sessionInsertID(t, db, `
+		INSERT INTO zone_visits (zone_id, entered_at, left_at, raw_zone_name)
+		VALUES (?, ?, ?, ?)
+	`, zoneID, start.Add(4*time.Minute), start.Add(10*time.Minute), "Befallen 4 (Refined)")
 	killID := sessionInsertID(t, db, `
 		INSERT INTO kills (zone_id, mob_id, killed_at, kill_type)
 		VALUES (?, ?, ?, 'player')
