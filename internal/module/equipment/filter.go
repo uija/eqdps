@@ -21,22 +21,18 @@ func (m *Module) PrepareItems() {
 	m.items = make([]ClickableItems, 0)
 
 	addClasses := func(list []string) {
-		if list != nil {
-			for _, cl := range list {
-				cl = strings.ToUpper(cl)
-				if len(cl) == 3 && cl != "ALL" && !slices.Contains(classes, cl) {
-					classes = append(classes, cl)
-				}
+		for _, cl := range list {
+			cl = strings.ToUpper(cl)
+			if len(cl) == 3 && cl != "ALL" && !slices.Contains(classes, cl) {
+				classes = append(classes, cl)
 			}
 		}
 	}
 	addSlots := func(list []string) {
-		if list != nil {
-			for _, cl := range list {
-				cl = strings.ToUpper(cl)
-				if len(cl) > 0 && cl != "ALL" && !slices.Contains(slots, cl) {
-					slots = append(slots, cl)
-				}
+		for _, cl := range list {
+			cl = strings.ToUpper(cl)
+			if len(cl) > 0 && cl != "ALL" && !slices.Contains(slots, cl) {
+				slots = append(slots, cl)
 			}
 		}
 	}
@@ -114,7 +110,7 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 	}
 	match := func() bool {
 		if m.slots.Value() != "" {
-			if id.Slots == nil || len(id.Slots) == 0 {
+			if len(id.Slots) == 0 {
 				return false
 			}
 			for _, sl := range id.Slots {
@@ -140,7 +136,7 @@ func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []s
 		if len(classes) == 0 {
 			return true
 		}
-		if id.Classes == nil || len(id.Classes) == 0 {
+		if len(id.Classes) == 0 {
 			return false
 		}
 		for _, cl := range id.Classes {

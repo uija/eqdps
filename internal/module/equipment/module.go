@@ -46,6 +46,7 @@ type Module struct {
 	class2              *form.SelectBox
 	class3              *form.SelectBox
 	slots               *form.SelectBox
+	stats               *form.SelectBox
 	exaltation_checkbox widget.Bool
 	hide_exaltations    bool
 
@@ -62,6 +63,7 @@ func NewModule() *Module {
 		class2:         form.NewSelectBox([]string{}, 0),
 		class3:         form.NewSelectBox([]string{}, 0),
 		slots:          form.NewSelectBox([]string{}, 0),
+		stats:          form.NewSelectBox([]string{}, 0),
 	}
 }
 func (m *Module) Init(ctx *module.Context, invFunc func()) error {
@@ -103,7 +105,8 @@ func (m *Module) Update(gtx layout.Context) {
 	m.class2.Update(gtx)
 	m.class3.Update(gtx)
 	m.slots.Update(gtx)
-	if m.class1.Changed() || m.class2.Changed() || m.class3.Changed() || m.slots.Changed() {
+	m.stats.Update(gtx)
+	if m.stats.Changed() || m.class1.Changed() || m.class2.Changed() || m.class3.Changed() || m.slots.Changed() {
 		m.PrepareItems()
 		m.invalidateFunc()
 	}
