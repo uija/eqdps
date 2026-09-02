@@ -28,10 +28,10 @@ func normalizeZoneName(name string) string {
 }
 
 type Module struct {
-	mu   sync.RWMutex
-	ctx  *module.Context
-	list widget.List
-	db   *sql.DB
+	mu       sync.RWMutex
+	ctx      *module.Context
+	helpList widget.List
+	db       *sql.DB
 
 	replay         atomic.Bool
 	importRunning  atomic.Bool
@@ -77,9 +77,10 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 	ctx.RegisterReplayStart(m.OnExternalReplayStart)
 	ctx.RegisterReplayEnd(m.OnExternalReplayEnd)
 	ctx.RegisterLogRow(m.OnExternalLogRow)
+	ctx.AddHelpItem("Statistics", m.LayoutHelp)
 	m.ctx = ctx
 	m.invalidateFunc = invalidFunc
-	m.list.Axis = layout.Vertical
+	m.helpList.Axis = layout.Vertical
 
 	m.Pages = append(m.Pages, NewOverviewPage())
 	m.Pages = append(m.Pages, NewZonesPage())

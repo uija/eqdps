@@ -13,40 +13,28 @@ var dpsHelpSections = []struct {
 	text  string
 }{
 	{
-		text: "The DPS Meter automatically detects fights from your EverQuest logfile and records the damage dealt by everyone involved.\n\nEach fight shows its target, duration and how the fight ended. Active fights continue updating as new damage appears. Completed fights remain available so you can review them afterward.",
+		title: "DPS and SDPS",
+		text: "DPS uses the complete fight duration, including time before you joined the fight.\n\n" +
+			"SDPS starts when you actively participate. It is useful when a fight was already underway before you attacked. SDPS is only shown for your own combatant row and only when it differs meaningfully from DPS.",
 	},
 	{
-		title: "Reading the table",
-		text: "• Combatant — The player, pet or NPC that dealt damage.\n" +
-			"• Damage — Total damage dealt during the fight.\n" +
-			"• DPS — Average damage per second over the full duration of the fight.\n" +
-			"• SDPS — Damage per second from the point at which you actively joined the fight. This can be useful when a fight was already underway before you attacked.\n" +
-			"• Hits — Number of successful damaging attacks.\n" +
-			"• Crits — Number of critical hits.\n" +
-			"• Active — Time between the combatant’s first and last damaging action.\n\n" +
-			"The percentage next to a combatant shows their share of the fight’s total damage. For melee attacks, additional information about misses and hit chance may also be shown.",
+		title: "Percentages and misses",
+		text: "The percentage beside a combatant or damage category is its share of the parent row’s total damage.\n\n" +
+			"Your melee data can also include misses and hit chance. Avoided attacks such as dodges, parries and ripostes count as unsuccessful attempts rather than zero-damage hits.",
 	},
 	{
-		title: "Damage details",
-		text: "Click a combatant to expand their damage breakdown. Damage is divided into:\n\n" +
-			"• Melee — Normal attacks and combat abilities.\n" +
-			"• Spells — Spells actively cast by the player.\n" +
-			"• DoTs — Damage-over-time effects.\n" +
-			"• Procs — Automatically triggered spell effects.\n" +
-			"• Damage Shield — Damage caused by damage shields.\n\n" +
-			"Expand these categories to see individual attacks, spells and abilities, including their total damage, DPS, number of hits, critical hits and active time.\n\nFor proc effects, the details can also show an estimated number of procs per minute.",
-	},
-	{
-		title: "Fight history",
-		text:  "Use the search field to filter the fight list by target name. This is useful when reviewing a long logfile containing many completed fights.\n\nNew fights are added automatically. If you scroll down to inspect an older fight, the list keeps your current position instead of jumping back to the newest entry.",
+		title: "Damage categories",
+		text: "Direct spell damage is listed under Spells only when it can be matched to a spell the character actively cast. Other spell-like damage is treated as a Proc. This prevents automatic effects from being mistaken for deliberate participation.\n\n" +
+			"For proc effects, the details also estimate procs per minute over the fight duration.",
 	},
 	{
 		title: "DPS overlay",
-		text:  "The overlay provides a compact view of the fight that is most relevant to you. During combat, it prefers the active fight in which you most recently participated. When no fight is active, it keeps showing your most recent completed fight.\n\nYou can open or close the overlay from the DPS Meter. Its visibility is remembered when the application is restarted.",
+		text: "During combat, the overlay prefers the active fight in which you participated most recently. When no fight is active, it retains your most recent completed fight. This prevents unrelated nearby combat from immediately replacing your own target.\n\n" +
+			"The overlay also displays active spell timers created by the Events module.",
 	},
 	{
-		title: "Notes",
-		text:  "Damage and fight timing are calculated entirely from messages found in the logfile. Results can differ slightly from the game or another parser when messages are missing, fights overlap, or combat begins before logging starts.",
+		title: "Accuracy",
+		text:  "All results are reconstructed from logfile messages. Missing messages, overlapping fights, delayed damage-over-time effects, or combat that began before logging started can produce small differences from the game or another parser.",
 	},
 }
 

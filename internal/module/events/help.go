@@ -21,61 +21,56 @@ type eventsHelpSection struct {
 
 var eventsHelpSections = []eventsHelpSection{
 	{
-		text: "Events let eqdps watch your EverQuest logfile and alert you when something important happens. An event can display a desktop notification, play a sound, or do both.\n\nEvents only react to new live logfile messages. They do not trigger while an older part of the logfile is being replayed.",
-	},
-	{
-		title: "Event list",
-		text:  "The Events page shows all configured events and their type, notification status and selected sound.\n\nUse the icon beside an event to enable or disable it. A disabled event remains saved but does not produce notifications or sounds.\n\nClick an event’s name to edit or delete it.",
+		title: "When events run",
+		text:  "Events react only to new live logfile messages. They do not trigger while eqdps is replaying older logfile content. Disabling an event keeps its configuration but prevents its notification and sound.",
 	},
 	{
 		title: "Spell events",
-		text: "A Spell event notifies you when a selected spell effect fades.\n\nSelect the class and spell from the available spell catalogue. You can choose whose fade message should be detected:\n\n" +
-			"• Self — Detect the message when the effect fades from you.\n" +
-			"• Others — Detect the message when the effect fades from another player or target.\n" +
-			"• Both — Detect either message.\n\n" +
-			"Spell events use the known fade messages from the spell catalogue, so you do not need to enter the logfile text yourself.",
+		text: "Spell events use fade messages from the included spell catalogue. Self watches for an effect fading from you, Others watches for it fading from another target, and Both accepts either message.\n\n" +
+			"If the server uses a fade message that differs from the catalogue, use a Text or RegExp event instead.",
 	},
 	{
 		title: "Timer events",
-		text:  "A Timer event starts when the logfile reports that you begin casting the selected spell.\n\nEnter the timer duration in seconds. When the timer expires, eqdps displays the configured notification and/or plays the selected sound.\n\nRunning timers are also shown in the DPS overlay when it is open.\n\nTimers use the configured duration rather than checking for an actual fade message. Recasting the same configured spell restarts its timer.",
+		text: "A timer begins when the logfile reports that you start casting the selected spell. Its duration is entered in seconds. Recasting the same configured spell restarts the timer.\n\n" +
+			"Timers do not verify whether the spell landed or faded early. Active timers are also shown in the DPS overlay.",
 	},
 	{
 		title: "Text events",
-		text:  "A Text event triggers when a logfile message contains the configured text. The example below matches any logfile message containing those words.\n\nEnable Full message match if the entire message must match. Timestamps are not part of the message being checked.\n\nText matching is case-sensitive unless Full message match is enabled.",
+		text: "A normal Text event performs a case-sensitive search anywhere in the logfile message. Full message match requires the entire message but ignores letter case. The timestamp at the start of the logfile line is not included.\n\n" +
+			"The example matches every message containing these words:",
 		examples: []eventsHelpExample{
 			{caption: "Example text", text: "Your target resisted"},
 		},
 	},
 	{
 		title: "Regular-expression events",
-		text:  "Regular-expression events provide more flexible matching for users familiar with regular expressions. The example below matches ordinary personal-loot messages.\n\nUse the validation control before saving to check whether the expression is valid. An invalid regular expression cannot trigger an event.\n\nRegular expressions are matched against the logfile message without its timestamp.",
+		text: "Regular expressions are matched against the message without its timestamp. Validate an expression before saving it; an invalid expression cannot trigger.\n\n" +
+			"This example matches ordinary personal-loot messages:",
 		examples: []eventsHelpExample{
 			{caption: "Example regular expression", text: "^You have looted .+ from .+'s corpse\\.$"},
 		},
 	},
 	{
-		title: "Notifications",
-		text:  "The Title is used as the title of the desktop notification.\n\nThe Notification field contains its message. You can use %s as a placeholder for the event title. The examples below show the notification text and its result for an event titled Clarity.\n\nLeave the Notification field empty if the event should only play a sound.\n\nDesktop notifications are displayed by your operating system and may look or behave differently depending on your desktop environment. The persistent-notification option is saved with the event, but notification lifetime is ultimately controlled by the operating system.",
+		title: "Notification text",
+		text: "Use %s in the notification message to insert the event title. For an event titled Clarity, the following input produces the displayed result below. Leave the notification empty when an event should only play a sound.\n\n" +
+			"The persistent-notification setting is saved with the event, but the current notification backend does not support changing notification lifetime.",
 		examples: []eventsHelpExample{
 			{caption: "Notification text", text: "%s faded."},
 			{caption: "Displayed message", text: "Clarity faded."},
 		},
 	},
 	{
-		title: "Sounds",
-		text:  "Select a sound to play when the event triggers. Use the Play button while editing an event to preview it.\n\nThe Notification Volume control at the top of the Events page changes the volume for all event sounds.\n\nLeave the Sound selection empty if the event should only display a notification.",
-	},
-	{
-		title: "Spell icons",
-		text:  "Spell notifications can use the icon belonging to the selected spell. If EverQuest is installed in the expected location, eqdps detects compatible spell-icon sets from the game’s UI folders.\n\nUse Spell Icon Set to choose which available EverQuest UI style should be used for notifications.",
+		title: "Custom sounds and spell icons",
+		text: "MP3 files placed in the eqdps audio directory are offered as user sounds after restarting the application. The volume setting applies to all event sounds.\n\n" +
+			"Spell icons and available icon sets are extracted from the EverQuest installation associated with the open logfile. If that installation cannot be detected, spell notifications may have no icon.",
 	},
 	{
 		title: "Import and export",
-		text:  "Use Export Events to save your event configuration to a JSON file. This is useful for backups, moving events to another computer, or sharing them with another player.\n\nUse Import Events to add events from an exported file. Events whose title already exists are skipped, while new events are added to the current configuration.\n\nImporting does not remove your existing events.",
+		text:  "Import adds events without removing your current configuration. An imported event is skipped when another event already has the same title. Exported files can be used as backups or transferred to another installation.",
 	},
 	{
-		title: "Notes",
-		text:  "Events depend on the exact text written to the EverQuest logfile. A language change, different server message, or modified spell message can prevent an event from matching.\n\nIf an event does not trigger, first verify that it is enabled and that the expected message appears in the logfile.",
+		title: "Troubleshooting",
+		text:  "Event matching depends on the exact text written by EverQuest. If an enabled event does not trigger, compare its expected text with the actual logfile message. Server changes, different client languages and catalogue differences can all change the message.",
 	},
 }
 
