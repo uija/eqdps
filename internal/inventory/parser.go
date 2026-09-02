@@ -17,7 +17,7 @@ type Item struct {
 	IsBag bool
 	Slots map[string]Item
 	Data  *ItemData
-	Stats map[string]int
+	Stats map[string]float64
 }
 type Storage struct {
 	Slots map[string]Item

@@ -20,7 +20,7 @@ import (
 
 type ClickableItems struct {
 	Item  inventory.ItemData
-	Stats map[string]int
+	Stats map[string]float64
 	Click widget.Clickable
 }
 type Module struct {

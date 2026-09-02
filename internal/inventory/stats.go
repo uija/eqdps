@@ -16,6 +16,7 @@ var (
 	wikiTemplateRE  = regexp.MustCompile(`\{\{[^}]+\}\}`)
 	htmlTagRE       = regexp.MustCompile(`<[^>]+>`)
 	itemStatRE      = regexp.MustCompile(`(?i)\b(HP REGEN|SV DISEASE|SV POISON|SV MAGIC|SV COLD|SV FIRE|DAMAGE|MANA|ENDUR|HASTE|WEIGHT|DMG|AC|HP|MP|END|STR|STA|AGI|DEX|WIS|INT|CHA|MAGIC|FIRE|COLD|POISON|DISEASE|WT)\b(:[ \t]*)([+\-]?)(\d+(?:\.\d+)?)([ \t]*%?)`)
+	weaponDelayRE   = regexp.MustCompile(`(?i)\b(?:ATK|ATTACK)[ \t]+DELAY:[ \t]*(\d+(?:\.\d+)?)`)
 )
 
 var itemStatAliases = map[string]string{
@@ -53,15 +54,17 @@ var filterableItemStats = map[string]bool{
 	"HP_REGEN": true, "HASTE": true,
 }
 
-// GetStats returns the filterable stats at the supplied item level. Stats not
-// present in the catalogue stats block are omitted from the result.
-func (item ItemData) GetStats(level int) map[string]int {
+// GetStats returns the filterable stats at the supplied item level. RATIO is
+// level-adjusted weapon damage divided by attack delay. Stats not present in
+// the catalogue stats block are omitted from the result.
+func (item ItemData) GetStats(level int) map[string]float64 {
 	statsBlock := cleanWikiText(metadataString(item.Metadata, "statsblock"))
 	if statsBlock == "" {
 		return nil
 	}
 	level = max(0, min(level, 10))
-	result := make(map[string]int)
+	result := make(map[string]float64)
+	var weaponDamage float64
 	for _, parts := range itemStatRE.FindAllStringSubmatch(statsBlock, -1) {
 		if len(parts) != 6 {
 			continue
@@ -70,9 +73,6 @@ func (item ItemData) GetStats(level int) map[string]int {
 		if alias, found := itemStatAliases[key]; found {
 			key = alias
 		}
-		if !filterableItemStats[key] {
-			continue
-		}
 		base, err := strconv.ParseFloat(parts[4], 64)
 		if err != nil {
 			continue
@@ -80,7 +80,18 @@ func (item ItemData) GetStats(level int) map[string]int {
 		if parts[3] == "-" {
 			base *= -1
 		}
-		result[key] = int(math.Round(tieredItemStat(key, base, level)))
+		value := tieredItemStat(key, base, level)
+		if key == "DMG" {
+			weaponDamage = value
+		}
+		if filterableItemStats[key] {
+			result[key] = math.Round(value)
+		}
+	}
+	if delayParts := weaponDelayRE.FindStringSubmatch(statsBlock); len(delayParts) == 2 && weaponDamage > 0 {
+		if delay, err := strconv.ParseFloat(delayParts[1], 64); err == nil && delay > 0 {
+			result["RATIO"] = weaponDamage / delay
+		}
 	}
 	if len(result) == 0 {
 		return nil

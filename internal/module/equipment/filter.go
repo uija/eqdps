@@ -104,6 +104,9 @@ func (m *Module) PrepareItems() {
 }
 
 func (m *Module) AppendItem(item *inventory.Item, path ...string) ([]string, []string, []string) {
+	if item.Name == "" {
+		return []string{}, []string{}, []string{}
+	}
 	loc := ""
 	for _, name := range path {
 		if loc != "" {

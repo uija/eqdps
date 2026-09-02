@@ -31,13 +31,14 @@ func TestItemDataGetStatsBlockClampsTier(t *testing.T) {
 
 func TestItemDataGetStatsReturnsFilterableTierValues(t *testing.T) {
 	item := ItemData{Metadata: map[string]any{
-		"statsblock": "AC: 3<br>HP: +30<br>SV MAGIC: -10<br>DMG: 6<br>Haste: 41%<br>WT: 5.0<br>",
+		"statsblock": "AC: 3<br>HP: +30<br>SV MAGIC: -10<br>Skill: Piercing  Atk Delay: 22<br>DMG: 6<br>Haste: 41%<br>WT: 5.0<br>",
 	}}
-	want := map[string]int{
+	want := map[string]float64{
 		"AC":       5,
 		"HP":       36,
 		"SV_MAGIC": -8,
 		"HASTE":    43,
+		"RATIO":    float64(7) / 22,
 	}
 	got := item.GetStats(2)
 	if len(got) != len(want) {
@@ -45,7 +46,7 @@ func TestItemDataGetStatsReturnsFilterableTierValues(t *testing.T) {
 	}
 	for key, value := range want {
 		if got[key] != value {
-			t.Fatalf("GetStats(2)[%q] = %d, want %d", key, got[key], value)
+			t.Fatalf("GetStats(2)[%q] = %v, want %v", key, got[key], value)
 		}
 	}
 	if _, found := got["DMG"]; found {

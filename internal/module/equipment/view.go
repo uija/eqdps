@@ -204,7 +204,7 @@ func (m *Module) RenderRow(index int, style *ui.Style, gtx layout.Context) layou
 					value := ""
 					if selectedStat := m.stats.Value(); selectedStat != "" {
 						if stat, found := item.Stats[selectedStat]; found {
-							value = fmt.Sprintf("%d", stat)
+							value = formatEquipmentStat(selectedStat, stat)
 						}
 					}
 					return layout.E.Layout(gtx, material.Label(style.Theme, ui.Sp(13), value).Layout)
@@ -213,6 +213,14 @@ func (m *Module) RenderRow(index int, style *ui.Style, gtx layout.Context) layou
 		})
 	})
 }
+
+func formatEquipmentStat(name string, value float64) string {
+	if name == "RATIO" {
+		return fmt.Sprintf("%.3f", value)
+	}
+	return fmt.Sprintf("%.0f", value)
+}
+
 func ToList(list []string) string {
 	if len(list) == 0 {
 		return ""
