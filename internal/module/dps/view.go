@@ -210,6 +210,9 @@ func (m *Module) GenerateFightCombatantRows(fight *data.Fight, style *ui.Style, 
 		names = append(names, name)
 	}
 	sort.Slice(names, func(i, j int) bool {
+		if fight.Combatants[names[i]].Overall.Damage == fight.Combatants[names[j]].Overall.Damage {
+			return names[i] < names[j]
+		}
 		return fight.Combatants[names[i]].Overall.Damage > fight.Combatants[names[j]].Overall.Damage
 	})
 	for idx, name := range names {
