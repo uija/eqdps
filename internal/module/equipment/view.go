@@ -96,11 +96,11 @@ func (m *Module) RenderLabeledSelect(name string, sel *form.SelectBox, style *ui
 func (m *Module) RenderFilter(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(m.RenderLabeledSelect("Stats", m.stats, style, gtx)),
+			layout.Rigid(m.RenderLabeledSelect("Slot", m.slots, style, gtx)),
 			layout.Rigid(m.RenderLabeledSelect("Class", m.class1, style, gtx)),
 			layout.Rigid(m.RenderLabeledSelect("Class", m.class2, style, gtx)),
 			layout.Rigid(m.RenderLabeledSelect("Class", m.class3, style, gtx)),
-			layout.Rigid(m.RenderLabeledSelect("Slot", m.slots, style, gtx)),
-			layout.Rigid(m.RenderLabeledSelect("Stats", m.stats, style, gtx)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return material.CheckBox(style.Theme, &m.exaltation_checkbox, "Hide Exaltations").Layout(gtx)
 			}),
