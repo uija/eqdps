@@ -22,6 +22,8 @@ import (
 	"github.com/uija/eqdps/internal/view"
 )
 
+const startupRedrawDuration = time.Second
+
 func main() {
 
 	godotenv.Load() // ignore error
@@ -78,6 +80,7 @@ func main() {
 
 var lastMainWidth int
 var lastMainHeight int
+var startupRedrawUntil time.Time
 
 func run(context *module.Context, window *app.Window) error {
 	rootView := view.NewShell(context, func() {
@@ -87,7 +90,6 @@ func run(context *module.Context, window *app.Window) error {
 	})
 
 	var ops op.Ops
-	firstFrame := true
 	for {
 		switch event := window.Event().(type) {
 		case app.DestroyEvent:
@@ -99,11 +101,13 @@ func run(context *module.Context, window *app.Window) error {
 			context.Config.Save()
 			return event.Err
 		case app.FrameEvent:
-			if firstFrame {
-				firstFrame = false
-				time.AfterFunc(100*time.Millisecond, window.Invalidate)
-			}
 			gtx := app.NewContext(&ops, event)
+			if startupRedrawUntil.IsZero() {
+				startupRedrawUntil = event.Now.Add(startupRedrawDuration)
+			}
+			if event.Now.Before(startupRedrawUntil) {
+				gtx.Execute(op.InvalidateCmd{At: event.Now.Add(time.Second / 60)})
+			}
 			lastMainWidth = int(gtx.Metric.PxToDp(gtx.Constraints.Max.X))
 			lastMainHeight = int(gtx.Metric.PxToDp(gtx.Constraints.Max.Y))
 			rootView.Layout(gtx)
