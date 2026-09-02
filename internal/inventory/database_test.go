@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"encoding/json"
 	"slices"
 	"testing"
 )
@@ -40,5 +41,25 @@ func TestMetadataClasses(t *testing.T) {
 				t.Fatalf("metadataClasses() = %v, want %v", got, test.want)
 			}
 		})
+	}
+}
+
+func TestItemDataNormalizesFingerSlotFromMetadata(t *testing.T) {
+	item := itemDataFromMetadata("1", map[string]any{
+		"itemname": "Odd Ring",
+		"slots":    []any{"FINGERS", "NECK"},
+	})
+	if want := []string{"FINGER", "NECK"}; !slices.Equal(item.Slots, want) {
+		t.Fatalf("itemDataFromMetadata().Slots = %v, want %v", item.Slots, want)
+	}
+}
+
+func TestItemDataNormalizesFingerSlotFromJSON(t *testing.T) {
+	var item ItemData
+	if err := json.Unmarshal([]byte(`{"Slots":["FINGERS"]}`), &item); err != nil {
+		t.Fatalf("Unmarshal ItemData: %v", err)
+	}
+	if want := []string{"FINGER"}; !slices.Equal(item.Slots, want) {
+		t.Fatalf("Unmarshal ItemData Slots = %v, want %v", item.Slots, want)
 	}
 }

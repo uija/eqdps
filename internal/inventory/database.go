@@ -33,6 +33,17 @@ type ItemData struct {
 	Location string
 }
 
+func (item *ItemData) UnmarshalJSON(data []byte) error {
+	type plainItemData ItemData
+	var decoded plainItemData
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	decoded.Slots = normalizeItemSlots(decoded.Slots)
+	*item = ItemData(decoded)
+	return nil
+}
+
 type Database struct {
 	db *sql.DB
 }
@@ -247,10 +258,19 @@ func itemDataFromMetadata(id string, metadata map[string]any) ItemData {
 	return ItemData{
 		ID:       id,
 		Name:     metadataString(metadata, "itemname"),
-		Slots:    metadataValues(metadata, "slots", "slot"),
+		Slots:    normalizeItemSlots(metadataValues(metadata, "slots", "slot")),
 		Classes:  metadataClasses(metadata),
 		Metadata: metadata,
 	}
+}
+
+func normalizeItemSlots(slots []string) []string {
+	for index, slot := range slots {
+		if strings.EqualFold(strings.TrimSpace(slot), "FINGERS") {
+			slots[index] = "FINGER"
+		}
+	}
+	return slots
 }
 
 func metadataClasses(metadata map[string]any) []string {
