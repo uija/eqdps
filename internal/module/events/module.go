@@ -35,6 +35,7 @@ type Module struct {
 	replay atomic.Bool
 
 	events_list      widget.List
+	helpList         widget.List
 	add_spell_click  widget.Clickable
 	add_timer_click  widget.Clickable
 	add_text_click   widget.Clickable
@@ -170,12 +171,14 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterUpdate(m.Update)
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
+	ctx.AddHelpItem("Events", m.LayoutHelp)
 	spells, err := spellicon.Load()
 	if err != nil {
 		panic("Uanble to load spells")
 	}
 	m.spells = spells
 	m.events_list.Axis = layout.Vertical
+	m.helpList.Axis = layout.Vertical
 	m.UpdateSpellsAndClasses()
 	m.volume.Value = m.ctx.Config.Volume
 	m.invalidateFunc = invalidate
