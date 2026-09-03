@@ -263,6 +263,7 @@ func (m *Module) UpdateSpellsAndClasses() {
 		m.class_select.SetSelected(0)
 	}
 	cl := m.class_select.Value()
+	eventType := m.formEventType()
 	current_selection := m.spell_select.Value()
 	spells := make([]string, 0)
 	ignore := []string{"Illusion:", "Portal"}
@@ -275,12 +276,28 @@ func (m *Module) UpdateSpellsAndClasses() {
 		return false
 	}
 	for _, spell := range m.spells {
+		if eventType != data.EventTypeTimer && strings.TrimSpace(spell.FadeMessage) == "" {
+			continue
+		}
 		if !isIgnored(spell.Name) && (cl == "ALL" || slices.Contains(spell.Classes, cl)) {
 			spells = append(spells, spell.Name)
 		}
 	}
 	m.spell_select.SetOptions(spells)
 	m.spell_select.Select(current_selection)
+}
+
+func (m *Module) formEventType() data.EventType {
+	if m.create_type != data.EventTypeUndefined {
+		return m.create_type
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.edit_index >= 0 && m.edit_index < len(m.ctx.Config.Events) {
+		return m.ctx.Config.Events[m.edit_index].Type
+	}
+	return data.EventTypeUndefined
 }
 func (m *Module) Update(gtx layout.Context) {
 	m.event_form.Update(gtx)
@@ -290,6 +307,14 @@ func (m *Module) Update(gtx layout.Context) {
 	}
 	if m.spell_select.Changed() {
 		m.title_field.SetText(m.spell_select.Value())
+		if m.spell_select.Value() != "" && ((m.edit_index >= 0 && m.ctx.Config.Events[m.edit_index].Type == data.EventTypeSpell) || m.create_type == data.EventTypeSpell) {
+			m.UpdateTextFields()
+		}
+	}
+	if m.target_select.Changed() {
+		if m.spell_select.Value() != "" && ((m.edit_index >= 0 && m.ctx.Config.Events[m.edit_index].Type == data.EventTypeSpell) || m.create_type == data.EventTypeSpell) {
+			m.UpdateTextFields()
+		}
 	}
 	if m.spell_icon_select.Changed() {
 		m.ctx.Config.SpellIconSet = m.spell_icon_select.Value()
@@ -386,6 +411,18 @@ func (m *Module) Update(gtx layout.Context) {
 		}
 		m.export_running.Store(true)
 		go m.ImportEvents()
+	}
+}
+func (m *Module) UpdateTextFields() {
+	selectedSpell := m.spell_select.Value()
+	for _, spell := range m.spells {
+		if spell.Name == selectedSpell {
+			if m.target_select.Value() == "Self" || m.target_select.Value() == "Both" {
+				m.text_field.SetText(spell.FadeMessage)
+			} else {
+				m.text_field.SetText(spell.FadeMessageOthers)
+			}
+		}
 	}
 }
 func (m *Module) PrepareToCreate(t data.EventType) {

@@ -141,10 +141,7 @@ func readSpells(r io.Reader, fades map[string]string, maxLevel int) ([]spell, er
 			return fmt.Errorf("spells_us.txt line %d has too few fields", lineNumber)
 		}
 
-		fade, ok := fades[fields[spellIDField]]
-		if !ok {
-			return nil
-		}
+		fade := fades[fields[spellIDField]]
 
 		classes := make([]string, 0, len(classNames))
 		for i, className := range classNames {
@@ -177,10 +174,14 @@ func readSpells(r io.Reader, fades map[string]string, maxLevel int) ([]spell, er
 		}
 
 		name := fields[spellNameField]
+		fadeOthers := ""
+		if fade != "" {
+			fadeOthers = fadeMessageOthers(name)
+		}
 		spells = append(spells, spell{
 			Name:              name,
 			FadeMessage:       fade,
-			FadeMessageOthers: fadeMessageOthers(name),
+			FadeMessageOthers: fadeOthers,
 			Classes:           classes,
 			IconID:            iconID,
 		})

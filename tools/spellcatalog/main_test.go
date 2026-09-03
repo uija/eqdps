@@ -53,7 +53,7 @@ func TestFadeMessageOthersEscapesSpellName(t *testing.T) {
 	}
 }
 
-func TestReadSpellsRequiresFadeAndEligibleClass(t *testing.T) {
+func TestReadSpellsRequiresEligibleClass(t *testing.T) {
 	fields := make([]string, requiredSpellFields)
 	fields[spellIDField] = "42"
 	fields[spellNameField] = "Example Spell"
@@ -83,8 +83,11 @@ func TestReadSpellsRequiresFadeAndEligibleClass(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(spells) != 0 {
-		t.Fatalf("got %d spells without a fade message, want 0", len(spells))
+	if len(spells) != 1 {
+		t.Fatalf("got %d spells without a fade message, want 1", len(spells))
+	}
+	if spells[0].FadeMessage != "" || spells[0].FadeMessageOthers != "" {
+		t.Fatalf("spell without fade data has fade messages: %#v", spells[0])
 	}
 }
 

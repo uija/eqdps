@@ -41,12 +41,38 @@ func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 					)
 				}),
 			)
+			helpText := m.GetHelpText()
+			if helpText != "" {
+				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					label := material.Label(style.Theme, ui.Sp(15), helpText)
+					label.Color = style.Palette.Muted
+					return layout.UniformInset(unit.Dp(8)).Layout(gtx, label.Layout)
+				}))
+			}
 			children = append(children, m.GenerateFormFieldRows(style, gtx)...)
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				children...,
 			)
 		})
 	})
+}
+func (m *Module) GetHelpText() string {
+	var t data.EventType = m.create_type
+	if m.edit_index >= 0 {
+		t = m.ctx.Config.Events[m.edit_index].Type
+	}
+	switch t {
+	case data.EventTypeString:
+		return "Text events trigger when a logfile message contains the text you entered.\nEnable full message matching when the complete message must match instead of only a part of it.\nThe timestamp at the beginning of the logfile line is not included in the message."
+	case data.EventTypeRegexp:
+		return "Regular-expression events let you match more flexible logfile messages using a Go regular expression.\nThe expression is checked against the message without the timestamp at the beginning of the logfile line.\nUse Validate to check the expression before saving the event."
+	case data.EventTypeTimer:
+		return "Timers detect you casting the selected spell and start a timer using the duration you set in seconds.\nThe timer is shown in the overlay. After the timer runs out, a notification is triggered.\nYou have to define the duration yourself, because the duration depends on the level of the spell, some AAs and the focus effects you are using."
+	case data.EventTypeSpell:
+		return "Spell events are predefined text events that detect when a spell fades.\nThe available spells and their fade messages are extracted from the EverQuest client data.\nIf a spell is not listed here, it is either missing from the client data or does not have a fade message defined."
+	default:
+		return ""
+	}
 }
 func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []layout.FlexChild {
 	t := m.create_type
@@ -78,6 +104,9 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 		children = append(children, layout.Rigid(m.CheckBoxRow(m.full_message_check, "", "Full message match", style, gtx)))
 	case data.EventTypeRegexp:
 		children = append(children, layout.Rigid(m.TextFieldRow(m.text_field, "RegExp", "", style, gtx)))
+		m.event_form.SetVisible("full", false)
+	case data.EventTypeSpell:
+		children = append(children, layout.Rigid(m.EnhancedTextFieldRow(m.text_field, "Fade message", "", true, style, gtx)))
 		m.event_form.SetVisible("full", false)
 	default:
 		m.event_form.SetVisible("text", false)
@@ -148,6 +177,10 @@ func (m *Module) SelectBoxRow(field *form.SelectBox, title string, style *ui.Sty
 	}
 }
 func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, style *ui.Style, gtx layout.Context) layout.Widget {
+	return m.EnhancedTextFieldRow(field, title, hint, false, style, gtx)
+}
+
+func (m *Module) EnhancedTextFieldRow(field *widget.Editor, title string, hint string, readonly bool, style *ui.Style, gtx layout.Context) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -176,6 +209,13 @@ func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, s
 							}),
 						)
 					} else {
+						if readonly {
+							val := field.Text()
+							if val == "" {
+								val = hint
+							}
+							return layout.UniformInset(unit.Dp(4)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), val).Layout)
+						}
 						return ui.TextField(field, hint, style, gtx)
 					}
 				})
