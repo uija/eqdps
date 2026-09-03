@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Item struct {
@@ -24,6 +25,7 @@ type Storage struct {
 }
 
 type Inventory struct {
+	Created time.Time
 	Storage map[string]Storage
 }
 
@@ -43,6 +45,7 @@ func NormalizeItemName(value string) (string, int) {
 
 func Parse(path string) (Inventory, error) {
 	inventory := Inventory{
+		Created: time.Now(),
 		Storage: make(map[string]Storage),
 	}
 

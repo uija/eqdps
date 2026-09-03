@@ -18,7 +18,6 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderHeader(style, gtx) }),
-					//layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderSearchBar(style, gtx) }),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderFilter(style, gtx) }),
@@ -76,6 +75,15 @@ func (m *Module) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimens
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Equipment").Layout)
+		}),
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			text := ""
+			if m.inv != nil && !m.inv.Created.IsZero() {
+				text = "Exported on " + m.inv.Created.Format("2006-02-01 15:04:05")
+			}
+			return layout.Inset{Top: unit.Dp(6), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.E.Layout(gtx, material.Label(style.Theme, ui.Sp(15), text).Layout)
+			})
 		}),
 	)
 }
