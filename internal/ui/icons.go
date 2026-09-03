@@ -43,6 +43,8 @@ var StatisticsSessions *widget.Icon
 var StatisticsMobs *widget.Icon
 var StatisticsItems *widget.Icon
 
+var Copy *widget.Icon
+
 func Init() {
 	ActionVisibility = loadIcon(icons.ActionVisibility)
 	ActionVisibilityOff = loadIcon(icons.ActionVisibilityOff)
@@ -78,6 +80,8 @@ func Init() {
 	StatisticsSessions = loadIcon(icons.ActionHistory)
 	StatisticsMobs = loadIcon(icons.ActionPets)
 	StatisticsItems = loadIcon(icons.ActionLoyalty)
+
+	Copy = loadIcon(icons.ContentContentCopy)
 }
 func loadIcon(src []byte) *widget.Icon {
 	icon, err := widget.NewIcon(src)
