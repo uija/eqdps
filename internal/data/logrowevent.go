@@ -36,6 +36,7 @@ const (
 	LogRowEventTypeParcelReceived
 	LogRowEventTypeParcelCollected
 	LogRowEventTypeFailedMelee
+	LogRowEventTypeAchievementExport
 )
 
 type LogLandmark struct {

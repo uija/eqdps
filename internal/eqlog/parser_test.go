@@ -55,6 +55,7 @@ func TestParseRowClassifiesSharedEventPatterns(t *testing.T) {
 		{"who", "[50 PAL/DRU/MNK] Wyrmberg (Dwarf) <Guild> ZONE:", data.LogRowEventTypeWho},
 		{"anonymous who", "[ANONYMOUS] Someone", data.LogRowEventTypeAnonymousWho},
 		{"inventory export", "Outputfile Complete: Wyrmberg_rivervale-Inventory.txt", data.LogRowEventTypeInventoryExport},
+		{"achievement export", "Outputfile Complete: Wyrmberg_rivervale-Achievements.txt", data.LogRowEventTypeAchievementExport},
 	}
 
 	parser := NewParser(0)

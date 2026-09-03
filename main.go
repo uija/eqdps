@@ -12,6 +12,7 @@ import (
 	"gioui.org/unit"
 	"github.com/joho/godotenv"
 	"github.com/uija/eqdps/internal/module"
+	"github.com/uija/eqdps/internal/module/ach"
 	"github.com/uija/eqdps/internal/module/dps"
 	"github.com/uija/eqdps/internal/module/eqldb"
 	"github.com/uija/eqdps/internal/module/equipment"
@@ -61,6 +62,7 @@ func main() {
 		context.RegisterModule(statistics.NewModule())
 		context.RegisterModule(equipment.NewModule())
 		context.RegisterModule(macros.NewModule())
+		context.RegisterModule(ach.NewModule())
 		width := max(1100, context.Config.UIConfig.MainWindowWidth)
 		height := max(640, context.Config.UIConfig.MainWindowHeight)
 		window.Option(

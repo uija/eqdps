@@ -54,6 +54,7 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeWho, regexp.MustCompile(`^\s*(?:AFK\s+)?\[([0-9]+) ([A-Z]{3}(?:/[A-Z]{3}){0,2})\]\s+([^(]+?)\s+\(([^)]+)\)(?:\s+<([^>]+)>)?\s+ZONE:`), []string{"ZONE:"}},
 	{data.LogRowEventTypeAnonymousWho, regexp.MustCompile(`^\s*(?:AFK\s+)?\[ANONYMOUS\]\s+(.+?)\s*$`), []string{"[ANONYMOUS]"}},
 	{data.LogRowEventTypeInventoryExport, regexp.MustCompile(`^Outputfile Complete:\s+(.+-Inventory\.txt)\s*$`), []string{"Outputfile Complete:", "-Inventory.txt"}},
+	{data.LogRowEventTypeAchievementExport, regexp.MustCompile(`^Outputfile Complete:\s+(.+-Achievements\.txt)\s*$`), []string{"Outputfile Complete:", "-Achievements.txt"}},
 }
 
 func classify(message string) (data.LogRowEventType, []string, bool) {

@@ -116,7 +116,7 @@ func IconLink(style *Style, click *widget.Clickable, icon *widget.Icon, str stri
 		icon:  icon,
 		Text:  str,
 
-		Size:       14,
+		Size:       15,
 		FontWeight: font.Normal,
 		TextAlign:  text.Start,
 		Padding:    make([]float32, 4),
