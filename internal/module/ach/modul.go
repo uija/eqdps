@@ -151,7 +151,6 @@ func (m *Module) OnLogOpen(characterName string, serverName string, filesize int
 	if m.loading.CompareAndSwap(false, true) {
 		go func() {
 			defer m.loading.Store(false)
-			log.Printf("Trying to load %s", jsonPath)
 			bytes, err := os.ReadFile(jsonPath)
 			if err != nil {
 				if !os.IsNotExist(err) {
@@ -168,7 +167,6 @@ func (m *Module) OnLogOpen(characterName string, serverName string, filesize int
 			m.mu.Lock()
 			m.data = &data
 			m.mu.Unlock()
-			log.Printf("Done!")
 		}()
 	}
 	return true
