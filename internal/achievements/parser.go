@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"gioui.org/widget"
 )
@@ -13,6 +14,7 @@ import (
 // Export is the achievement tree contained in an EverQuest achievement
 // export file.
 type Export struct {
+	Created    time.Time  `json:"time_created"`
 	Categories []Category `json:"categories"`
 }
 
@@ -54,7 +56,7 @@ func Parse(path string) (*Export, error) {
 	}
 	defer file.Close()
 
-	result := &Export{Categories: make([]Category, 0)}
+	result := &Export{Categories: make([]Category, 0), Created: time.Now()}
 	categoryIndex := -1
 	subcategoryIndex := -1
 	achievementIndex := -1
