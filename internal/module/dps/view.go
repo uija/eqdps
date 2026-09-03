@@ -70,31 +70,31 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }
 func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
-		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			icon := ui.CheckBoxOutline
-			if m.ctx.Overlay != nil {
-				icon = ui.CheckBox
-			}
-			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), "DPS Tracker").Layout(gtx)
-				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					link := ui.IconLink(style, &m.overlayClick, icon, "Show Overlay")
-					link.TextAlign = text.End
-					return link.Layout(gtx)
-				}),
-			)
-		})
+	//return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		icon := ui.CheckBoxOutline
+		if m.ctx.Overlay != nil {
+			icon = ui.CheckBox
+		}
+		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				return material.Label(style.Theme, ui.Sp(15), "DPS Tracker").Layout(gtx)
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				link := ui.IconLink(style, &m.overlayClick, icon, "Show Overlay")
+				link.TextAlign = text.End
+				return link.Layout(gtx)
+			}),
+		)
 	})
+	//})
 }
 func (m *Module) RenderFilterRow(style *ui.Style, gtx layout.Context) layout.Dimensions {
 
 	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(7), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(16), "Filter").Layout)
+				return layout.Inset{Top: unit.Dp(7), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(16), "Filter:").Layout)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return ui.MaxedTextField(&m.filterEditor, "Filter combat list", style, gtx)

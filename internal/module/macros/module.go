@@ -39,18 +39,20 @@ type Module struct {
 	config_name string
 	stop        chan struct{}
 
-	overlay_click  widget.Clickable
-	shadow_click   widget.Clickable
-	line_editors   []widget.Clickable
-	selected_index int
+	overlay_click      widget.Clickable
+	shadow_click       widget.Clickable
+	line_copy_click    []widget.Clickable
+	filter_editor      widget.Editor
+	filter_clear_click widget.Clickable
+	selected_index     int
 
 	list widget.List
 }
 
 func NewModule() *Module {
 	m := Module{
-		stop:         make(chan struct{}, 1),
-		line_editors: make([]widget.Clickable, 5),
+		stop:            make(chan struct{}, 1),
+		line_copy_click: make([]widget.Clickable, 5),
 	}
 	return &m
 }
@@ -63,6 +65,7 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterUpdate(m.Update)
 	m.list.Axis = layout.Vertical
 	m.selected_index = -1
+	m.filter_editor.SingleLine = true
 	return nil
 }
 func (m *Module) OpenMainView() {
@@ -74,11 +77,20 @@ func (m *Module) Update(gtx layout.Context) {
 			m.selected_index = idx
 		}
 	}
+	if event, ok := m.filter_editor.Update(gtx); ok {
+		if _, changed := event.(widget.ChangeEvent); changed {
+			m.FilterList()
+		}
+	}
+	if m.filter_clear_click.Clicked(gtx) {
+		m.filter_editor.SetText("")
+		m.FilterList()
+	}
 	if m.overlay_click.Clicked(gtx) || m.shadow_click.Clicked(gtx) {
 		m.selected_index = -1
 	}
 	for i := range 5 {
-		if m.line_editors[i].Clicked(gtx) {
+		if m.line_copy_click[i].Clicked(gtx) {
 			if m.selected_index >= 0 && m.selected_index < len(m.list_macros) {
 				native.CopyTextToClipboard(gtx, m.list_macros[m.selected_index].Rows[i])
 			}
@@ -103,13 +115,33 @@ func (m *Module) FilterList() {
 	}
 	seen := make(map[macroKey]struct{}, len(m.list_macros))
 	filtered := m.list_macros[:0]
+
+	searchText := strings.ToLower(m.filter_editor.Text())
+	isFound := func(mac Macro) bool {
+		if searchText == "" {
+			return true
+		}
+		if strings.Contains(strings.ToLower(mac.Name), searchText) {
+			return true
+		}
+		found := false
+		for i := range 5 {
+			if strings.Contains(strings.ToLower(mac.Rows[i]), searchText) {
+				found = true
+			}
+		}
+		return found
+	}
+
 	for _, macro := range m.list_macros {
 		key := macroKey{Name: macro.Name, Rows: macro.Rows}
 		if _, exists := seen[key]; exists {
 			continue
 		}
 		seen[key] = struct{}{}
-		filtered = append(filtered, macro)
+		if isFound(macro) {
+			filtered = append(filtered, macro)
+		}
 	}
 	m.list_macros = filtered
 }

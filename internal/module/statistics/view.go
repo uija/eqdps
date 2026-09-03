@@ -3,7 +3,6 @@ package statistics
 import (
 	"fmt"
 
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
@@ -31,7 +30,6 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 	return layout.Flex{}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			label := material.Label(style.Theme, ui.Sp(17), "Statistics")
-			label.Font.Weight = font.SemiBold
 			return label.Layout(gtx)
 		}),
 		layout.Flexed(1, material.Label(style.Theme, ui.Sp(15), "").Layout),

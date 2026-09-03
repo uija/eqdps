@@ -40,8 +40,23 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return material.Label(style.Theme, ui.Sp(17), "Macros").Layout(gtx)
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter:").Layout)
+						}),
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return ui.MaxedTextField(&m.filter_editor, "Filter by name or macro content", style, gtx)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Top: unit.Dp(7), Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &m.filter_clear_click, ui.Close, "Clear").Layout)
+						}),
+					)
 				})
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -128,7 +143,7 @@ func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 									if strings.TrimSpace(mac.Rows[r]) == "" {
 										return material.Label(style.Theme, ui.Sp(15), "").Layout(gtx)
 									}
-									return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, ui.IconLink(style, &m.line_editors[r], ui.Copy, "").Layout)
+									return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, ui.IconLink(style, &m.line_copy_click[r], ui.Copy, "").Layout)
 								}),
 							)
 						})
