@@ -94,6 +94,14 @@ type Module struct {
 	edit_runes_click widget.Clickable
 	edit_runes       bool
 
+	inventory_sort_missing_item widget.Clickable
+	inventory_sort_missing_mob  widget.Clickable
+	inventory_sort_exess_item   widget.Clickable
+	inventory_sort_exess_mob    widget.Clickable
+
+	inventory_sort_missing int
+	inventory_sort_exess   int
+
 	invalidFunc func()
 }
 
@@ -464,6 +472,22 @@ func (m *Module) Update(gtx layout.Context) {
 		m.config = EmptyConfig(m.configPath)
 		m.config.Save()
 		m.ctx.RequestReplay(eqlog.Loopback{ByteOffset: m.config.Log.Offset})
+	}
+	if m.inventory_sort_missing_item.Clicked(gtx) {
+		m.inventory_sort_missing = 0
+		m.invalidFunc()
+	}
+	if m.inventory_sort_missing_mob.Clicked(gtx) {
+		m.inventory_sort_missing = 1
+		m.invalidFunc()
+	}
+	if m.inventory_sort_exess_item.Clicked(gtx) {
+		m.inventory_sort_exess = 0
+		m.invalidFunc()
+	}
+	if m.inventory_sort_exess_mob.Clicked(gtx) {
+		m.inventory_sort_exess = 1
+		m.invalidFunc()
 	}
 }
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {

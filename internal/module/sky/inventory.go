@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/ui"
 )
@@ -41,13 +41,24 @@ func (m *Module) InventoryView(style *ui.Style, gtx layout.Context) layout.Dimen
 			}
 		}
 		sort.Slice(container.missing, func(i, j int) bool {
-			if container.missing[i].Hint == container.missing[j].Hint {
+			if m.inventory_sort_missing == 0 {
+
+				if container.missing[i].Hint == container.missing[j].Hint {
+					return container.missing[i].Name < container.missing[j].Name
+				}
+				return container.missing[i].Hint < container.missing[j].Hint
+			} else {
+				if container.missing[i].Name == container.missing[j].Name {
+					return container.missing[i].Hint < container.missing[j].Hint
+				}
 				return container.missing[i].Name < container.missing[j].Name
 			}
-			return container.missing[i].Hint < container.missing[j].Hint
 		})
 		sort.Slice(container.others, func(i, j int) bool {
-			return container.others[i].Name < container.others[j].Name
+			if m.inventory_sort_exess == 0 {
+				return container.others[i].Name < container.others[j].Name
+			}
+			return container.others[i].Hint < container.others[j].Hint
 		})
 		// collect all the itemsa
 		children = append(children,
@@ -71,14 +82,14 @@ func (m *Module) InventoryView(style *ui.Style, gtx layout.Context) layout.Dimen
 }
 func (m *Module) RenderListRow(container *Container, index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if index == 0 {
-		return m.RenderHeader("Missing Items", style, gtx)
+		return m.RenderHeader("Missing Items", &m.inventory_sort_missing_item, &m.inventory_sort_missing_mob, style, gtx)
 	} else if index <= len(container.missing) {
 		idx := index - 1
 		return RenderContainerRow(container.missing, idx, style.Palette.No, style, gtx, func(item *InventoryRow) string {
 			return fmt.Sprintf("%d / %d", item.Have, item.Need)
 		})
 	} else if index == len(container.missing)+1 {
-		return m.RenderHeader("Exess Items", style, gtx)
+		return m.RenderHeader("Exess Items", &m.inventory_sort_exess_item, &m.inventory_sort_exess_mob, style, gtx)
 	} else {
 		idx := index - (len(container.missing) + 2)
 		return RenderContainerRow(container.others, idx, style.Palette.Yes, style, gtx, func(item *InventoryRow) string {
@@ -86,25 +97,24 @@ func (m *Module) RenderListRow(container *Container, index int, style *ui.Style,
 		})
 	}
 }
-func (m *Module) RenderHeader(caption string, style *ui.Style, gtx layout.Context) layout.Dimensions {
+func (m *Module) RenderHeader(caption string, item_click *widget.Clickable, mob_click *widget.Clickable, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-						label := ui.ColoredLabel(style.Theme, 15, style.Palette.Accent, caption)
-						label.Font.Weight = font.SemiBold
-						return label.Layout(gtx)
+						link := ui.IconLink(style, item_click, ui.Sort, caption)
+						link.TextColor = style.Palette.Accent
+						return link.Layout(gtx)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						label := ui.ColoredLabel(style.Theme, 15, style.Palette.Accent, "Inventory")
-						label.Font.Weight = font.SemiBold
 						return label.Layout(gtx)
 					}),
 					layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-						label := ui.ColoredLabel(style.Theme, 15, style.Palette.Accent, "Drops from")
-						label.Font.Weight = font.SemiBold
-						return label.Layout(gtx)
+						link := ui.IconLink(style, mob_click, ui.Sort, "Drops from")
+						link.TextColor = style.Palette.Accent
+						return link.Layout(gtx)
 					}),
 				)
 			})
