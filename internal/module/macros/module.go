@@ -59,17 +59,13 @@ func NewModule() *Module {
 
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.ctx = ctx
-	ctx.AddViewMenuItem("Macros", m.OpenMainView)
-	ctx.AddSidebarItem("Macros", m.OpenMainView)
+	ctx.AddModuleNavigation("Macros", "Macros", "Macros", m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterUpdate(m.Update)
 	m.list.Axis = layout.Vertical
 	m.selected_index = -1
 	m.filter_editor.SingleLine = true
 	return nil
-}
-func (m *Module) OpenMainView() {
-	m.ctx.SetMainView(m.Layout)
 }
 func (m *Module) Update(gtx layout.Context) {
 	for idx := range m.list_macros {

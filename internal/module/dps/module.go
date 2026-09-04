@@ -78,13 +78,11 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	m.columns = append(m.columns, column{title: "Crits", weight: 1})
 	m.columns = append(m.columns, column{title: "Active", weight: 1})
 	m.invalidateFunc = invalidateFunc
-	ctx.AddViewMenuItem("DPS Meter", m.OpenMainView)
+	ctx.AddModuleNavigation("DPS", "DPS Meter", "DPS", m.MainView)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
-	ctx.AddSidebarItem("DPS", m.OpenMainView)
-	ctx.SetMainView(m.MainView)
 	ctx.AddHelpItem("DPS Meter", m.LayoutHelp)
 	ctx.RegisterUpdate(m.Update)
 	m.startOverlay = m.ctx.Config.OpenOverlay
@@ -155,10 +153,6 @@ func (m *Module) publishOverlayFight() {
 			m.ctx.Overlay.Invalidate()
 		}
 	}
-}
-
-func (m *Module) OpenMainView() {
-	m.ctx.SetMainView(m.MainView)
 }
 
 func (m *Module) Shutdown() {

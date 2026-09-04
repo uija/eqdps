@@ -28,6 +28,8 @@ import (
 const HeaderSize = 15
 const RowSize = 14
 
+const MODULE_ID = "PoS"
+
 type InventoryRow struct {
 	Name string
 	Need int
@@ -163,8 +165,7 @@ type ClassStatus struct {
 
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.invalidFunc = invalidate
-	ctx.AddViewMenuItem("Plane of Sky Quest Tracker", m.OpenMainView)
-	ctx.AddSidebarItem("PoS", m.OpenMainView)
+	ctx.AddModuleNavigation(MODULE_ID, "Plane of Sky Quest Tracker", "PoS", m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterReplayStart(m.OnReplayStart)
@@ -370,10 +371,6 @@ func (m *Module) Notify(num int) {
 	m.invalidFunc()
 }
 
-func (m *Module) OpenMainView() {
-	m.ctx.SetMainView(m.Layout)
-}
-
 func (m *Module) Shutdown() {
 	m.stop <- struct{}{}
 }
@@ -433,7 +430,7 @@ func (m *Module) Update(gtx layout.Context) {
 		m.config.Save()
 	}
 	if m.status_click.Clicked(gtx) {
-		m.OpenMainView()
+		m.ctx.ActivateModule(MODULE_ID)
 	}
 	if m.ready_turnin_click.Clicked(gtx) {
 		m.config.HideReady = !m.config.HideReady

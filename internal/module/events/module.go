@@ -163,8 +163,7 @@ func NewModule() *Module {
 
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.ctx = ctx
-	ctx.AddViewMenuItem("Events", m.OpenMainView)
-	ctx.AddSidebarItem("Events", m.OpenMainView)
+	ctx.AddModuleNavigation("Events", "Events", "Events", m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterStatusWidget(m.LayoutStatus)
@@ -241,9 +240,6 @@ func (m *Module) TimerRun() {
 			return
 		}
 	}
-}
-func (m *Module) OpenMainView() {
-	m.ctx.SetMainView(m.Layout)
 }
 func (m *Module) UpdateSpellsAndClasses() {
 	if len(m.class_select.Options()) == 0 {

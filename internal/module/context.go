@@ -40,6 +40,15 @@ type SidebarItem struct {
 	Click  widget.Clickable
 }
 
+type ModuleNavigationItem struct {
+	ID           string
+	ViewLabel    string
+	SidebarLabel string
+	Action       ui.Widget
+	Click        widget.Clickable
+	Active       bool
+}
+
 type UIActionFunc func()
 type LogOpenListener func(characterName string, serverName string, filesize int64, path string) bool
 type LogRowListener func(event *data.LogRowEvent)
@@ -56,9 +65,10 @@ type Context struct {
 	Parser          *eqlog.Parser
 	ParserSession   uint64
 	currentMainView ui.Widget
-	ViewMenuItems   []MenuItem
-	ToolsMenuItems  []MenuItem
-	SideBarItems    []SidebarItem
+	//ViewMenuItems   []MenuItem
+	ToolsMenuItems []MenuItem
+	//SideBarItems    []SidebarItem
+	ModuleNavigationItems []ModuleNavigationItem
 
 	progressHandler ProgressHandler
 
@@ -113,10 +123,10 @@ func NewContext(invalidateFunc func()) *Context {
 	}
 	ui.FontScaling = min(1.4, max(0.5, config.UIConfig.MainWindowFontScale))
 	ctx := &Context{
-		ParserSession:          0,
-		Parser:                 nil,
-		modules:                make([]Module, 0),
-		ViewMenuItems:          make([]MenuItem, 0),
+		ParserSession: 0,
+		Parser:        nil,
+		modules:       make([]Module, 0),
+		//	ViewMenuItems:          make([]MenuItem, 0),
 		progressHandler:        func(title string, current int64, max int64) {},
 		logOpenListener:        make([]LogOpenListener, 0),
 		logRowListener:         make([]LogRowListener, 0),
@@ -126,8 +136,8 @@ func NewContext(invalidateFunc func()) *Context {
 		generalStatusProviders: make([]GeneralStatusFunc, 0),
 		overlayWidgetProvider:  make([]ui.Widget, 0),
 		HelpItems:              make([]HelpItem, 0),
-		SideBarItems:           make([]SidebarItem, 0),
-		updateListener:         make([]UpdateListener, 0),
+		//	SideBarItems:           make([]SidebarItem, 0),
+		updateListener: make([]UpdateListener, 0),
 
 		readyForFollow:  make(chan struct{}, 1),
 		requestedReplay: make(chan eqlog.Loopback, 1),
@@ -363,12 +373,37 @@ func (c *Context) ParserNewLogEvent(row *data.LogRowEvent) {
 		c.invalidateFunc()
 	}
 }
-func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
-	c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})
+func (c *Context) AddModuleNavigation(id string, menu string, sidebar string, action ui.Widget) {
+	mni := ModuleNavigationItem{
+		ID:           id,
+		ViewLabel:    menu,
+		SidebarLabel: sidebar,
+		Action:       action,
+	}
+	if c.currentMainView == nil {
+		c.currentMainView = action
+		mni.Active = true
+	}
+	c.ModuleNavigationItems = append(c.ModuleNavigationItems, mni)
 }
-func (c *Context) AddSidebarItem(name string, action UIActionFunc) {
-	c.SideBarItems = append(c.SideBarItems, SidebarItem{Name: name, Action: action})
+func (c *Context) ActivateModule(id string) {
+	for idx := range c.ModuleNavigationItems {
+		c.ModuleNavigationItems[idx].Active = c.ModuleNavigationItems[idx].ID == id
+		if c.ModuleNavigationItems[idx].Active {
+			c.currentMainView = c.ModuleNavigationItems[idx].Action
+		}
+	}
 }
+
+/*
+	func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
+		c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})
+	}
+
+	func (c *Context) AddSidebarItem(name string, action UIActionFunc) {
+		c.SideBarItems = append(c.SideBarItems, SidebarItem{Name: name, Action: action})
+	}
+*/
 func (c *Context) AddToolsMenuItem(name string, action UIActionFunc) {
 	c.ToolsMenuItems = append(c.ToolsMenuItems, MenuItem{Name: name, Action: action})
 }
@@ -405,7 +440,6 @@ func (c *Context) RegisterModule(m Module) error {
 }
 func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if c.currentMainView != nil {
-		//return material.Label(style.Theme, ui.Sp(14), "Test").Layout(gtx)
 		if c.updateAvailable == nil {
 			return c.currentMainView(style, gtx)
 		} else {

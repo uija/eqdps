@@ -100,8 +100,12 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	result.recentLogs = fileMenu.AddMenu("Recent Logs")
 	fileMenu.AddItem("Quit", closeWindow)
 	viewMenu := result.menuBar.AddMenu("View")
-	for _, entry := range context.ViewMenuItems {
-		viewMenu.AddItem(entry.Name, entry.Action)
+	for _, entry := range context.ModuleNavigationItems {
+		if entry.ViewLabel != "" {
+			viewMenu.AddItem(entry.ViewLabel, func() {
+				context.ActivateModule(entry.ID)
+			})
+		}
 	}
 	toolsMenu := result.menuBar.AddMenu("Tools")
 
@@ -195,20 +199,26 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(Style.Theme, "").Layout)
 						}))
-						for idx, i := range s.context.SideBarItems {
-							children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								link := ui.Link(s.Style, &s.context.SideBarItems[idx].Click, i.Name)
-								link.Size = 16
-								link.FontWeight = font.SemiBold
-								link.TextColor = Style.Palette.Muted
-								link.Padding[ui.PADDING_BOTTOM] = 8
-								link.Padding[ui.PADDING_TOP] = 16
-								link.Padding[ui.PADDING_LEFT] = 16
-								link.Padding[ui.PADDING_RIGHT] = 16
-								return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false, link.Layout)
-								})
-							}))
+						for idx, i := range s.context.ModuleNavigationItems {
+							if i.SidebarLabel != "" {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									link := ui.Link(s.Style, &s.context.ModuleNavigationItems[idx].Click, i.SidebarLabel)
+									link.Size = 16
+									link.FontWeight = font.SemiBold
+									if i.Active {
+										link.TextColor = Style.Palette.Accent
+									} else {
+										link.TextColor = Style.Palette.Muted
+									}
+									link.Padding[ui.PADDING_BOTTOM] = 8
+									link.Padding[ui.PADDING_TOP] = 16
+									link.Padding[ui.PADDING_LEFT] = 16
+									link.Padding[ui.PADDING_RIGHT] = 16
+									return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return link.Layout(gtx)
+									})
+								}))
+							}
 						}
 						children = append(children, layout.Flexed(1, material.Body1(Style.Theme, " ").Layout))
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -263,9 +273,9 @@ func (s *Shell) update(gtx layout.Context) {
 		}
 	default:
 	}
-	for idx := range s.context.SideBarItems {
-		if s.context.SideBarItems[idx].Click.Clicked(gtx) {
-			s.context.SideBarItems[idx].Action()
+	for idx := range s.context.ModuleNavigationItems {
+		if s.context.ModuleNavigationItems[idx].Click.Clicked(gtx) {
+			s.context.ActivateModule(s.context.ModuleNavigationItems[idx].ID)
 		}
 	}
 	if s.settingsClick.Clicked(gtx) {

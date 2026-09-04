@@ -47,8 +47,7 @@ func NewModule() *Module {
 
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.ctx = ctx
-	ctx.AddViewMenuItem("Achievements", m.OpenMainView)
-	ctx.AddSidebarItem("Achiev", m.OpenMainView)
+	ctx.AddModuleNavigation("Achievements", "Achievements", "Achiev", m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterReplayStart(m.OnReplayStart)
@@ -57,9 +56,6 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.list.Axis = layout.Vertical
 	m.filter.SingleLine = true
 	return nil
-}
-func (m *Module) OpenMainView() {
-	m.ctx.SetMainView(m.Layout)
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	if m.replay.Load() {

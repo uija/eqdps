@@ -86,9 +86,7 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterGeneralStatus(m.GeneralStatus)
-	ctx.AddSidebarItem("eqldb", func() {
-		ctx.SetMainView(m.Layout)
-	})
+	ctx.AddModuleNavigation("eqldb", "", "eqldb", m.Layout)
 	m.ctx = ctx
 	m.invalidate = invalidate
 	go m.CheckUploadData()
