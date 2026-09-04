@@ -16,6 +16,7 @@ type SessionStatistics struct {
 	Kills            int64
 	ExperienceGained float64
 	Motes            int64
+	MotesPerHour     float64
 }
 
 type SessionMobDetails struct {
@@ -162,6 +163,7 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 		}
 		value.EnteredAt = time.Unix(enteredAtSeconds, 0).In(time.Local)
 		value.Duration = time.Duration(durationSeconds) * time.Second
+		value.MotesPerHour = float64(value.Motes) / float64(value.Duration.Hours())
 		result = append(result, value)
 	}
 	if err := rows.Err(); err != nil {

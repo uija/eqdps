@@ -36,12 +36,13 @@ type SessionsPage struct {
 	filterClear widget.Clickable
 	loading     atomic.Bool
 
-	zoneClick     widget.Clickable
-	enteredClick  widget.Clickable
-	durationClick widget.Clickable
-	killsClick    widget.Clickable
-	xpClick       widget.Clickable
-	motesClick    widget.Clickable
+	zoneClick         widget.Clickable
+	enteredClick      widget.Clickable
+	durationClick     widget.Clickable
+	killsClick        widget.Clickable
+	xpClick           widget.Clickable
+	motesClick        widget.Clickable
+	motesPerHourClick widget.Clickable
 
 	invalidateFunc func()
 }
@@ -115,6 +116,10 @@ func (p *SessionsPage) Update(gtx layout.Context) {
 		})
 	case p.motesClick.Clicked(gtx):
 		sort.Slice(p.sessions, func(i, j int) bool { return p.sessions[i].Statistic.Motes > p.sessions[j].Statistic.Motes })
+	case p.motesPerHourClick.Clicked(gtx):
+		sort.Slice(p.sessions, func(i, j int) bool {
+			return p.sessions[i].Statistic.MotesPerHour > p.sessions[j].Statistic.MotesPerHour
+		})
 	}
 	for _, session := range p.sessions {
 		if !session.Clickable.Clicked(gtx) {
@@ -195,12 +200,13 @@ func (p *SessionsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 func (p *SessionsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			sessionHeaderCell(4, "Zone", &p.zoneClick, false, style),
+			sessionHeaderCell(5, "Zone", &p.zoneClick, false, style),
 			sessionHeaderCell(2, "Entered", &p.enteredClick, false, style),
 			sessionHeaderCell(2, "Duration", &p.durationClick, true, style),
 			sessionHeaderCell(1, "Kills", &p.killsClick, true, style),
 			sessionHeaderCell(1, "XP", &p.xpClick, true, style),
 			sessionHeaderCell(1, "Motes", &p.motesClick, true, style),
+			sessionHeaderCell(1, "/h", &p.motesPerHourClick, true, style),
 		)
 	})
 }
@@ -213,12 +219,13 @@ func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.
 	return ui.ColoredRow(gtx, color, func(gtx layout.Context) layout.Dimensions {
 		children := []layout.FlexChild{layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				sessionLinkCell(4, session, style),
+				sessionLinkCell(5, session, style),
 				sessionTextCell(2, session.Statistic.EnteredAt.Format("2006-01-02 15:04"), false, style),
 				sessionTextCell(2, session.Statistic.Duration.Round(time.Second).String(), true, style),
 				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.Kills), true, style),
-				sessionTextCell(1, fmt.Sprintf("%.2f%%", session.Statistic.ExperienceGained), true, style),
+				sessionTextCell(1, fmt.Sprintf("%.1f%%", session.Statistic.ExperienceGained), true, style),
 				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.Motes), true, style),
+				sessionTextCell(1, fmt.Sprintf("%.1f", session.Statistic.MotesPerHour), true, style),
 			)
 		})}
 		if session.Details != nil && session.Open {
