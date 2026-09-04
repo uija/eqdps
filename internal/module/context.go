@@ -80,7 +80,8 @@ type Context struct {
 	HelpItems              []HelpItem
 	updateListener         []UpdateListener
 
-	Config *data.Config
+	Config        *data.Config
+	PaletteLoaded bool
 
 	lastLevelUp    data.LogLandmark
 	lastZoneChange data.LogLandmark

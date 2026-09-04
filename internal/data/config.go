@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/uija/eqdps/internal/ui"
 )
 
 type EventType int8
@@ -41,14 +43,15 @@ type EQLDbConfig struct {
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
 type UIConfig struct {
-	MainWindowWidth     int     `json:"main_window_width"`
-	MainWindowHeight    int     `json:"main_window_height"`
-	MainWindowFontScale float32 `json:"main_window_font_scale"`
-	OverlayX            int     `json:"overlay_x"`
-	OverlayY            int     `json:"overlay_y"`
-	OverlayFontScale    float32 `json:"overlay_font_scale"`
-	OverlayOpacity      float32 `json:"overlay_opacity"`
-	OverlayPlaced       bool    `json:"overlay_placed"`
+	MainWindowWidth     int         `json:"main_window_width"`
+	MainWindowHeight    int         `json:"main_window_height"`
+	MainWindowFontScale float32     `json:"main_window_font_scale"`
+	OverlayX            int         `json:"overlay_x"`
+	OverlayY            int         `json:"overlay_y"`
+	OverlayFontScale    float32     `json:"overlay_font_scale"`
+	OverlayOpacity      float32     `json:"overlay_opacity"`
+	OverlayPlaced       bool        `json:"overlay_placed"`
+	Palette             *ui.Palette `json:"palette,omitempty"`
 }
 type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`
@@ -119,7 +122,6 @@ func GetConfig() (*Config, error) {
 	if config.UIConfig.MainWindowFontScale < 0.1 {
 		config.UIConfig.MainWindowFontScale = 1.0
 	}
-
 	return config, nil
 }
 

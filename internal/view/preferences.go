@@ -1,6 +1,8 @@
 package view
 
 import (
+	"image/color"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -8,6 +10,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/colorpicker"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/ui"
@@ -28,13 +31,22 @@ type Preferences struct {
 	allow_eqldb_contribution  widget.Bool
 	sky_parse_inventory       widget.Bool
 
+	color_buttons       []widget.Clickable
+	color_reset_buttons []widget.Clickable
+	picker              colorpicker.State
+	picker_ok           widget.Clickable
+	picker_cancel       widget.Clickable
+
+	color_pick_idx int
+
 	stop chan struct{}
 }
 
 func NewPreferences(ctx *module.Context) *Preferences {
 	p := &Preferences{
-		ctx:  ctx,
-		stop: make(chan struct{}),
+		ctx:            ctx,
+		stop:           make(chan struct{}),
+		color_pick_idx: -1,
 	}
 	p.list.Axis = layout.Vertical
 	p.overlay_font_scale.Value = (ctx.Config.UIConfig.OverlayFontScale - 0.8) / 0.4
@@ -66,27 +78,103 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	return p
 }
 func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return p.RenderHeader(style, gtx) }),
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			list := material.List(style.Theme, &p.list)
-			return list.Layout(
-				gtx,
-				3,
-				func(gtx layout.Context, index int) layout.Dimensions {
-					switch index {
-					case 0:
-						return p.RenderWindowSettings(style, gtx)
-					case 1:
-						return p.RenderUpdatesSettings(style, gtx)
-					case 2:
-						return p.RenderEQLDbSettings(style, gtx)
-					}
-					return layout.Dimensions{}
-				},
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions { return p.RenderHeader(style, gtx) }),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					list := material.List(style.Theme, &p.list)
+					return list.Layout(
+						gtx,
+						4,
+						func(gtx layout.Context, index int) layout.Dimensions {
+							switch index {
+							case 0:
+								return p.RenderWindowSettings(style, gtx)
+							case 1:
+								return p.RenderUpdatesSettings(style, gtx)
+							case 2:
+								return p.RenderEQLDbSettings(style, gtx)
+							case 3:
+								return p.RenderColorSettings(style, gtx)
+							}
+							return layout.Dimensions{}
+						},
+					)
+				}),
 			)
 		}),
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			if p.color_pick_idx >= 0 {
+				return ui.Overlay(gtx, 420, style.Palette.Panel, style.Palette.Border, func(gtx layout.Context) layout.Dimensions {
+					picker := colorpicker.Picker(style.Theme, &p.picker, "Color")
+					return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+
+						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, picker.Layout)
+							}),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+									layout.Flexed(1, ui.IconLink(style, &p.picker_ok, ui.Check, "OK").Layout),
+									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+										return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+											return ui.IconLink(style, &p.picker_cancel, ui.Close, "Cancel").Layout(gtx)
+										})
+									}),
+								)
+							}),
+						)
+					})
+				})
+			}
+			return layout.Dimensions{}
+		}),
 	)
+}
+func (p *Preferences) RenderColorSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	paletteValue := reflect.ValueOf(&style.Palette).Elem()
+	paletteType := paletteValue.Type()
+	if p.color_buttons == nil {
+		p.color_buttons = make([]widget.Clickable, paletteType.NumField())
+		p.color_reset_buttons = make([]widget.Clickable, paletteType.NumField())
+	}
+	children := make([]layout.FlexChild, 0)
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Colors").Layout)
+	}))
+	for i := 0; i < paletteType.NumField(); i++ {
+		fieldType := paletteType.Field(i)
+		fieldValue := paletteValue.Field(i)
+
+		label := fieldType.Tag.Get("label")
+		colorValue := fieldValue.Interface().(color.NRGBA)
+
+		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = min(200, gtx.Constraints.Max.X)
+					return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), label).Layout)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					button := material.Button(style.Theme, &p.color_buttons[i], "          ")
+					button.Background = colorValue
+					button.TextSize = ui.Sp(15)
+					return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.ColoredBorderedRow(gtx, style.Palette.Border, func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(1)).Layout(gtx, button.Layout)
+						})
+					})
+				}),
+				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Left: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.Link(style, &p.color_reset_buttons[i], "Reset").Layout(gtx)
+					})
+				}),
+			)
+		}))
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }
 func (p *Preferences) Update(gtx layout.Context) {
 	if p.overlay_font_scale.Dragging() {
@@ -121,6 +209,49 @@ func (p *Preferences) Update(gtx layout.Context) {
 	if p.sky_parse_inventory.Value != p.ctx.Config.SkyConfig.ParseInventoryData {
 		p.ctx.Config.SkyConfig.ParseInventoryData = p.sky_parse_inventory.Value
 		p.ctx.Config.Save()
+	}
+	if p.picker_cancel.Clicked(gtx) {
+		p.color_pick_idx = -1
+	}
+	if p.picker_ok.Clicked(gtx) {
+		paletteValue := reflect.ValueOf(&Style.Palette).Elem()
+		paletteType := paletteValue.Type()
+		if paletteType.NumField() > p.color_pick_idx {
+			dest := paletteValue.Field(p.color_pick_idx)
+			dest.Set(reflect.ValueOf(p.picker.Color()))
+			Style.Theme.Palette.Bg = Style.Palette.Window
+			Style.Theme.Palette.Fg = Style.Palette.Text
+			p.ctx.Config.UIConfig.Palette = &Style.Palette
+			p.ctx.Config.Save()
+		}
+		p.color_pick_idx = -1
+	}
+	if p.color_buttons != nil {
+		for i := range p.color_buttons {
+			if p.color_buttons[i].Clicked(gtx) {
+				paletteValue := reflect.ValueOf(&Style.Palette).Elem()
+				paletteType := paletteValue.Type()
+				if paletteType.NumField() > i {
+					value := paletteValue.Field(i).Interface().(color.NRGBA)
+					p.color_pick_idx = i
+					p.picker.SetColor(value)
+				}
+			}
+			if p.color_reset_buttons[i].Clicked(gtx) {
+				paletteValue := reflect.ValueOf(&Style.Palette).Elem()
+				defaultValue := reflect.ValueOf(&Style.DefaultPalette).Elem()
+				paletteType := paletteValue.Type()
+				if paletteType.NumField() > i {
+					source := defaultValue.Field(i)
+					dest := paletteValue.Field(i)
+					dest.Set(source)
+					Style.Theme.Palette.Bg = Style.Palette.Window
+					Style.Theme.Palette.Fg = Style.Palette.Text
+					p.ctx.Config.UIConfig.Palette = &Style.Palette
+					p.ctx.Config.Save()
+				}
+			}
+		}
 	}
 }
 func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {

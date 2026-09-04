@@ -28,12 +28,15 @@ var Style = ui.Style{
 		Panel:      color.NRGBA{R: 31, G: 34, B: 37, A: 255},
 		LightPanel: color.NRGBA{R: 41, G: 44, B: 47, A: 255},
 		Shadow:     color.NRGBA{A: 190},
-		Active:     color.NRGBA{R: 109, G: 178, B: 124, A: 255},
-		Inactive:   color.NRGBA{R: 190, G: 155, B: 74, A: 255},
-		Done:       color.NRGBA{R: 120, G: 120, B: 120, A: 255},
+		Accent:     color.NRGBA{R: 190, G: 155, B: 74, A: 255},
 		Border:     color.NRGBA{R: 200, G: 200, B: 200, A: 255},
-		Yes:        color.NRGBA{R: 190, G: 242, B: 199, A: 255},
-		No:         color.NRGBA{R: 242, G: 190, B: 191, A: 255},
+
+		Active:   color.NRGBA{R: 109, G: 178, B: 124, A: 255},
+		Inactive: color.NRGBA{R: 190, G: 155, B: 74, A: 255},
+		Done:     color.NRGBA{R: 120, G: 120, B: 120, A: 255},
+
+		Yes: color.NRGBA{R: 190, G: 242, B: 199, A: 255},
+		No:  color.NRGBA{R: 242, G: 190, B: 191, A: 255},
 
 		Link:        color.NRGBA{R: 225, G: 226, B: 222, A: 255},
 		LinkHover:   color.NRGBA{R: 63, G: 189, B: 224, A: 255},
@@ -75,11 +78,13 @@ type Shell struct {
 // NewShell constructs the root application view.
 func NewShell(context *module.Context, closeWindow func(), invalidate func()) *Shell {
 	ui.Init()
+	Style.DefaultPalette = Style.Palette
+	if context.Config != nil && context.Config.UIConfig.Palette != nil {
+		Style.Palette = *context.Config.UIConfig.Palette
+	}
+
 	Style.Theme.Palette.Bg = Style.Palette.Window
 	Style.Theme.Palette.Fg = Style.Palette.Text
-	Style.Palette.Accent = color.NRGBA{
-		R: 190, G: 155, B: 74, A: 255,
-	}
 
 	result := &Shell{
 		Style:            &Style,
