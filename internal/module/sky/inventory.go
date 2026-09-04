@@ -42,16 +42,15 @@ func (m *Module) InventoryView(style *ui.Style, gtx layout.Context) layout.Dimen
 		}
 		sort.Slice(container.missing, func(i, j int) bool {
 			if m.inventory_sort_missing == 0 {
-
-				if container.missing[i].Hint == container.missing[j].Hint {
-					return container.missing[i].Name < container.missing[j].Name
-				}
-				return container.missing[i].Hint < container.missing[j].Hint
-			} else {
 				if container.missing[i].Name == container.missing[j].Name {
 					return container.missing[i].Hint < container.missing[j].Hint
 				}
 				return container.missing[i].Name < container.missing[j].Name
+			} else {
+				if container.missing[i].Hint == container.missing[j].Hint {
+					return container.missing[i].Name < container.missing[j].Name
+				}
+				return container.missing[i].Hint < container.missing[j].Hint
 			}
 		})
 		sort.Slice(container.others, func(i, j int) bool {
