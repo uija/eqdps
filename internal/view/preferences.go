@@ -2,6 +2,7 @@ package view
 
 import (
 	"image/color"
+	"log"
 	"reflect"
 	"sync/atomic"
 	"time"
@@ -11,8 +12,10 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/colorpicker"
+	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/native"
+	"github.com/uija/eqdps/internal/style"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -36,6 +39,9 @@ type Preferences struct {
 	picker              colorpicker.State
 	picker_ok           widget.Clickable
 	picker_cancel       widget.Clickable
+
+	select_font_click widget.Clickable
+	reset_font_click  widget.Clickable
 
 	color_pick_idx int
 
@@ -86,7 +92,7 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 					list := material.List(style.Theme, &p.list)
 					return list.Layout(
 						gtx,
-						4,
+						5,
 						func(gtx layout.Context, index int) layout.Dimensions {
 							switch index {
 							case 0:
@@ -96,6 +102,8 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 							case 2:
 								return p.RenderEQLDbSettings(style, gtx)
 							case 3:
+								return p.RenderFontSettings(style, gtx)
+							case 4:
 								return p.RenderColorSettings(style, gtx)
 							}
 							return layout.Dimensions{}
@@ -131,6 +139,157 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 			return layout.Dimensions{}
 		}),
 	)
+}
+func (p *Preferences) Update(gtx layout.Context) {
+	if p.overlay_font_scale.Dragging() {
+		p.ctx.Config.UIConfig.OverlayFontScale = 0.8 + (p.overlay_font_scale.Value * 0.4)
+		p.config_changed.Store(true)
+	}
+	if p.overlay_opacity.Dragging() {
+		p.ctx.Config.UIConfig.OverlayOpacity = 0.5 + (p.overlay_opacity.Value * 0.5)
+		p.config_changed.Store(true)
+		if p.ctx.Overlay != nil {
+			p.ctx.Overlay.Send(p.ctx.Config.UIConfig.OverlayOpacity)
+		}
+	}
+	if p.mainwindow_font_scale.Dragging() {
+		val := 0.5 + (p.mainwindow_font_scale.Value * 0.9)
+		p.ctx.Config.UIConfig.MainWindowFontScale = min(1.4, max(val, 0.5))
+		ui.FontScaling = p.ctx.Config.UIConfig.MainWindowFontScale
+		p.config_changed.Store(true)
+	}
+	if p.allow_eqldb_contribution.Value != p.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
+		p.ctx.Config.EQLDbConfig.ContributeKillAndLootData = p.allow_eqldb_contribution.Value
+		p.ctx.Config.Save()
+	}
+	if p.upload_sky_items.Value != p.ctx.Config.EQLDbConfig.UploadSkyData {
+		p.ctx.Config.EQLDbConfig.UploadSkyData = p.upload_sky_items.Value
+		p.ctx.Config.Save()
+	}
+	if p.check_for_updates.Value != p.ctx.Config.CheckForUpdates {
+		p.ctx.Config.CheckForUpdates = p.check_for_updates.Value
+		p.ctx.Config.Save()
+	}
+	if p.sky_parse_inventory.Value != p.ctx.Config.SkyConfig.ParseInventoryData {
+		p.ctx.Config.SkyConfig.ParseInventoryData = p.sky_parse_inventory.Value
+		p.ctx.Config.Save()
+	}
+	if p.picker_cancel.Clicked(gtx) {
+		p.color_pick_idx = -1
+	}
+	if p.picker_ok.Clicked(gtx) {
+		paletteValue := reflect.ValueOf(&style.Style.Palette).Elem()
+		paletteType := paletteValue.Type()
+		if paletteType.NumField() > p.color_pick_idx {
+			dest := paletteValue.Field(p.color_pick_idx)
+			dest.Set(reflect.ValueOf(p.picker.Color()))
+			style.Style.Theme.Palette.Bg = style.Style.Palette.Window
+			style.Style.Theme.Palette.Fg = style.Style.Palette.Text
+			p.ctx.Config.UIConfig.Palette = &style.Style.Palette
+			p.ctx.Config.Save()
+		}
+		p.color_pick_idx = -1
+	}
+	if p.color_buttons != nil {
+		for i := range p.color_buttons {
+			if p.color_buttons[i].Clicked(gtx) {
+				paletteValue := reflect.ValueOf(&style.Style.Palette).Elem()
+				paletteType := paletteValue.Type()
+				if paletteType.NumField() > i {
+					value := paletteValue.Field(i).Interface().(color.NRGBA)
+					p.color_pick_idx = i
+					p.picker.SetColor(value)
+				}
+			}
+			if p.color_reset_buttons[i].Clicked(gtx) {
+				paletteValue := reflect.ValueOf(&style.Style.Palette).Elem()
+				defaultValue := reflect.ValueOf(&style.Style.DefaultPalette).Elem()
+				paletteType := paletteValue.Type()
+				if paletteType.NumField() > i {
+					source := defaultValue.Field(i)
+					dest := paletteValue.Field(i)
+					dest.Set(source)
+					style.Style.Theme.Palette.Bg = style.Style.Palette.Window
+					style.Style.Theme.Palette.Fg = style.Style.Palette.Text
+					p.ctx.Config.UIConfig.Palette = &style.Style.Palette
+					p.ctx.Config.Save()
+				}
+			}
+		}
+	}
+	if p.select_font_click.Clicked(gtx) {
+		go func() {
+			path, err := zenity.SelectFile(
+				zenity.Title("Open Font"),
+				zenity.FileFilters{
+					{
+						Name:     "Truetype Font",
+						Patterns: []string{"*.ttf", "*.otf"},
+					},
+				},
+			)
+			if err != nil {
+				return
+			}
+			if err := style.Style.LoadFont(path); err != nil {
+				log.Printf("Unable to load font. %v", err)
+				return
+			}
+			p.ctx.Config.UIConfig.FontPath = path
+		}()
+	}
+	if p.reset_font_click.Clicked(gtx) {
+		p.ctx.Config.UIConfig.FontPath = ""
+		style.Style.ResetFont()
+	}
+}
+func (p *Preferences) RenderFontSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Font").Layout)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := material.Label(style.Theme, ui.Sp(15), "Selecting custom fonts can break the layout of the app, as fonts have completely different dimensions.")
+					label.Color = style.Palette.Muted
+					return label.Layout(gtx)
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "User font:").Layout)
+						}),
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							children := make([]layout.FlexChild, 0)
+							if p.ctx.Config.UIConfig.FontPath == "" {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									label := material.Label(style.Theme, ui.Sp(15), "No font selected.")
+									label.Color = style.Palette.Muted
+									return label.Layout(gtx)
+								}))
+							} else {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									label := material.Label(style.Theme, ui.Sp(15), p.ctx.Config.UIConfig.FontPath)
+									label.Color = style.Palette.Muted
+									return label.Layout(gtx)
+								}))
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &p.reset_font_click, ui.Close, "Reset").Layout)
+								}))
+							}
+							children = append(children, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &p.select_font_click, ui.Open, "Select").Layout)
+							}))
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
+						}),
+					)
+				})
+			}),
+		)
+	})
 }
 func (p *Preferences) RenderColorSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	paletteValue := reflect.ValueOf(&style.Palette).Elem()
@@ -174,85 +333,9 @@ func (p *Preferences) RenderColorSettings(style *ui.Style, gtx layout.Context) l
 			)
 		}))
 	}
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
-}
-func (p *Preferences) Update(gtx layout.Context) {
-	if p.overlay_font_scale.Dragging() {
-		p.ctx.Config.UIConfig.OverlayFontScale = 0.8 + (p.overlay_font_scale.Value * 0.4)
-		p.config_changed.Store(true)
-	}
-	if p.overlay_opacity.Dragging() {
-		p.ctx.Config.UIConfig.OverlayOpacity = 0.5 + (p.overlay_opacity.Value * 0.5)
-		p.config_changed.Store(true)
-		if p.ctx.Overlay != nil {
-			p.ctx.Overlay.Send(p.ctx.Config.UIConfig.OverlayOpacity)
-		}
-	}
-	if p.mainwindow_font_scale.Dragging() {
-		val := 0.5 + (p.mainwindow_font_scale.Value * 0.9)
-		p.ctx.Config.UIConfig.MainWindowFontScale = min(1.4, max(val, 0.5))
-		ui.FontScaling = p.ctx.Config.UIConfig.MainWindowFontScale
-		p.config_changed.Store(true)
-	}
-	if p.allow_eqldb_contribution.Value != p.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
-		p.ctx.Config.EQLDbConfig.ContributeKillAndLootData = p.allow_eqldb_contribution.Value
-		p.ctx.Config.Save()
-	}
-	if p.upload_sky_items.Value != p.ctx.Config.EQLDbConfig.UploadSkyData {
-		p.ctx.Config.EQLDbConfig.UploadSkyData = p.upload_sky_items.Value
-		p.ctx.Config.Save()
-	}
-	if p.check_for_updates.Value != p.ctx.Config.CheckForUpdates {
-		p.ctx.Config.CheckForUpdates = p.check_for_updates.Value
-		p.ctx.Config.Save()
-	}
-	if p.sky_parse_inventory.Value != p.ctx.Config.SkyConfig.ParseInventoryData {
-		p.ctx.Config.SkyConfig.ParseInventoryData = p.sky_parse_inventory.Value
-		p.ctx.Config.Save()
-	}
-	if p.picker_cancel.Clicked(gtx) {
-		p.color_pick_idx = -1
-	}
-	if p.picker_ok.Clicked(gtx) {
-		paletteValue := reflect.ValueOf(&Style.Palette).Elem()
-		paletteType := paletteValue.Type()
-		if paletteType.NumField() > p.color_pick_idx {
-			dest := paletteValue.Field(p.color_pick_idx)
-			dest.Set(reflect.ValueOf(p.picker.Color()))
-			Style.Theme.Palette.Bg = Style.Palette.Window
-			Style.Theme.Palette.Fg = Style.Palette.Text
-			p.ctx.Config.UIConfig.Palette = &Style.Palette
-			p.ctx.Config.Save()
-		}
-		p.color_pick_idx = -1
-	}
-	if p.color_buttons != nil {
-		for i := range p.color_buttons {
-			if p.color_buttons[i].Clicked(gtx) {
-				paletteValue := reflect.ValueOf(&Style.Palette).Elem()
-				paletteType := paletteValue.Type()
-				if paletteType.NumField() > i {
-					value := paletteValue.Field(i).Interface().(color.NRGBA)
-					p.color_pick_idx = i
-					p.picker.SetColor(value)
-				}
-			}
-			if p.color_reset_buttons[i].Clicked(gtx) {
-				paletteValue := reflect.ValueOf(&Style.Palette).Elem()
-				defaultValue := reflect.ValueOf(&Style.DefaultPalette).Elem()
-				paletteType := paletteValue.Type()
-				if paletteType.NumField() > i {
-					source := defaultValue.Field(i)
-					dest := paletteValue.Field(i)
-					dest.Set(source)
-					Style.Theme.Palette.Bg = Style.Palette.Window
-					Style.Theme.Palette.Fg = Style.Palette.Text
-					p.ctx.Config.UIConfig.Palette = &Style.Palette
-					p.ctx.Config.Save()
-				}
-			}
-		}
-	}
+	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	})
 }
 func (p *Preferences) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, material.Label(style.Theme, ui.Sp(16), "Preferences").Layout)

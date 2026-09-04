@@ -10,7 +10,7 @@ import (
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/overlay"
-	"github.com/uija/eqdps/internal/view"
+	"github.com/uija/eqdps/internal/style"
 )
 
 var categories = []string{}
@@ -237,7 +237,7 @@ func (m *Module) OpenOverlay() {
 	if m.ctx.Overlay != nil {
 		return
 	}
-	m.ctx.Overlay = overlay.NewOverlay(&view.Style, m.ctx.Config)
+	m.ctx.Overlay = overlay.NewOverlay(&style.Style, m.ctx.Config)
 	go m.ctx.Overlay.Run(func() {
 		m.overlayClosed <- struct{}{}
 	})

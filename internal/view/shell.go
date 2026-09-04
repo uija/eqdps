@@ -1,7 +1,6 @@
 package view
 
 import (
-	"image/color"
 	"log"
 	"path/filepath"
 
@@ -13,36 +12,10 @@ import (
 	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
+	"github.com/uija/eqdps/internal/style"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/ui/menu"
 )
-
-var Style = ui.Style{
-	Theme: material.NewTheme(),
-	Palette: ui.Palette{
-		Window:     color.NRGBA{R: 18, G: 20, B: 22, A: 255},
-		Chrome:     color.NRGBA{R: 27, G: 30, B: 33, A: 255},
-		Text:       color.NRGBA{R: 225, G: 226, B: 222, A: 255},
-		Muted:      color.NRGBA{R: 150, G: 154, B: 151, A: 255},
-		Hover:      color.NRGBA{R: 42, G: 46, B: 50, A: 255},
-		Panel:      color.NRGBA{R: 31, G: 34, B: 37, A: 255},
-		LightPanel: color.NRGBA{R: 41, G: 44, B: 47, A: 255},
-		Shadow:     color.NRGBA{A: 190},
-		Accent:     color.NRGBA{R: 190, G: 155, B: 74, A: 255},
-		Border:     color.NRGBA{R: 200, G: 200, B: 200, A: 255},
-
-		Active:   color.NRGBA{R: 109, G: 178, B: 124, A: 255},
-		Inactive: color.NRGBA{R: 190, G: 155, B: 74, A: 255},
-		Done:     color.NRGBA{R: 120, G: 120, B: 120, A: 255},
-
-		Yes: color.NRGBA{R: 190, G: 242, B: 199, A: 255},
-		No:  color.NRGBA{R: 242, G: 190, B: 191, A: 255},
-
-		Link:        color.NRGBA{R: 225, G: 226, B: 222, A: 255},
-		LinkHover:   color.NRGBA{R: 63, G: 189, B: 224, A: 255},
-		LinkClicked: color.NRGBA{R: 149, G: 123, B: 189, A: 255},
-	},
-}
 
 type fileResult struct {
 	Path  string
@@ -78,19 +51,28 @@ type Shell struct {
 // NewShell constructs the root application view.
 func NewShell(context *module.Context, closeWindow func(), invalidate func()) *Shell {
 	ui.Init()
-	Style.DefaultPalette = Style.Palette
+
+	style.Style.OriginalShaper = style.Style.Theme.Shaper
+	style.Style.OriginalFace = style.Style.Theme.Face
+	style.Style.DefaultPalette = style.Style.Palette
 	if context.Config != nil && context.Config.UIConfig.Palette != nil {
-		Style.Palette = *context.Config.UIConfig.Palette
+		style.Style.Palette = *context.Config.UIConfig.Palette
 	}
 
-	Style.Theme.Palette.Bg = Style.Palette.Window
-	Style.Theme.Palette.Fg = Style.Palette.Text
+	style.Style.Theme.Palette.Bg = style.Style.Palette.Window
+	style.Style.Theme.Palette.Fg = style.Style.Palette.Text
+
+	if context.Config.UIConfig.FontPath != "" {
+		if err := style.Style.LoadFont(context.Config.UIConfig.FontPath); err != nil {
+			log.Printf("Unable to load userfont. %v", err)
+		}
+	}
 
 	result := &Shell{
-		Style:            &Style,
+		Style:            &style.Style,
 		status:           "Ready",
-		help:             newHelpView(&Style, context),
-		selectHistory:    NewhistorySelection(&Style, context.RequestReplay),
+		help:             newHelpView(&style.Style, context),
+		selectHistory:    NewhistorySelection(&style.Style, context.RequestReplay),
 		preferences:      NewPreferences(context),
 		context:          context,
 		invalidateFunc:   invalidate,
@@ -99,7 +81,7 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	}
 	context.RegisterProgressHandler(result.OnProgress)
 	context.RegisterLogOpen(result.OnLogOpen)
-	result.menuBar = menu.NewBar(&Style, "EVERQUEST LEGENDS")
+	result.menuBar = menu.NewBar(&style.Style, "EVERQUEST LEGENDS")
 	fileMenu := result.menuBar.AddMenu("File")
 	fileMenu.AddItem("Open Log", result.OpenLogfile)
 	result.recentLogs = fileMenu.AddMenu("Recent Logs")
@@ -202,7 +184,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 					func(gtx layout.Context) layout.Dimensions {
 						children := make([]layout.FlexChild, 0)
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(Style.Theme, "").Layout)
+							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(style.Style.Theme, "").Layout)
 						}))
 						for idx, i := range s.context.ModuleNavigationItems {
 							if i.SidebarLabel != "" {
@@ -211,9 +193,9 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 									link.Size = 16
 									link.FontWeight = font.SemiBold
 									if i.Active {
-										link.TextColor = Style.Palette.Accent
+										link.TextColor = style.Style.Palette.Accent
 									} else {
-										link.TextColor = Style.Palette.Muted
+										link.TextColor = style.Style.Palette.Muted
 									}
 									link.Padding[ui.PADDING_BOTTOM] = 8
 									link.Padding[ui.PADDING_TOP] = 16
@@ -225,24 +207,24 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 								}))
 							}
 						}
-						children = append(children, layout.Flexed(1, material.Body1(Style.Theme, " ").Layout))
+						children = append(children, layout.Flexed(1, material.Body1(style.Style.Theme, " ").Layout))
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							link := ui.Link(s.Style, &s.settingsClick, "PREF")
 							link.Size = 16
 							link.FontWeight = font.SemiBold
-							link.TextColor = Style.Palette.Muted
+							link.TextColor = style.Style.Palette.Muted
 							link.Padding[ui.PADDING_BOTTOM] = 8
 							link.Padding[ui.PADDING_TOP] = 16
 							link.Padding[ui.PADDING_LEFT] = 16
 							link.Padding[ui.PADDING_RIGHT] = 16
 							return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredAccentedRow(gtx, Style.Palette.Panel, Style.Palette.Accent, false, link.Layout)
+								return ui.ColoredAccentedRow(gtx, style.Style.Palette.Panel, style.Style.Palette.Accent, false, link.Layout)
 							})
 						}))
 
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredRow(gtx, Style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+								return ui.ColoredRow(gtx, style.Style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 									return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 										children...,
 									)

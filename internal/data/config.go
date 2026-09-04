@@ -43,14 +43,15 @@ type EQLDbConfig struct {
 	AuthorizationTime         time.Time `json:"authorization_time"`
 }
 type UIConfig struct {
-	MainWindowWidth     int         `json:"main_window_width"`
-	MainWindowHeight    int         `json:"main_window_height"`
-	MainWindowFontScale float32     `json:"main_window_font_scale"`
-	OverlayX            int         `json:"overlay_x"`
-	OverlayY            int         `json:"overlay_y"`
-	OverlayFontScale    float32     `json:"overlay_font_scale"`
-	OverlayOpacity      float32     `json:"overlay_opacity"`
-	OverlayPlaced       bool        `json:"overlay_placed"`
+	MainWindowWidth     int     `json:"main_window_width"`
+	MainWindowHeight    int     `json:"main_window_height"`
+	MainWindowFontScale float32 `json:"main_window_font_scale"`
+	OverlayX            int     `json:"overlay_x"`
+	OverlayY            int     `json:"overlay_y"`
+	OverlayFontScale    float32 `json:"overlay_font_scale"`
+	OverlayOpacity      float32 `json:"overlay_opacity"`
+	OverlayPlaced       bool    `json:"overlay_placed"`
+	FontPath            string
 	Palette             *ui.Palette `json:"palette,omitempty"`
 }
 type SkyConfig struct {

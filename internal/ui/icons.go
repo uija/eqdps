@@ -25,6 +25,7 @@ var Clock *widget.Icon
 var Text *widget.Icon
 var RegExp *widget.Icon
 
+var Open *widget.Icon
 var Close *widget.Icon
 var Check *widget.Icon
 
@@ -65,6 +66,7 @@ func Init() {
 	Clock = loadIcon(icons.ImageTimer10)
 	Text = loadIcon(icons.EditorTextFields)
 	RegExp = loadIcon(icons.ActionSearch)
+	Open = loadIcon(icons.FileFolderOpen)
 	Close = loadIcon(icons.NavigationClose)
 	Check = loadIcon(icons.NavigationCheck)
 	Exclamation = loadIcon(icons.NotificationPriorityHigh)
