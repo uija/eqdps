@@ -61,13 +61,11 @@ type ProgressHandler func(title string, current int64, max int64)
 type UpdateListener func(layout.Context)
 
 type Context struct {
-	modules         []Module
-	Parser          *eqlog.Parser
-	ParserSession   uint64
-	currentMainView ui.Widget
-	//ViewMenuItems   []MenuItem
-	ToolsMenuItems []MenuItem
-	//SideBarItems    []SidebarItem
+	modules               []Module
+	Parser                *eqlog.Parser
+	ParserSession         uint64
+	currentMainView       ui.Widget
+	ToolsMenuItems        []MenuItem
 	ModuleNavigationItems []ModuleNavigationItem
 
 	progressHandler ProgressHandler
@@ -123,10 +121,9 @@ func NewContext(invalidateFunc func()) *Context {
 	}
 	ui.FontScaling = min(1.4, max(0.5, config.UIConfig.MainWindowFontScale))
 	ctx := &Context{
-		ParserSession: 0,
-		Parser:        nil,
-		modules:       make([]Module, 0),
-		//	ViewMenuItems:          make([]MenuItem, 0),
+		ParserSession:          0,
+		Parser:                 nil,
+		modules:                make([]Module, 0),
 		progressHandler:        func(title string, current int64, max int64) {},
 		logOpenListener:        make([]LogOpenListener, 0),
 		logRowListener:         make([]LogRowListener, 0),
@@ -136,8 +133,7 @@ func NewContext(invalidateFunc func()) *Context {
 		generalStatusProviders: make([]GeneralStatusFunc, 0),
 		overlayWidgetProvider:  make([]ui.Widget, 0),
 		HelpItems:              make([]HelpItem, 0),
-		//	SideBarItems:           make([]SidebarItem, 0),
-		updateListener: make([]UpdateListener, 0),
+		updateListener:         make([]UpdateListener, 0),
 
 		readyForFollow:  make(chan struct{}, 1),
 		requestedReplay: make(chan eqlog.Loopback, 1),
@@ -267,7 +263,6 @@ func (c *Context) runFollow() {
 }
 func (c *Context) runReplay() {
 	c.isReplay.Store(true)
-	//started := time.Now()
 	for _, f := range c.replayStartListener {
 		f()
 	}
@@ -277,7 +272,6 @@ func (c *Context) runReplay() {
 	for _, f := range c.replayEndListener {
 		f()
 	}
-	//log.Printf("Replay took: %v", time.Since(started))
 	c.isReplay.Store(false)
 	c.readyForFollow <- struct{}{}
 }
@@ -294,7 +288,6 @@ func (c *Context) Update(gtx layout.Context) {
 		if err != nil {
 			return
 		}
-		//exp := regexp.MustCompile(`^(.*)/eqlog_(.*)_(.*).txt$`)
 		exp := regexp.MustCompile(`^eqlog_([^_]+)_([^_]+)\.txt$`)
 		follow := true
 		filename := filepath.Base(c.parserPath)
@@ -395,15 +388,6 @@ func (c *Context) ActivateModule(id string) {
 	}
 }
 
-/*
-	func (c *Context) AddViewMenuItem(name string, action UIActionFunc) {
-		c.ViewMenuItems = append(c.ViewMenuItems, MenuItem{Name: name, Action: action})
-	}
-
-	func (c *Context) AddSidebarItem(name string, action UIActionFunc) {
-		c.SideBarItems = append(c.SideBarItems, SidebarItem{Name: name, Action: action})
-	}
-*/
 func (c *Context) AddToolsMenuItem(name string, action UIActionFunc) {
 	c.ToolsMenuItems = append(c.ToolsMenuItems, MenuItem{Name: name, Action: action})
 }

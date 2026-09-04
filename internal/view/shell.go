@@ -293,11 +293,6 @@ func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return s.context.Layout(s.Style, gtx)
 	})
-	/*
-		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return s.context.Layout(s.Style, gtx)
-		})
-	*/
 }
 
 func (s *Shell) layoutStatus(gtx layout.Context) layout.Dimensions {
