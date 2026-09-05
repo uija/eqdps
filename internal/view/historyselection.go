@@ -86,7 +86,7 @@ func (h *historySelection) Layout(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{
 			Axis: layout.Vertical,
 		}.Layout(gtx,
-			layout.Rigid(ui.TitleBar(gtx, *h.style, "Select Combat History Timeframe")),
+			layout.Rigid(ui.TitleBar(gtx, h.style, "Select Combat History Timeframe")),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(20)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					items := make([]layout.FlexChild, 0, len(h.entries))

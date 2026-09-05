@@ -46,7 +46,8 @@ func FillOverlay(gtx layout.Context, background color.NRGBA, border color.NRGBA)
 		}.Op(),
 	)
 }
-func TitleBar(gtx layout.Context, style Style, text string) func(gtx layout.Context) layout.Dimensions {
+
+func TitleBar(gtx layout.Context, style *Style, text string) func(gtx layout.Context) layout.Dimensions {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(38))
 		gtx.Constraints.Max.Y = gtx.Constraints.Min.Y
@@ -58,7 +59,7 @@ func TitleBar(gtx layout.Context, style Style, text string) func(gtx layout.Cont
 			Right: unit.Dp(14),
 			Top:   unit.Dp(8),
 		}.Layout(gtx, func(layout.Context) layout.Dimensions {
-			title := ColorLabel(style.Palette.Text, HeaderLabel(&style, text))
+			title := ColorLabel(style.Palette.Text, HeaderLabel(style, text))
 			return title.Layout(gtx)
 		})
 	}
@@ -127,47 +128,11 @@ func CenterAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dime
 	})
 }
 
-/*
-	func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string) material.LabelStyle {
-		l := material.Label(th, Sp(size), txt)
-		l.Color = col
-		return l
-	}
-*/
 func Icon(gtx layout.Context, col color.NRGBA, icon *widget.Icon) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
 	return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return icon.Layout(gtx, col)
 	})
-}
-func IconLabel(gtx layout.Context, th *material.Theme, size float32, icon *widget.Icon, txt string) layout.Dimensions {
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
-			return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return icon.Layout(gtx, th.Fg)
-			})
-		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, material.Label(th, Sp(size), txt).Layout)
-		}),
-	)
-}
-
-func ColoredIconLabel(gtx layout.Context, th *material.Theme, size float32, icon *widget.Icon, col color.NRGBA, txt string) layout.Dimensions {
-	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
-			return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return icon.Layout(gtx, col)
-			})
-		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(th, Sp(size), txt)
-			label.Color = col
-			return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, label.Layout)
-		}),
-	)
 }
 
 func TextFieldSized(editor *widget.Editor, hint string, width int, style *Style, gtx layout.Context) layout.Dimensions {

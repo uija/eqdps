@@ -21,7 +21,7 @@ func (s *Shell) layoutProgressOverlay(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{
 				Axis: layout.Vertical,
 			}.Layout(gtx,
-				layout.Rigid(ui.TitleBar(gtx, *s.Style, s.progress.title)),
+				layout.Rigid(ui.TitleBar(gtx, s.Style, s.progress.title)),
 				layout.Rigid(s.layoutProgressContent),
 			)
 		})
