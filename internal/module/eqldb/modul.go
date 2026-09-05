@@ -271,21 +271,21 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, ui.PageTitle(style, "eqldb.org integration", gtx).Layout)
 				}),
-				layout.Rigid(ui.ColoredLabel(style.Theme, 15, style.Palette.Muted,
+				layout.Rigid(ui.ColorLabel(style.Palette.Muted, ui.Label(style,
 					"eqldb.org is a website that presents player profiles to others like Magelo does for EQ Live.\nTo use eqldb.org, you upload an export of you profile to the website, then configure your level, race and classes.\neqdps can do that for you. All you need to do is connect eqdps to the website and create a macro:",
-				).Layout),
+				)).Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					name := m.current_charname
 					if name == "" {
 						name = "YOURCHARNAME"
 					}
 					return layout.Inset{Left: unit.Dp(16), Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						ui.ColoredLabel(style.Theme, 15, style.Palette.Text, fmt.Sprintf("/pause 5, /who %s\n/outputfile inventory", name)).Layout,
+						ui.Label(style, fmt.Sprintf("/pause 5, /who %s\n/outputfile inventory", name)).Layout,
 					)
 				}),
-				layout.Rigid(ui.ColoredLabel(style.Theme, 15, style.Palette.Muted,
+				layout.Rigid(ui.ColorLabel(style.Palette.Muted, ui.Label(style,
 					"eqdps watches for the message in the log and uploads that data to the website.",
-				).Layout),
+				)).Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return m.RenderConnectProcess(style, gtx)
 				}),

@@ -257,7 +257,7 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 							if cl.QuestsReady > 0 {
 								col = style.Palette.Yes
 							}
-							return ui.ColoredLabel(style.Theme, HeaderSize, col, fmt.Sprintf("%d/%d done - %d ready", cl.QuestsDone, numQuests, cl.QuestsReady)).Layout(gtx)
+							return ui.ColorLabel(col, material.Label(style.Theme, ui.Sp(HeaderSize), fmt.Sprintf("%d/%d done - %d ready", cl.QuestsDone, numQuests, cl.QuestsReady))).Layout(gtx)
 						}),
 					)
 				})
@@ -307,7 +307,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 				return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-							label := ui.ColoredLabel(style.Theme, RowSize, title_color, quest_name)
+							label := ui.ColorLabel(title_color, material.Label(style.Theme, ui.Sp(RowSize), quest_name))
 							label.Font.Weight = font.SemiBold
 							return layout.Inset{Top: unit.Dp(2), Left: unit.Dp(16)}.Layout(gtx, label.Layout)
 						}),
@@ -358,7 +358,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							// TODO Evaluate value
-							return ui.ColoredLabel(style.Theme, RowSize, title_color, missing_text).Layout(gtx)
+							return ui.ColorLabel(title_color, material.Label(style.Theme, ui.Sp(RowSize), missing_text)).Layout(gtx)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return material.Label(style.Theme, ui.Sp(RowSize), "").Layout(gtx)
@@ -393,14 +393,14 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 							layout.Flexed(5, func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{Left: unit.Dp(32)}.Layout(gtx,
-									ui.ColoredLabel(style.Theme, RowSize, color, fmt.Sprintf("%s %s", prefix, item.Name)).Layout,
+									ui.ColorLabel(color, material.Label(style.Theme, ui.Sp(RowSize), fmt.Sprintf("%s %s", prefix, item.Name))).Layout,
 								)
 							}),
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredLabel(style.Theme, RowSize, color, amount_text).Layout(gtx)
+								return ui.ColorLabel(color, material.Label(style.Theme, ui.Sp(RowSize), amount_text)).Layout(gtx)
 							}),
 							layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredLabel(style.Theme, RowSize, color, item.Hint).Layout(gtx)
+								return ui.ColorLabel(color, material.Label(style.Theme, ui.Sp(RowSize), item.Hint)).Layout(gtx)
 							}),
 						)
 					})

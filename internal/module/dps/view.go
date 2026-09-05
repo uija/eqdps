@@ -71,14 +71,14 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 }
 func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	//return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(ui.PAGE_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		icon := ui.CheckBoxOutline
 		if m.ctx.Overlay != nil {
 			icon = ui.CheckBox
 		}
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return material.Label(style.Theme, ui.Sp(17), "DPS Tracker").Layout(gtx)
+				return material.Label(style.Theme, ui.Sp(ui.HEADER), "DPS Tracker").Layout(gtx)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				link := ui.IconLink(style, &m.overlayClick, icon, "Show Overlay")
@@ -343,14 +343,14 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 		if sdps > 0 {
 			color = style.Palette.Muted
 		}
-		return ui.RightAlignLabel(gtx, ui.ColoredLabel(style.Theme, 16, color, fmt.Sprintf("%d", int(math.Round(dps)))))
+		return ui.RightAlignLabel(gtx, ui.ColorLabel(color, material.Label(style.Theme, ui.Sp(16), fmt.Sprintf("%d", int(math.Round(dps))))))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[2].weight), func(gtx layout.Context) layout.Dimensions {
 		sdpsstr := ""
 		if sdps > 0 {
 			sdpsstr = fmt.Sprintf("%d", int(math.Round(sdps)))
 		}
-		return ui.CenterAlignLabel(gtx, ui.ColoredLabel(style.Theme, 16, style.Palette.Yes, sdpsstr))
+		return ui.CenterAlignLabel(gtx, ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(16), sdpsstr)))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[3].weight), func(gtx layout.Context) layout.Dimensions {
 		val := fmt.Sprintf("%d", d.Hits)
@@ -363,9 +363,7 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 		dur := d.LastUpdate.Sub(d.Start)
 		minutes := int(dur.Minutes())
 		seconds := int(dur.Seconds()) % 60
-		label := material.Body1(style.Theme, fmt.Sprintf("%02d:%02d", minutes, seconds))
-		label.Color = style.Palette.Accent
-		return ui.RightAlignLabel(gtx, label)
+		return ui.RightAlignLabel(gtx, ui.ColorLabel(style.Palette.Accent, ui.Label(style, fmt.Sprintf("%02d:%02d", minutes, seconds))))
 	}))
 	// each row gets its own padding
 	return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(4), Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {

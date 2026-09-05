@@ -106,10 +106,7 @@ func (m *Module) RenderHeader(caption string, item_click *widget.Clickable, mob_
 						link.TextColor = style.Palette.Accent
 						return link.Layout(gtx)
 					}),
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						label := ui.ColoredLabel(style.Theme, 15, style.Palette.Accent, "Inventory")
-						return label.Layout(gtx)
-					}),
+					layout.Flexed(1, ui.ColorLabel(style.Palette.Accent, ui.Label(style, "Inventory")).Layout),
 					layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 						link := ui.IconLink(style, mob_click, ui.Sort, "Drops from")
 						link.TextColor = style.Palette.Accent
@@ -133,7 +130,7 @@ func RenderContainerRow(container []InventoryRow, index int, col color.NRGBA, st
 					return material.Label(style.Theme, ui.Sp(14), item.Name).Layout(gtx)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					label := ui.ColoredLabel(style.Theme, 14, col, f(&item))
+					label := ui.ColorLabel(col, material.Label(style.Theme, ui.Sp(14), f(&item)))
 					label.Alignment = text.End
 					return layout.Inset{Right: unit.Dp(32)}.Layout(gtx, label.Layout)
 				}),
@@ -158,7 +155,7 @@ func RenderOthersRow(container *Container, index int, style *ui.Style, gtx layou
 					return material.Label(style.Theme, ui.Sp(14), item.Name).Layout(gtx)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return ui.ColoredLabel(style.Theme, 14, style.Palette.Yes, fmt.Sprintf("%d/%d +%d", item.Have, item.Need, item.Have-item.Need)).Layout(gtx)
+					return ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d/%d +%d", item.Have, item.Need, item.Have-item.Need))).Layout(gtx)
 				}),
 				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 					return material.Label(style.Theme, ui.Sp(14), item.Hint).Layout(gtx)

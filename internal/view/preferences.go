@@ -385,7 +385,7 @@ func (p *Preferences) RenderMainWindowFontScale(style *ui.Style, gtx layout.Cont
 func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "DPS Overlay font scale").Layout),
+			layout.Rigid(ui.Label(style, "DPS Overlay font scale").Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
 				return material.Slider(style.Theme, &p.overlay_font_scale).Layout(gtx)
@@ -405,7 +405,7 @@ func (p *Preferences) RenderCheckForUpdates(style *ui.Style, gtx layout.Context)
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.CheckBox(style.Theme, &p.check_for_updates, "Check for updates").Layout),
-			layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Checks GitHub for newly published releases when the application starts").Layout),
+			layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Checks GitHub for newly published releases when the application starts")).Layout),
 		)
 	})
 }
@@ -413,7 +413,7 @@ func (p *Preferences) RenderSkyParseInventory(style *ui.Style, gtx layout.Contex
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.CheckBox(style.Theme, &p.sky_parse_inventory, "Parse Inventory for Plane of Sky Items").Layout),
-			layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Parses inventory exports you do and updates your plane of sky items with items found in your inventory. Does not work for Wind Runes.").Layout),
+			layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Parses inventory exports you do and updates your plane of sky items with items found in your inventory. Does not work for Wind Runes.")).Layout),
 		)
 	})
 }
@@ -443,7 +443,7 @@ func (p *Preferences) RenderEQLDbConnect(style *ui.Style, gtx layout.Context) la
 						return ui.IconLabel(gtx, style.Theme, 15, ui.Check, "eqldb.org is already connected")
 					}
 				}),
-				layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "TODO: Render text that explain what EQLDb is etc.").Layout),
+				layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "TODO: Render text that explain what EQLDb is etc.")).Layout),
 			)
 		})
 	})
@@ -453,7 +453,7 @@ func (p *Preferences) RenderEQLDbUploadSky(style *ui.Style, gtx layout.Context) 
 		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(material.CheckBox(style.Theme, &p.upload_sky_items, "Upload Wind Runes from PoS to your EQLDb Profile").Layout),
-				layout.Rigid(ui.ColoredLabel(style.Theme, 14, style.Palette.Muted, "Enhances your profile on eqldb.org with wind runes, that are not part of the inventory export").Layout),
+				layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Enhances your profile on eqldb.org with wind runes, that are not part of the inventory export")).Layout),
 			)
 		})
 	})

@@ -221,11 +221,11 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 			return layout.Inset{Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				var label material.LabelStyle
 				if c.parserPath == "" {
-					label = ui.ColoredLabel(style.Theme, 14, style.Palette.No, "No log")
+					label = ui.ColorLabel(style.Palette.No, material.Label(style.Theme, ui.Sp(14), "No log"))
 				} else if c.isReplay.Load() {
-					label = ui.ColoredLabel(style.Theme, 14, style.Palette.Accent, "Replay")
+					label = ui.ColorLabel(style.Palette.Accent, material.Label(style.Theme, ui.Sp(14), "Replay"))
 				} else {
-					label = ui.ColoredLabel(style.Theme, 14, style.Palette.Yes, "Live")
+					label = ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), "Livede"))
 				}
 				return label.Layout(gtx)
 			})
@@ -241,7 +241,7 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 		return "", style.Palette.Text
 	}()
 	if str != "" {
-		items = append(items, layout.Flexed(1, ui.ColoredLabel(style.Theme, 14, col, str).Layout))
+		items = append(items, layout.Flexed(1, ui.ColorLabel(col, material.Label(style.Theme, ui.Sp(14), str)).Layout))
 	} else {
 		if c.parserPath != "" {
 			items = append(items,

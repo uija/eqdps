@@ -127,11 +127,14 @@ func CenterAlignLabel(gtx layout.Context, label material.LabelStyle) layout.Dime
 		return label.Layout(tgtx)
 	})
 }
-func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string) material.LabelStyle {
-	l := material.Label(th, Sp(size), txt)
-	l.Color = col
-	return l
-}
+
+/*
+	func ColoredLabel(th *material.Theme, size float32, col color.NRGBA, txt string) material.LabelStyle {
+		l := material.Label(th, Sp(size), txt)
+		l.Color = col
+		return l
+	}
+*/
 func Icon(gtx layout.Context, col color.NRGBA, icon *widget.Icon) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(gtx.Dp(unit.Dp(18)), gtx.Dp(unit.Dp(18))))
 	return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
