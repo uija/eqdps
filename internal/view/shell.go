@@ -8,7 +8,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
@@ -44,8 +43,6 @@ type Shell struct {
 	invalidateFunc   func()
 	fileSelectResult chan fileResult
 	progressUpdate   chan progress
-
-	settingsClick widget.Clickable
 }
 
 // NewShell constructs the root application view.
@@ -117,6 +114,7 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 		result.fileSelectResult <- fileResult{Error: nil, Path: context.Config.LastLogfile}
 	}
 
+	context.AddModuleNavigation(module.PREFERENCE_ID, "", "PREF", result.preferences.Layout)
 	return result
 }
 
@@ -186,16 +184,14 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(style.Style.Theme, "").Layout)
 						}))
-						module_active := false
 						for idx, i := range s.context.ModuleNavigationItems {
-							if i.SidebarLabel != "" {
+							if i.SidebarLabel != "" && i.ID != module.PREFERENCE_ID {
 								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									link := ui.Link(s.Style, &s.context.ModuleNavigationItems[idx].Click, i.SidebarLabel)
 									link.Size = 16
 									link.FontWeight = font.SemiBold
 									if i.Active {
 										link.TextColor = style.Style.Palette.Accent
-										module_active = true
 									} else {
 										link.TextColor = style.Style.Palette.Muted
 									}
@@ -210,22 +206,27 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 							}
 						}
 						children = append(children, layout.Flexed(1, material.Body1(style.Style.Theme, " ").Layout))
-						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							link := ui.Link(s.Style, &s.settingsClick, "PREF")
-							link.Size = 16
-							link.FontWeight = font.SemiBold
-							link.TextColor = style.Style.Palette.Muted
-							if !module_active {
-								link.TextColor = style.Style.Palette.Accent
+						for idx, i := range s.context.ModuleNavigationItems {
+							if i.SidebarLabel != "" && i.ID == module.PREFERENCE_ID {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									link := ui.Link(s.Style, &s.context.ModuleNavigationItems[idx].Click, i.SidebarLabel)
+									link.Size = 16
+									link.FontWeight = font.SemiBold
+									if i.Active {
+										link.TextColor = style.Style.Palette.Accent
+									} else {
+										link.TextColor = style.Style.Palette.Muted
+									}
+									link.Padding[ui.PADDING_BOTTOM] = 8
+									link.Padding[ui.PADDING_TOP] = 16
+									link.Padding[ui.PADDING_LEFT] = 16
+									link.Padding[ui.PADDING_RIGHT] = 16
+									return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return link.Layout(gtx)
+									})
+								}))
 							}
-							link.Padding[ui.PADDING_BOTTOM] = 8
-							link.Padding[ui.PADDING_TOP] = 16
-							link.Padding[ui.PADDING_LEFT] = 16
-							link.Padding[ui.PADDING_RIGHT] = 16
-							return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ui.ColoredAccentedRow(gtx, style.Style.Palette.Panel, style.Style.Palette.Accent, false, link.Layout)
-							})
-						}))
+						}
 
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -269,10 +270,6 @@ func (s *Shell) update(gtx layout.Context) {
 		if s.context.ModuleNavigationItems[idx].Click.Clicked(gtx) {
 			s.context.ActivateModule(s.context.ModuleNavigationItems[idx].ID)
 		}
-	}
-	if s.settingsClick.Clicked(gtx) {
-		s.context.ActivateModule("Preferences")
-		s.context.SetMainView(s.preferences.Layout)
 	}
 	s.context.Update(gtx)
 	// check menu items

@@ -26,6 +26,8 @@ import (
 	"github.com/uija/eqdps/internal/ui"
 )
 
+const PREFERENCE_ID = "Preferences"
+
 type MenuItem struct {
 	Name   string
 	Action UIActionFunc
