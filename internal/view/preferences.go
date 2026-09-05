@@ -304,6 +304,13 @@ func (p *Preferences) RenderColorSettings(style *ui.Style, gtx layout.Context) l
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Colors").Layout)
 	}))
+	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Inset{}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			label := material.Label(style.Theme, ui.Sp(15), "You can change all the colors used in this app. Press 'Reset' to set them back to the default color.")
+			label.Color = style.Palette.Muted
+			return label.Layout(gtx)
+		})
+	}))
 	for i := 0; i < paletteType.NumField(); i++ {
 		fieldType := paletteType.Field(i)
 		fieldValue := paletteValue.Field(i)
@@ -349,7 +356,9 @@ func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) 
 	}
 	children = append(children, p.RenderOverlayFontScale(style, gtx))
 	children = append(children, p.RenderMainWindowFontScale(style, gtx))
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	return layout.Inset{Left: unit.Dp(32)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	})
 }
 func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -385,7 +394,7 @@ func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context
 	})
 }
 func (p *Preferences) RenderUpdatesSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			p.RenderCheckForUpdates(style, gtx),
 			p.RenderSkyParseInventory(style, gtx),
