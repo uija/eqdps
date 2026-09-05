@@ -68,8 +68,7 @@ func (v *helpView) Layout(gtx layout.Context) layout.Dimensions {
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-										label := material.Label(v.style.Theme, ui.Sp(24), "Help")
-										label.Color = v.style.Palette.Text
+										label := ui.ColorLabel(v.style.Palette.Text, material.Label(v.style.Theme, ui.Sp(24), "Help"))
 										return label.Layout(gtx)
 									}),
 									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -89,8 +88,7 @@ func (v *helpView) Layout(gtx layout.Context) layout.Dimensions {
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-										label := material.Label(v.style.Theme, ui.Sp(24), v.helpItem.Name)
-										label.Color = v.style.Palette.Text
+										label := ui.ColorLabel(v.style.Palette.Text, material.Label(v.style.Theme, ui.Sp(24), v.helpItem.Name))
 										return label.Layout(gtx)
 									}),
 									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -118,12 +116,11 @@ func (v *helpView) layoutContent(gtx layout.Context) layout.Dimensions {
 	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(
+			label := ui.ColorLabel(v.style.Palette.Muted, material.Label(
 				v.style.Theme,
 				ui.Sp(15),
 				"This is placeholder help text. Replace this paragraph with an introduction that explains where users can find more information.",
-			)
-			label.Color = v.style.Palette.Muted
+			))
 			return label.Layout(gtx)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {

@@ -110,9 +110,7 @@ func (h *historySelection) layoutLink(idx int, item historyEntry) layout.Widget 
 	return func(gtx layout.Context) layout.Dimensions {
 		return h.entries[idx].clickable.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Top: unit.Dp(6), Bottom: unit.Dp(6), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := material.Label(h.style.Theme, ui.Sp(15), "Load: "+item.caption)
-				label.Color = h.style.Palette.Text
-				return label.Layout(gtx)
+				return ui.ColorLabel(h.style.Palette.Text, ui.Label(h.style, "Load: "+item.caption)).Layout(gtx)
 			})
 		})
 	}

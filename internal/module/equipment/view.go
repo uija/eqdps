@@ -47,7 +47,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 							str := m.selected_item.GetStatsBlock(level)
 							str = strings.Replace(str, "<br>", "", -1)
 							str = m.selected_item.Name + "\n\n" + str
-							return material.Label(style.Theme, ui.Sp(15), str).Layout(gtx)
+							return ui.Label(style, str).Layout(gtx)
 						})
 					})
 				})
@@ -59,7 +59,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 func (m *Module) RenderSearchBar(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Search:").Layout)
+			return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "Search:").Layout)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return ui.MaxedTextField(&m.filter, "Filter equipment", style, gtx)
@@ -74,7 +74,7 @@ func (m *Module) RenderSearchBar(style *ui.Style, gtx layout.Context) layout.Dim
 func (m *Module) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Equipment").Layout)
+			return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, ui.HeaderLabel(style, "Equipment").Layout)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			text := ""
@@ -82,7 +82,7 @@ func (m *Module) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimens
 				text = "Exported on " + m.inv.Created.Format("2006-02-01 15:04:05")
 			}
 			return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return layout.E.Layout(gtx, material.Label(style.Theme, ui.Sp(15), text).Layout)
+				return layout.E.Layout(gtx, ui.Label(style, text).Layout)
 			})
 		}),
 	)
@@ -91,7 +91,7 @@ func (m *Module) RenderLabeledSelect(name string, sel *form.SelectBox, style *ui
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), name).Layout)
+				return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, ui.Label(style, name).Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -112,7 +112,7 @@ func (m *Module) RenderFilter(style *ui.Style, gtx layout.Context) layout.Dimens
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return material.CheckBox(style.Theme, &m.exaltation_checkbox, "Hide Exaltations").Layout(gtx)
 			}),
-			layout.Flexed(1, material.Body1(style.Theme, "").Layout),
+			layout.Flexed(1, ui.Label(style, "").Layout),
 		)
 	})
 }
@@ -132,7 +132,7 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 				text += "\n\nExport your inventory to load data into the parser."
 
 			}
-			return layout.Center.Layout(gtx, material.Label(style.Theme, ui.Sp(15), text).Layout)
+			return layout.Center.Layout(gtx, ui.Label(style, text).Layout)
 		}
 		m.PrepareItems()
 		m.mu.Unlock()
@@ -154,16 +154,16 @@ func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.D
 			}),
 			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), "Class").Layout(gtx)
+					return ui.Label(style, "Class").Layout(gtx)
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), "Slot").Layout(gtx)
+					return ui.Label(style, "Slot").Layout(gtx)
 				})
 			}),
 			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-				return material.Label(style.Theme, ui.Sp(15), "Location").Layout(gtx)
+				return ui.Label(style, "Location").Layout(gtx)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				value := "Stats"

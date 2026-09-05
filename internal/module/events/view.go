@@ -42,7 +42,7 @@ func (m *Module) RenderMainPage(style *ui.Style, gtx layout.Context) layout.Dime
 }
 func (m *Module) RenderImExport(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-		layout.Flexed(1, material.Label(style.Theme, ui.Sp(15), "").Layout),
+		layout.Flexed(1, ui.Label(style, "").Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 
@@ -65,14 +65,14 @@ func (m *Module) RenderVolumeRow(style *ui.Style, gtx layout.Context) layout.Dim
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
-				return layout.Inset{Top: unit.Dp(6), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Notification Volume:").Layout)
+				return layout.Inset{Top: unit.Dp(6), Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "Notification Volume:").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(300, gtx.Constraints.Max.X)
 				return material.Slider(style.Theme, &m.volume).Layout(gtx)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(6)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%.02f%%", m.ctx.Config.Volume)).Layout)
+				return layout.Inset{Top: unit.Dp(6)}.Layout(gtx, ui.Label(style, fmt.Sprintf("%.02f%%", m.ctx.Config.Volume)).Layout)
 			}),
 		)
 	})
@@ -82,18 +82,18 @@ func (m *Module) RenderSpellIconRow(style *ui.Style, gtx layout.Context) layout.
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(400, gtx.Constraints.Max.X)
-				return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Spell Icon Set:").Layout)
+				return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "Spell Icon Set:").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return m.spell_icon_select.Layout(style, gtx, unit.Dp(gtx.Dp(200)))
 			}),
-			layout.Flexed(1, material.Body1(style.Theme, "").Layout),
+			layout.Flexed(1, ui.Label(style, "").Layout),
 		)
 	})
 }
 func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		label := material.Label(style.Theme, ui.Sp(17), "Events")
+		label := ui.HeaderLabel(style, "Events")
 		label.Font.Weight = font.SemiBold
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {

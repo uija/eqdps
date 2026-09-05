@@ -112,8 +112,7 @@ func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.D
 			return layout.UniformInset(unit.Dp(4)).Layout(
 				gtx,
 				func(gtx layout.Context) layout.Dimensions {
-					label := material.Body1(style.Theme, strings.ToUpper(col.title))
-					label.Color = style.Palette.Muted
+					label := ui.ColorLabel(style.Palette.Muted, ui.Label(style, strings.ToUpper(col.title)))
 					label.TextSize = 16
 					//				label.Font.Weight = font.SemiBold
 					if i == 0 {
@@ -146,7 +145,7 @@ func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layou
 				layout.Flexed(8, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							label := material.Body1(style.Theme, fight.Name)
+							label := ui.Label(style, fight.Name)
 							label.TextSize = ui.Sp(18)
 							label.Font.Weight = font.SemiBold
 							return layout.Inset{Top: unit.Dp(5)}.Layout(gtx, label.Layout)
@@ -172,8 +171,7 @@ func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layou
 								cnt = "Active fight"
 							}
 
-							label := material.Body2(style.Theme, cnt)
-							label.Color = color
+							label := ui.ColorLabel(color, material.Body2(style.Theme, cnt))
 							return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(4)}.Layout(gtx, label.Layout)
 						}),
 					)
@@ -186,17 +184,16 @@ func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layou
 						cnt = fmt.Sprintf("Started %s", fight.Start.Format("2006-01-02 15:04"))
 					}
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
-					label := material.Body1(style.Theme, cnt)
+					label := ui.ColorLabel(style.Palette.Muted, ui.Label(style, cnt))
 					label.Alignment = text.End
 					label.TextSize = 13
-					label.Color = style.Palette.Muted
 					return layout.Inset{Top: unit.Dp(4), Right: unit.Dp(8)}.Layout(gtx, label.Layout)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					dur := fight.End.Sub(fight.Start)
 					minutes := int(dur.Minutes())
 					seconds := int(dur.Seconds()) % 60
-					label := material.Body1(style.Theme, fmt.Sprintf("%02d:%02d", minutes, seconds))
+					label := ui.Label(style, fmt.Sprintf("%02d:%02d", minutes, seconds))
 					return ui.RightAlignLabel(gtx, label)
 				}),
 			)
@@ -322,21 +319,20 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 		if info != "" {
 			return layout.Inset{Left: unit.Dp(intent * 24)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					layout.Rigid(material.Body1(style.Theme, name).Layout),
+					layout.Rigid(ui.Label(style, name).Layout),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							label := material.Label(style.Theme, ui.Sp(14), info)
-							label.Color = style.Palette.Muted
+							label := ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), info))
 							return layout.E.Layout(gtx, label.Layout)
 						})
 					}),
 				)
 			})
 		}
-		return layout.Inset{Left: unit.Dp(intent * 24)}.Layout(gtx, material.Body1(style.Theme, name).Layout)
+		return layout.Inset{Left: unit.Dp(intent * 24)}.Layout(gtx, ui.Label(style, name).Layout)
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[1].weight), func(gtx layout.Context) layout.Dimensions {
-		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, fmt.Sprintf("%d", d.Damage)))
+		return ui.RightAlignLabel(gtx, ui.Label(style, fmt.Sprintf("%d", d.Damage)))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[2].weight), func(gtx layout.Context) layout.Dimensions {
 		color := style.Palette.Text
@@ -354,10 +350,10 @@ func (m *Module) GenerateFightDetailsRow(intent int, showDetails bool, category 
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[3].weight), func(gtx layout.Context) layout.Dimensions {
 		val := fmt.Sprintf("%d", d.Hits)
-		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, val))
+		return ui.RightAlignLabel(gtx, ui.Label(style, val))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[4].weight), func(gtx layout.Context) layout.Dimensions {
-		return ui.RightAlignLabel(gtx, material.Body1(style.Theme, fmt.Sprintf("%d", d.Crits)))
+		return ui.RightAlignLabel(gtx, ui.Label(style, fmt.Sprintf("%d", d.Crits)))
 	}))
 	cells = append(cells, layout.Flexed(float32(m.columns[5].weight), func(gtx layout.Context) layout.Dimensions {
 		dur := d.LastUpdate.Sub(d.Start)

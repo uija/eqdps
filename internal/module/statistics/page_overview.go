@@ -66,7 +66,7 @@ func (p *OverviewPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 		case 7:
 			return RenderIntStatsRow("Chat messages sent", p.stats.ChatMessagesSent, index%2 == 0, style, gtx)
 		default:
-			return material.Label(style.Theme, ui.Sp(15), "Index missing").Layout(gtx)
+			return ui.Label(style, "Index missing").Layout(gtx)
 		}
 	})
 }
@@ -95,13 +95,13 @@ func RenderStatsRow(name string, num string, odd bool, style *ui.Style, gtx layo
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), name).Layout(gtx)
+					return ui.Label(style, name).Layout(gtx)
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return material.Label(style.Theme, ui.Sp(15), num).Layout(gtx)
+						return ui.Label(style, num).Layout(gtx)
 					})
 				})
 			}),

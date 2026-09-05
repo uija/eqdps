@@ -58,8 +58,7 @@ func TitleBar(gtx layout.Context, style Style, text string) func(gtx layout.Cont
 			Right: unit.Dp(14),
 			Top:   unit.Dp(8),
 		}.Layout(gtx, func(layout.Context) layout.Dimensions {
-			title := material.Label(style.Theme, Sp(17), text)
-			title.Color = style.Palette.Text
+			title := ColorLabel(style.Palette.Text, HeaderLabel(&style, text))
 			return title.Layout(gtx)
 		})
 	}

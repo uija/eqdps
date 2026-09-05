@@ -11,7 +11,6 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 	"gioui.org/widget"
-	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/eqlog"
 	"github.com/uija/eqdps/internal/module"
@@ -92,13 +91,13 @@ func (m *Module) LayoutOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return m.overlay_now.Layout(gtx, material.Body1(style.Theme, "From now on").Layout)
+				return m.overlay_now.Layout(gtx, ui.Label(style, "From now on").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return m.overlay_level.Layout(gtx, material.Body1(style.Theme, "Since last levelup").Layout)
+				return m.overlay_level.Layout(gtx, ui.Label(style, "Since last levelup").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return m.overlay_zone.Layout(gtx, material.Body1(style.Theme, "Since last zoning").Layout)
+				return m.overlay_zone.Layout(gtx, ui.Label(style, "Since last zoning").Layout)
 			}),
 		)
 	})

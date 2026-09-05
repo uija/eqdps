@@ -306,7 +306,7 @@ func (m *Module) RenderConnectProcess(style *ui.Style, gtx layout.Context) layou
 		if accessToken != "" {
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("You connected eqdps to eqldb.org on %s.", authorizationTime.Format("2006-01-02 15:04"))).Layout(gtx)
+					return ui.Label(style, fmt.Sprintf("You connected eqdps to eqldb.org on %s.", authorizationTime.Format("2006-01-02 15:04"))).Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					link := ui.IconLink(style, &m.revoke_authorization_click, ui.Close, "Revoke connection")
@@ -315,16 +315,16 @@ func (m *Module) RenderConnectProcess(style *ui.Style, gtx layout.Context) layou
 				}),
 			)
 		} else if stage == connectionRequesting {
-			return material.Label(style.Theme, ui.Sp(15), "Sending request to eqldb.org").Layout(gtx)
+			return ui.Label(style, "Sending request to eqldb.org").Layout(gtx)
 		} else if stage == connectionWaiting {
 			message := fmt.Sprintf("Please go to\n%s\nWith code: %s", authorization.VerificationURI, authorization.UserCode)
 			if errorMessage != "" {
 				message += "\n\n" + errorMessage
 			}
-			return material.Label(style.Theme, ui.Sp(15), message).Layout(gtx)
+			return ui.Label(style, message).Layout(gtx)
 		} else if stage == connectionError {
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-				layout.Rigid(material.Label(style.Theme, ui.Sp(15), errorMessage).Layout),
+				layout.Rigid(ui.Label(style, errorMessage).Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(12)}.Layout(gtx, material.Button(style.Theme, &m.start_authorization_click, "Try again").Layout)
 				}),

@@ -34,21 +34,21 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		if m.config_path == "" {
-			return material.Label(style.Theme, ui.Sp(15), "You need to open a log.").Layout(gtx)
+			return ui.Label(style, "You need to open a log.").Layout(gtx)
 		} else if m.loading.Load() {
-			return material.Label(style.Theme, ui.Sp(15), "Loading please wait.").Layout(gtx)
+			return ui.Label(style, "Loading please wait.").Layout(gtx)
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(17), "Macros").Layout(gtx)
+					return ui.HeaderLabel(style, "Macros").Layout(gtx)
 				})
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter:").Layout)
+							return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "Filter:").Layout)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return ui.MaxedTextField(&m.filter_editor, "Filter by name or macro content", style, gtx)
@@ -64,17 +64,17 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								label := material.Label(style.Theme, ui.Sp(15), "Name")
+								label := ui.Label(style, "Name")
 								label.Font.Weight = font.SemiBold
 								return label.Layout(gtx)
 							}),
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								label := material.Label(style.Theme, ui.Sp(15), "Loadout")
+								label := ui.Label(style, "Loadout")
 								label.Font.Weight = font.SemiBold
 								return label.Layout(gtx)
 							}),
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								label := material.Label(style.Theme, ui.Sp(15), "Macro")
+								label := ui.Label(style, "Macro")
 								label.Font.Weight = font.SemiBold
 								return label.Layout(gtx)
 							}),
@@ -97,16 +97,16 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 							return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-										return material.Label(style.Theme, ui.Sp(15), mac.Name).Layout(gtx)
+										return ui.Label(style, mac.Name).Layout(gtx)
 									}),
 									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 										return layout.Inset{Left: unit.Dp(5)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-											return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("LO%d", mac.Loadout)).Layout(gtx)
+											return ui.Label(style, fmt.Sprintf("LO%d", mac.Loadout)).Layout(gtx)
 										})
 									}),
 									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 										return layout.Inset{Left: unit.Dp(6)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-											return material.Label(style.Theme, ui.Sp(15), mac.Location).Layout(gtx)
+											return ui.Label(style, mac.Location).Layout(gtx)
 										})
 									}),
 								)
@@ -130,18 +130,16 @@ func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Top: unit.Dp(4), Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("Line %d:", r))
-										label.Color = style.Palette.Muted
-										return label.Layout(gtx)
+										return ui.ColorLabel(style.Palette.Muted, ui.Label(style, fmt.Sprintf("Line %d:", r))).Layout(gtx)
 
 									})
 								}),
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-									return layout.Inset{Top: unit.Dp(4), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), mac.Rows[r]).Layout)
+									return layout.Inset{Top: unit.Dp(4), Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, mac.Rows[r]).Layout)
 								}),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									if strings.TrimSpace(mac.Rows[r]) == "" {
-										return material.Label(style.Theme, ui.Sp(15), "").Layout(gtx)
+										return ui.Label(style, "").Layout(gtx)
 									}
 									return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, ui.IconLink(style, &m.line_copy_click[r], ui.Copy, "").Layout)
 								}),
@@ -154,9 +152,7 @@ func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 						return layout.Flex{}.Layout(gtx,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									label := material.Label(style.Theme, ui.Sp(17), mac.Name)
-									label.Color = style.Palette.Accent
-									return label.Layout(gtx)
+									return ui.ColorLabel(style.Palette.Accent, ui.HeaderLabel(style, mac.Name)).Layout(gtx)
 								})
 							}),
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {

@@ -437,7 +437,7 @@ func (c *Context) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions 
 		}
 	} else {
 		return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(style.Theme, ui.Sp(15), "No modules registered")
+			label := ui.Label(style, "No modules registered")
 			//label.Color = palette.muted
 			return label.Layout(gtx)
 		})
@@ -454,7 +454,7 @@ func (c *Context) RenderNewVersionOverlay(style *ui.Style, gtx layout.Context) l
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, ui.Sp(17), fmt.Sprintf("Version %s is ready for download!", c.updateAvailable.TagName))
+						label := ui.HeaderLabel(style, fmt.Sprintf("Version %s is ready for download!", c.updateAvailable.TagName))
 						label.Font.Weight = font.SemiBold
 						return label.Layout(gtx)
 					}),
@@ -463,9 +463,7 @@ func (c *Context) RenderNewVersionOverlay(style *ui.Style, gtx layout.Context) l
 							list := material.List(style.Theme, &c.updateBodyList)
 
 							return list.Layout(gtx, 1, func(gtx layout.Context, index int) layout.Dimensions {
-								label := material.Label(style.Theme, ui.Sp(15), c.updateAvailable.Body)
-								label.Color = style.Palette.Muted
-								return label.Layout(gtx)
+								return ui.ColorLabel(style.Palette.Muted, ui.Label(style, c.updateAvailable.Body)).Layout(gtx)
 							})
 						})
 					}),

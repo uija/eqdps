@@ -62,9 +62,7 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 				}))
 			}
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Label(style.Theme, ui.Sp(15), section.text)
-				label.Color = style.Palette.Muted
-				return label.Layout(gtx)
+				return ui.ColorLabel(style.Palette.Muted, ui.Label(style, section.text)).Layout(gtx)
 			}))
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 		})

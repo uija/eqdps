@@ -546,13 +546,11 @@ func (m *Module) OnCancel() {
 }
 func (m *Module) LayoutStatus(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	if !m.export_success.IsZero() {
-		label := material.Label(style.Theme, ui.Sp(14), "Events exported successfully")
-		label.Color = style.Palette.Yes
+		label := ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), "Events exported successfully"))
 		return label.Layout(gtx)
 	}
 	if m.import_success != nil {
-		label := material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d imported, %d skipped.", m.import_success.Imported, m.import_success.Skipped))
-		label.Color = style.Palette.Yes
+		label := ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d imported, %d skipped.", m.import_success.Imported, m.import_success.Skipped)))
 		return label.Layout(gtx)
 	}
 	return material.Label(style.Theme, ui.Sp(14), "No events active").Layout(gtx)

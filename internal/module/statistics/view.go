@@ -5,7 +5,6 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/unit"
-	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -19,7 +18,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 						if m.currentPage != nil && m.activeImport == nil {
 							return m.currentPage.Layout(style, gtx)
 						}
-						return material.Label(style.Theme, ui.Sp(15), "Content").Layout(gtx)
+						return ui.Label(style, "Content").Layout(gtx)
 					}),
 				)
 			})
@@ -29,10 +28,10 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Flex{}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(style.Theme, ui.Sp(17), "Statistics")
+			label := ui.HeaderLabel(style, "Statistics")
 			return label.Layout(gtx)
 		}),
-		layout.Flexed(1, material.Label(style.Theme, ui.Sp(15), "").Layout),
+		layout.Flexed(1, ui.Label(style, "").Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			bytesMissing := m.lastLogfileOffset - m.lastKnownOffset
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
@@ -44,7 +43,7 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 				}),
 			)
 		}),
-		layout.Flexed(1, material.Label(style.Theme, ui.Sp(15), "").Layout),
+		layout.Flexed(1, ui.Label(style, "").Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			tabs := make([]layout.FlexChild, 0)
 			for _, p := range m.Pages {

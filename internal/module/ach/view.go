@@ -46,7 +46,7 @@ func (m *Module) RenderList(data *achievments.Export, style *ui.Style, gtx layou
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Achievements").Layout)
+						return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, ui.HeaderLabel(style, "Achievements").Layout)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						text := ""
@@ -54,7 +54,7 @@ func (m *Module) RenderList(data *achievments.Export, style *ui.Style, gtx layou
 							text = "Exported on " + m.data.Created.Format("2006-02-01 15:04:05")
 						}
 						return layout.Inset{Top: unit.Dp(1), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return layout.E.Layout(gtx, material.Label(style.Theme, ui.Sp(15), text).Layout)
+							return layout.E.Layout(gtx, ui.Label(style, text).Layout)
 						})
 					}),
 				)
@@ -62,7 +62,7 @@ func (m *Module) RenderList(data *achievments.Export, style *ui.Style, gtx layou
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter:").Layout)
+						return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "Filter:").Layout)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -87,7 +87,7 @@ func (m *Module) RenderList(data *achievments.Export, style *ui.Style, gtx layou
 					case *achievments.Objective:
 						return m.RenderObjective(d, style, gtx)
 					default:
-						return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("Wrong type %v", reflect.TypeOf(items[index]))).Layout(gtx)
+						return ui.Label(style, fmt.Sprintf("Wrong type %v", reflect.TypeOf(items[index]))).Layout(gtx)
 					}
 				})
 			}),
@@ -98,7 +98,7 @@ func (m *Module) RenderCategory(c *achievments.Category, style *ui.Style, gtx la
 	return ui.ColoredRow(gtx, style.Palette.LightPanel, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Label(style.Theme, ui.Sp(17), c.Name).Layout)
+				return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.HeaderLabel(style, c.Name).Layout)
 			}),
 		)
 	})
@@ -107,7 +107,7 @@ func (m *Module) RenderSubCategory(c *achievments.Subcategory, style *ui.Style, 
 	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), c.Name).Layout)
+				return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.Label(style, c.Name).Layout)
 			}),
 		)
 	})
@@ -131,9 +131,7 @@ func (m *Module) RenderObjective(c *achievments.Objective, style *ui.Style, gtx 
 				if c.Complete {
 					col = style.Palette.Yes
 				}
-				label := material.Label(style.Theme, ui.Sp(15), c.Text)
-				label.Color = col
-				return label.Layout(gtx)
+				return ui.ColorLabel(col, ui.Label(style, c.Text)).Layout(gtx)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -141,7 +139,7 @@ func (m *Module) RenderObjective(c *achievments.Objective, style *ui.Style, gtx 
 					if c.Progress != nil {
 						txt = fmt.Sprintf("%d / %d", c.Progress.Current, c.Progress.Required)
 					}
-					label := material.Label(style.Theme, ui.Sp(15), txt)
+					label := ui.Label(style, txt)
 					return label.Layout(gtx)
 				})
 			}),
@@ -157,7 +155,7 @@ func (m *Module) RenderLoadingMessage(style *ui.Style, gtx layout.Context) layou
 		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 			return ui.Overlay(gtx, 420, style.Palette.Panel, style.Palette.Border, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.Label(style.Theme, ui.Sp(15), "Loading data, please wait...").Layout(gtx)
+					return ui.Label(style, "Loading data, please wait...").Layout(gtx)
 				})
 			})
 		}),
@@ -173,14 +171,13 @@ func (m *Module) RenderNoDataMessage(style *ui.Style, gtx layout.Context) layout
 			return ui.Overlay(gtx, 420, style.Palette.Panel, style.Palette.Border, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-						layout.Rigid(material.Label(style.Theme, ui.Sp(15), "There is no data available yet.").Layout),
-						layout.Rigid(material.Label(style.Theme, ui.Sp(15), "Use the following command in game:").Layout),
+						layout.Rigid(ui.Label(style, "There is no data available yet.").Layout),
+						layout.Rigid(ui.Label(style, "Use the following command in game:").Layout),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(18)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										label := material.Label(style.Theme, ui.Sp(16), "/outputfile achievements")
-										label.Color = style.Palette.Accent
+										label := ui.ColorLabel(style.Palette.Accent, material.Label(style.Theme, ui.Sp(16), "/outputfile achievements"))
 										return label.Layout(gtx)
 									})
 								}),

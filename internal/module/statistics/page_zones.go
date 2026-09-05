@@ -121,7 +121,7 @@ func (p *ZonesPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 		height := gtx.Constraints.Max.Y
 		gtx.Constraints = layout.Exact(image.Pt(width, height))
 		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return material.Label(style.Theme, unit.Sp(15), str).Layout(gtx)
+			return ui.Label(style, str).Layout(gtx)
 		})
 	}
 	list := material.List(style.Theme, &p.list)
@@ -211,7 +211,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Label(style.Theme, ui.Sp(15), zone.Name)
+					label := ui.Label(style, zone.Name)
 					label.Font.Weight = weight
 					return label.Layout(gtx)
 				})
@@ -219,7 +219,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.Visits))
+						label := ui.Label(style, fmt.Sprintf("%d", zone.Visits))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -228,7 +228,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%v", zone.TimeSpent))
+						label := ui.Label(style, fmt.Sprintf("%v", zone.TimeSpent))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -237,7 +237,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.MobsKilled))
+						label := ui.Label(style, fmt.Sprintf("%d", zone.MobsKilled))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -246,7 +246,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", zone.MotesDropped))
+						label := ui.Label(style, fmt.Sprintf("%d", zone.MotesDropped))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -259,7 +259,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 						if zone.Name != "" {
 							val = fmt.Sprintf("%.01f", zone.MotesPerHour)
 						}
-						label := material.Label(style.Theme, ui.Sp(15), val)
+						label := ui.Label(style, val)
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -272,7 +272,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 						if zone.Name != "" {
 							val = fmt.Sprintf("%.01f%%", zone.MoteDropChance)
 						}
-						label := material.Label(style.Theme, ui.Sp(15), val)
+						label := ui.Label(style, val)
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})

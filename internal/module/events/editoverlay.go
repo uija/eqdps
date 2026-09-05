@@ -44,8 +44,7 @@ func (m *Module) RenderOverlay(style *ui.Style, gtx layout.Context) layout.Dimen
 			helpText := m.GetHelpText()
 			if helpText != "" {
 				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					label := material.Label(style.Theme, ui.Sp(15), helpText)
-					label.Color = style.Palette.Muted
+					label := ui.ColorLabel(style.Palette.Muted, ui.Label(style, helpText))
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, label.Layout)
 				}))
 			}
@@ -123,7 +122,7 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Rigid(m.SelectBoxRow(m.sound_select, "Sound", style, gtx)),
 			layout.Rigid(material.Button(style.Theme, &m.play_sound_click, "Play").Layout),
-			layout.Flexed(1, material.Body1(style.Theme, "").Layout),
+			layout.Flexed(1, ui.Label(style, "").Layout),
 		)
 	}))
 	children = append(children,
@@ -139,7 +138,7 @@ func (m *Module) GenerateFormFieldRows(style *ui.Style, gtx layout.Context) []la
 					if m.edit_index >= 0 {
 						return layout.E.Layout(gtx, material.Button(style.Theme, &m.delete_button_click, "Delete").Layout)
 					} else {
-						return material.Body1(style.Theme, "").Layout(gtx)
+						return ui.Label(style, "").Layout(gtx)
 					}
 				}),
 			)
@@ -152,7 +151,7 @@ func (m *Module) CheckBoxRow(field *widget.Bool, title string, hint string, styl
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
+				return layout.UniformInset(unit.Dp(10)).Layout(gtx, ui.Label(style, title).Layout)
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(0)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -166,7 +165,7 @@ func (m *Module) SelectBoxRow(field *form.SelectBox, title string, style *ui.Sty
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
+				return layout.UniformInset(unit.Dp(10)).Layout(gtx, ui.Label(style, title).Layout)
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -184,7 +183,7 @@ func (m *Module) EnhancedTextFieldRow(field *widget.Editor, title string, hint s
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
+				return layout.UniformInset(unit.Dp(10)).Layout(gtx, ui.Label(style, title).Layout)
 			}),
 			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -214,7 +213,7 @@ func (m *Module) EnhancedTextFieldRow(field *widget.Editor, title string, hint s
 							if val == "" {
 								val = hint
 							}
-							return layout.UniformInset(unit.Dp(4)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), val).Layout)
+							return layout.UniformInset(unit.Dp(4)).Layout(gtx, ui.Label(style, val).Layout)
 						}
 						return ui.TextField(field, hint, style, gtx)
 					}

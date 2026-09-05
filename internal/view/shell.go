@@ -8,7 +8,6 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget/material"
 	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/style"
@@ -182,7 +181,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 					func(gtx layout.Context) layout.Dimensions {
 						children := make([]layout.FlexChild, 0)
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(style.Style.Theme, "").Layout)
+							return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.Label(&style.Style, "").Layout)
 						}))
 						for idx, i := range s.context.ModuleNavigationItems {
 							if i.SidebarLabel != "" && i.ID != module.PREFERENCE_ID {
@@ -205,7 +204,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 								}))
 							}
 						}
-						children = append(children, layout.Flexed(1, material.Body1(style.Style.Theme, " ").Layout))
+						children = append(children, layout.Flexed(1, ui.Label(&style.Style, " ").Layout))
 						for idx, i := range s.context.ModuleNavigationItems {
 							if i.SidebarLabel != "" && i.ID == module.PREFERENCE_ID {
 								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -293,7 +292,7 @@ func (s *Shell) layoutStatus(gtx layout.Context) layout.Dimensions {
 	items := s.context.CompactStatusElements(s.Style, gtx)
 	if len(items) == 0 {
 		items = append(items, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{}.Layout(gtx, material.Body1(s.Style.Theme, s.status).Layout)
+			return layout.Inset{}.Layout(gtx, ui.Label(s.Style, s.status).Layout)
 		}))
 	}
 

@@ -165,7 +165,7 @@ func (p *ItemsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 			message = "Loading please wait..."
 		}
 		gtx.Constraints = layout.Exact(image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y))
-		return layout.Center.Layout(gtx, material.Label(style.Theme, ui.Sp(15), message).Layout)
+		return layout.Center.Layout(gtx, ui.Label(style, message).Layout)
 	}
 
 	list := material.List(style.Theme, &p.list)
@@ -173,7 +173,7 @@ func (p *ItemsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter: ").Layout)
+					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, ui.Label(style, "Filter: ").Layout)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return ui.MaxedTextField(&p.filter, "Filter item list", style, gtx)
@@ -242,7 +242,7 @@ func itemDetails(details *ItemDetails, style *ui.Style, gtx layout.Context) layo
 	children := make([]layout.FlexChild, 0, len(details.Drops)+1)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(style.Theme, ui.Sp(17), "Drops")
+			label := ui.HeaderLabel(style, "Drops")
 			label.Font.Weight = font.SemiBold
 			return label.Layout(gtx)
 		})
@@ -304,7 +304,7 @@ func itemTextCell(weight float32, value string, alignEnd bool, style *ui.Style) 
 func itemDetailTextCell(weight float32, value string, alignEnd bool, style *ui.Style) layout.FlexChild {
 	return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
 		content := func(gtx layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), value).Layout)
+			return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, ui.Label(style, value).Layout)
 		}
 		if alignEnd {
 			return layout.E.Layout(gtx, content)

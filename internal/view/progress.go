@@ -52,12 +52,11 @@ func (s *Shell) layoutProgressContent(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{
 					Top: unit.Dp(12),
 				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Label(
+					label := ui.ColorLabel(s.Style.Palette.Muted, material.Label(
 						s.Style.Theme,
 						ui.Sp(14),
 						detail,
-					)
-					label.Color = s.Style.Palette.Muted
+					))
 					label.Alignment = text.Middle
 					return label.Layout(gtx)
 				})

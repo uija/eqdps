@@ -26,11 +26,10 @@ func (m *Module) showOverlay(style *ui.Style, gtx layout.Context) layout.Dimensi
 				return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Reset and Reload").Layout)
+							return layout.Inset{}.Layout(gtx, ui.HeaderLabel(style, "Reset and Reload").Layout)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							label := material.Label(style.Theme, ui.Sp(15), "This will reset the collected Plane of Sky database and trigger a full reparse of the logfile.\nIf you needed to use inventory updates and/or edited runes manually, you will have to do that again.")
-							label.Color = style.Palette.Muted
+							label := ui.ColorLabel(style.Palette.Muted, ui.Label(style, "This will reset the collected Plane of Sky database and trigger a full reparse of the logfile.\nIf you needed to use inventory updates and/or edited runes manually, you will have to do that again."))
 							return layout.Inset{Top: unit.Dp(16), Bottom: unit.Dp(16)}.Layout(gtx, label.Layout)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -51,7 +50,7 @@ func (m *Module) showOverlay(style *ui.Style, gtx layout.Context) layout.Dimensi
 func (m *Module) RenderTopRow(active string, style *ui.Style, gtx layout.Context, tools layout.FlexChild) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			layout.Flexed(1, material.Label(style.Theme, ui.Sp(17), "Plane of Sky - "+active).Layout),
+			layout.Flexed(1, ui.HeaderLabel(style, "Plane of Sky - "+active).Layout),
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					children := make([]layout.FlexChild, 0)
@@ -229,7 +228,7 @@ func (m *Module) RenderClassSection(index int, style *ui.Style, gtx layout.Conte
 				return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						gtx.Constraints.Min.X = gtx.Constraints.Max.X
-						return material.Label(style.Theme, ui.Sp(17), "Class Quests").Layout(gtx)
+						return ui.HeaderLabel(style, "Class Quests").Layout(gtx)
 					})
 				})
 			})
@@ -313,7 +312,7 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							children := make([]layout.FlexChild, 0)
-							children = append(children, layout.Flexed(1, material.Body1(style.Theme, "").Layout))
+							children = append(children, layout.Flexed(1, ui.Label(style, "").Layout))
 							if quest.Done || !m.config.RedoQuests[quest.Key].IsZero() {
 								if m.config.RedoQuests[quest.Key].IsZero() {
 									children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {

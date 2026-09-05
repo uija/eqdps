@@ -249,34 +249,28 @@ func (p *Preferences) RenderFontSettings(style *ui.Style, gtx layout.Context) la
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Font").Layout)
+				return layout.Inset{}.Layout(gtx, ui.HeaderLabel(style, "Font").Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Label(style.Theme, ui.Sp(15), "Selecting custom fonts can break the layout of the app, as fonts have completely different dimensions.")
-					label.Color = style.Palette.Muted
-					return label.Layout(gtx)
+					return ui.ColorLabel(style.Palette.Muted, ui.Label(style, "Selecting custom fonts can break the layout of the app, as fonts have completely different dimensions.")).Layout(gtx)
 				})
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "User font:").Layout)
+							return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "User font:").Layout)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							children := make([]layout.FlexChild, 0)
 							if p.ctx.Config.UIConfig.FontPath == "" {
 								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									label := material.Label(style.Theme, ui.Sp(15), "No font selected.")
-									label.Color = style.Palette.Muted
-									return label.Layout(gtx)
+									return ui.ColorLabel(style.Palette.Muted, ui.Label(style, "No font selected.")).Layout(gtx)
 								}))
 							} else {
 								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									label := material.Label(style.Theme, ui.Sp(15), p.ctx.Config.UIConfig.FontPath)
-									label.Color = style.Palette.Muted
-									return label.Layout(gtx)
+									return ui.ColorLabel(style.Palette.Muted, ui.Label(style, p.ctx.Config.UIConfig.FontPath)).Layout(gtx)
 								}))
 								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &p.reset_font_click, ui.Close, "Reset").Layout)
@@ -302,13 +296,11 @@ func (p *Preferences) RenderColorSettings(style *ui.Style, gtx layout.Context) l
 	}
 	children := make([]layout.FlexChild, 0)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return layout.Inset{}.Layout(gtx, material.Label(style.Theme, ui.Sp(17), "Colors").Layout)
+		return layout.Inset{}.Layout(gtx, ui.HeaderLabel(style, "Colors").Layout)
 	}))
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Inset{}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := material.Label(style.Theme, ui.Sp(15), "You can change all the colors used in this app. Press 'Reset' to set them back to the default color.")
-			label.Color = style.Palette.Muted
-			return label.Layout(gtx)
+			return ui.ColorLabel(style.Palette.Muted, ui.Label(style, "You can change all the colors used in this app. Press 'Reset' to set them back to the default color.")).Layout(gtx)
 		})
 	}))
 	for i := 0; i < paletteType.NumField(); i++ {
@@ -322,7 +314,7 @@ func (p *Preferences) RenderColorSettings(style *ui.Style, gtx layout.Context) l
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Min.X = min(200, gtx.Constraints.Max.X)
-					return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), label).Layout)
+					return layout.Inset{Left: unit.Dp(16), Right: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx, ui.Label(style, label).Layout)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					button := material.Button(style.Theme, &p.color_buttons[i], "          ")
@@ -363,7 +355,7 @@ func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) 
 func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "DPS Overlay opacity").Layout),
+			layout.Rigid(ui.Label(style, "DPS Overlay opacity").Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
 				return material.Slider(style.Theme, &p.overlay_opacity).Layout(gtx)
@@ -374,7 +366,7 @@ func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) 
 func (p *Preferences) RenderMainWindowFontScale(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "Main font scale").Layout),
+			layout.Rigid(ui.Label(style, "Main font scale").Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
 				return material.Slider(style.Theme, &p.mainwindow_font_scale).Layout(gtx)
@@ -424,7 +416,7 @@ func (p *Preferences) RenderEQLDbSettings(style *ui.Style, gtx layout.Context) l
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
-					return material.Label(style.Theme, ui.Sp(17), "eqldb.org").Layout(gtx)
+					return ui.HeaderLabel(style, "eqldb.org").Layout(gtx)
 				})
 			}),
 			p.RenderEQLDbConnect(style, gtx),

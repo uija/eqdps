@@ -88,9 +88,7 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 				}))
 			}
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Label(style.Theme, ui.Sp(15), section.text)
-				label.Color = style.Palette.Muted
-				return label.Layout(gtx)
+				return ui.ColorLabel(style.Palette.Muted, ui.Label(style, section.text)).Layout(gtx)
 			}))
 			for _, example := range section.examples {
 				example := example
@@ -98,14 +96,11 @@ func (m *Module) LayoutHelp(style *ui.Style, gtx layout.Context) layout.Dimensio
 					return layout.Inset{Top: unit.Dp(12)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								label := material.Label(style.Theme, ui.Sp(13), example.caption)
-								label.Color = style.Palette.Muted
+								label := ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(13), example.caption))
 								return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, label.Layout)
 							}),
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								label := material.Label(style.Theme, ui.Sp(15), example.text)
-								label.Color = style.Palette.Accent
-								return label.Layout(gtx)
+								return ui.ColorLabel(style.Palette.Accent, ui.Label(style, example.text)).Layout(gtx)
 							}),
 						)
 					})

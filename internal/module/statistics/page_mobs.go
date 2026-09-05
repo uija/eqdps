@@ -172,7 +172,7 @@ func (p *MobsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions
 		height := gtx.Constraints.Max.Y
 		gtx.Constraints = layout.Exact(image.Pt(width, height))
 		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return material.Label(style.Theme, unit.Sp(15), str).Layout(gtx)
+			return ui.Label(style, str).Layout(gtx)
 		})
 	}
 	list := material.List(style.Theme, &p.list)
@@ -180,7 +180,7 @@ func (p *MobsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(15), "Filter: ").Layout)
+					return layout.Inset{Top: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, ui.Label(style, "Filter: ").Layout)
 				}),
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return ui.MaxedTextField(&p.filter, "Filter mob list", style, gtx)
@@ -249,7 +249,7 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 	if len(details.Zones) > 0 {
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := material.Label(style.Theme, ui.Sp(17), "Zones")
+				label := ui.HeaderLabel(style, "Zones")
 				label.Font.Weight = font.SemiBold
 				return label.Layout(gtx)
 			})
@@ -261,13 +261,13 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", z.Kills)).Layout(gtx)
+									return ui.Label(style, fmt.Sprintf("%d", z.Kills)).Layout(gtx)
 								})
 							})
 						}),
 						layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return material.Label(style.Theme, ui.Sp(15), z.Name).Layout(gtx)
+								return ui.Label(style, z.Name).Layout(gtx)
 							})
 						}),
 					)
@@ -278,7 +278,7 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 	if len(details.Items) > 0 {
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := material.Label(style.Theme, ui.Sp(17), "Items")
+				label := ui.HeaderLabel(style, "Items")
 				label.Font.Weight = font.SemiBold
 				return label.Layout(gtx)
 			})
@@ -290,13 +290,13 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%d", i.Quantity)).Layout(gtx)
+									return ui.Label(style, fmt.Sprintf("%d", i.Quantity)).Layout(gtx)
 								})
 							})
 						}),
 						layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return material.Label(style.Theme, ui.Sp(15), fmt.Sprintf("%s (%.02f%%)", i.Name, i.DropChance)).Layout(gtx)
+								return ui.Label(style, fmt.Sprintf("%s (%.02f%%)", i.Name, i.DropChance)).Layout(gtx)
 							})
 						}),
 					)
@@ -335,7 +335,7 @@ func mobLinkCell(weight float32, mob *MobRow, style *ui.Style) layout.FlexChild 
 func mobTextCell(weight float32, value string, alignEnd bool, style *ui.Style) layout.FlexChild {
 	return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
 		content := func(gtx layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), value).Layout)
+			return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, ui.Label(style, value).Layout)
 		}
 		if alignEnd {
 			return layout.E.Layout(gtx, content)

@@ -23,7 +23,7 @@ func (m *Module) RenderRunesOverlay(style *ui.Style, gtx layout.Context) layout.
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Label(style.Theme, ui.Sp(17), "Edit your runes")
+						label := ui.HeaderLabel(style, "Edit your runes")
 						label.Font.Weight = font.SemiBold
 						return label.Layout(gtx)
 					})
@@ -60,7 +60,7 @@ func (m *Module) TextFieldRow(field *widget.Editor, title string, hint string, s
 		return layout.Inset{Left: unit.Dp(0)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					return layout.UniformInset(unit.Dp(10)).Layout(gtx, material.Label(style.Theme, ui.Sp(15), title).Layout)
+					return layout.UniformInset(unit.Dp(10)).Layout(gtx, ui.Label(style, title).Layout)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
