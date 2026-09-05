@@ -97,7 +97,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 			select {
 			case row := <-m.rows:
 				if m.replay.Load() {
-					m.combat.endTimedOutFights(row.Timestamp)
+					m.combat.endTimedOutFights(row.Timestamp, time.Duration(m.ctx.Config.CombatTimeout)*time.Second)
 				}
 				if m.combat.AddEvent(row) {
 					if !m.replay.Load() {
@@ -105,8 +105,9 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 					}
 				}
 			case now := <-ticker.C:
-				if !m.replay.Load() && m.combat.endTimedOutFights(now) {
+				if !m.replay.Load() && m.combat.endTimedOutFights(now, time.Duration(m.ctx.Config.CombatTimeout)*time.Second) {
 					m.publishOverlayFight()
+					m.invalidateFunc()
 				}
 			case <-m.stop:
 				return

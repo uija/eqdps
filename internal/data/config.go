@@ -67,6 +67,7 @@ type Config struct {
 	EQLDbConfig     EQLDbConfig   `json:"eqldb"`
 	SkyConfig       SkyConfig     `json:"sky"`
 	UIConfig        UIConfig      `json:"ui"`
+	CombatTimeout   int           `json:"combat_timeout"`
 	CheckForUpdates bool          `json:"checkforupdates"`
 	LastSeenVersion string        `json:"last_seen_version"`
 }
@@ -122,6 +123,9 @@ func GetConfig() (*Config, error) {
 	}
 	if config.UIConfig.MainWindowFontScale < 0.1 {
 		config.UIConfig.MainWindowFontScale = 1.0
+	}
+	if config.CombatTimeout < 20 { // Initial value
+		config.CombatTimeout = 40
 	}
 	return config, nil
 }

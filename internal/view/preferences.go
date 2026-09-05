@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"reflect"
@@ -28,6 +29,7 @@ type Preferences struct {
 	overlay_opacity           widget.Float
 	overlay_font_scale        widget.Float
 	mainwindow_font_scale     widget.Float
+	combat_timeout            widget.Float
 	check_for_updates         widget.Bool
 	open_eqlconnection_window widget.Clickable
 	upload_sky_items          widget.Bool
@@ -63,6 +65,7 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.check_for_updates.Value = ctx.Config.CheckForUpdates
 	p.sky_parse_inventory.Value = ctx.Config.SkyConfig.ParseInventoryData
 	p.mainwindow_font_scale.Value = (ctx.Config.UIConfig.MainWindowFontScale - 0.5) * 0.9
+	p.combat_timeout.Value = float32(ctx.Config.CombatTimeout-20) / 60.0
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -92,7 +95,7 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 					list := material.List(style.Theme, &p.list)
 					return list.Layout(
 						gtx,
-						5,
+						6,
 						func(gtx layout.Context, index int) layout.Dimensions {
 							switch index {
 							case 0:
@@ -100,12 +103,14 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 									return p.RenderWindowSettings(style, gtx)
 								}))
 							case 1:
-								return p.RenderUpdatesSettings(style, gtx)
+								return p.RenderCombatSettings(style, gtx)
 							case 2:
-								return p.RenderEQLDbSettings(style, gtx)
+								return p.RenderUpdatesSettings(style, gtx)
 							case 3:
-								return p.RenderFontSettings(style, gtx)
+								return p.RenderEQLDbSettings(style, gtx)
 							case 4:
+								return p.RenderFontSettings(style, gtx)
+							case 5:
 								return p.RenderColorSettings(style, gtx)
 							}
 							return layout.Dimensions{}
@@ -159,6 +164,11 @@ func (p *Preferences) Update(gtx layout.Context) {
 		p.ctx.Config.UIConfig.MainWindowFontScale = min(1.4, max(val, 0.5))
 		ui.FontScaling = p.ctx.Config.UIConfig.MainWindowFontScale
 		p.config_changed.Store(true)
+	}
+	if p.combat_timeout.Dragging() {
+		val := 20 + int(p.combat_timeout.Value*60.0)
+		p.ctx.Config.CombatTimeout = val
+		p.ctx.Config.Save()
 	}
 	if p.allow_eqldb_contribution.Value != p.ctx.Config.EQLDbConfig.ContributeKillAndLootData {
 		p.ctx.Config.EQLDbConfig.ContributeKillAndLootData = p.allow_eqldb_contribution.Value
@@ -381,6 +391,31 @@ func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
 				return material.Slider(style.Theme, &p.overlay_font_scale).Layout(gtx)
+			}),
+		)
+	})
+}
+func (p *Preferences) RenderCombatSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{}.Layout(gtx, ui.HeaderLabel(style, "Combat").Layout)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(ui.Label(style, "Combat Timeout").Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
+								return material.Slider(style.Theme, &p.combat_timeout).Layout(gtx)
+							}),
+							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Left: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx, ui.Label(style, fmt.Sprintf("%d Seconds", p.ctx.Config.CombatTimeout)).Layout)
+							}),
+						)
+					}),
+				)
 			}),
 		)
 	})

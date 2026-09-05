@@ -60,12 +60,12 @@ func (c *Combat) findUnvalidatedFightFor(name string) (*data.Fight, bool) {
 	}
 	return nil, false
 }
-func (c *Combat) endTimedOutFights(now time.Time) bool {
+func (c *Combat) endTimedOutFights(now time.Time, timeout time.Duration) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	changed := false
 	for name, fight := range c.activeFights {
-		if now.Sub(fight.End) > 20*time.Second {
+		if now.Sub(fight.End) > timeout {
 			fight.EndReason = data.END_REASON_TIMEOUT
 			delete(c.activeFights, name)
 			changed = true
