@@ -9,7 +9,9 @@ client.
 Other EverQuest versions may work where their log messages use the same format,
 but EverQuest Legends is the project's main compatibility target.
 
-```eqdps runs natively on Linux—no emulation required!```
+## Linux
+
+```eqdps runs natively on Linux - no emulation required!```
 
 ## Download
 
