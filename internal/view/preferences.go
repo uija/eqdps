@@ -96,7 +96,9 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 						func(gtx layout.Context, index int) layout.Dimensions {
 							switch index {
 							case 0:
-								return p.RenderWindowSettings(style, gtx)
+								return layout.Flex{}.Layout(gtx, layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+									return p.RenderWindowSettings(style, gtx)
+								}))
 							case 1:
 								return p.RenderUpdatesSettings(style, gtx)
 							case 2:
@@ -347,15 +349,16 @@ func (p *Preferences) RenderWindowSettings(style *ui.Style, gtx layout.Context) 
 	}
 	children = append(children, p.RenderOverlayFontScale(style, gtx))
 	children = append(children, p.RenderMainWindowFontScale(style, gtx))
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
-	})
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }
 func (p *Preferences) RenderOverlayOpacity(style *ui.Style, gtx layout.Context) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "DPS Overlay opacity").Layout),
-			layout.Rigid(material.Slider(style.Theme, &p.overlay_opacity).Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
+				return material.Slider(style.Theme, &p.overlay_opacity).Layout(gtx)
+			}),
 		)
 	})
 }
@@ -363,7 +366,10 @@ func (p *Preferences) RenderMainWindowFontScale(style *ui.Style, gtx layout.Cont
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "Main font scale").Layout),
-			layout.Rigid(material.Slider(style.Theme, &p.mainwindow_font_scale).Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
+				return material.Slider(style.Theme, &p.mainwindow_font_scale).Layout(gtx)
+			}),
 		)
 	})
 }
@@ -371,7 +377,10 @@ func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.Label(style.Theme, ui.Sp(15), "DPS Overlay font scale").Layout),
-			layout.Rigid(material.Slider(style.Theme, &p.overlay_font_scale).Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = min(600, gtx.Constraints.Max.X)
+				return material.Slider(style.Theme, &p.overlay_font_scale).Layout(gtx)
+			}),
 		)
 	})
 }

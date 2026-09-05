@@ -186,6 +186,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(8)).Layout(gtx, material.Body1(style.Style.Theme, "").Layout)
 						}))
+						module_active := false
 						for idx, i := range s.context.ModuleNavigationItems {
 							if i.SidebarLabel != "" {
 								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -194,6 +195,7 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 									link.FontWeight = font.SemiBold
 									if i.Active {
 										link.TextColor = style.Style.Palette.Accent
+										module_active = true
 									} else {
 										link.TextColor = style.Style.Palette.Muted
 									}
@@ -213,6 +215,9 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 							link.Size = 16
 							link.FontWeight = font.SemiBold
 							link.TextColor = style.Style.Palette.Muted
+							if !module_active {
+								link.TextColor = style.Style.Palette.Accent
+							}
 							link.Padding[ui.PADDING_BOTTOM] = 8
 							link.Padding[ui.PADDING_TOP] = 16
 							link.Padding[ui.PADDING_LEFT] = 16
@@ -266,6 +271,7 @@ func (s *Shell) update(gtx layout.Context) {
 		}
 	}
 	if s.settingsClick.Clicked(gtx) {
+		s.context.ActivateModule("Preferences")
 		s.context.SetMainView(s.preferences.Layout)
 	}
 	s.context.Update(gtx)
