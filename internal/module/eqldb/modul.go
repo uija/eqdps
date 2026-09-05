@@ -265,11 +265,11 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 }
 
 func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx,
+	return layout.UniformInset(unit.Dp(8)).Layout(gtx,
 		func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Top: unit.Dp(16), Bottom: unit.Dp(16)}.Layout(gtx, ui.PageTitle(style, "eqldb.org integration", gtx).Layout)
+					return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, ui.PageTitle(style, "eqldb.org integration", gtx).Layout)
 				}),
 				layout.Rigid(ui.ColoredLabel(style.Theme, 15, style.Palette.Muted,
 					"eqldb.org is a website that presents player profiles to others like Magelo does for EQ Live.\nTo use eqldb.org, you upload an export of you profile to the website, then configure your level, race and classes.\neqdps can do that for you. All you need to do is connect eqdps to the website and create a macro:",

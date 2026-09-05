@@ -78,7 +78,7 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 		}
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return material.Label(style.Theme, ui.Sp(15), "DPS Tracker").Layout(gtx)
+				return material.Label(style.Theme, ui.Sp(17), "DPS Tracker").Layout(gtx)
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				link := ui.IconLink(style, &m.overlayClick, icon, "Show Overlay")

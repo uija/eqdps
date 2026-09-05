@@ -32,7 +32,7 @@ func (m *Module) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	)
 }
 func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		if m.config_path == "" {
 			return material.Label(style.Theme, ui.Sp(15), "You need to open a log.").Layout(gtx)
 		} else if m.loading.Load() {
@@ -40,7 +40,7 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Bottom: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return material.Label(style.Theme, ui.Sp(17), "Macros").Layout(gtx)
 				})
 			}),

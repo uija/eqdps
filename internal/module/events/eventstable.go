@@ -10,7 +10,7 @@ import (
 )
 
 func (m *Module) RenderEventsTable(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return m.RenderEventsTableHeader(style, gtx)
