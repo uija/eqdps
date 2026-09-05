@@ -396,12 +396,12 @@ func (p *Preferences) RenderOverlayFontScale(style *ui.Style, gtx layout.Context
 	})
 }
 func (p *Preferences) RenderCombatSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{}.Layout(gtx, ui.HeaderLabel(style, "Combat").Layout)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.HeaderLabel(style, "Combat").Layout)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Left: unit.Dp(32), Top: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(ui.Label(style, "Combat Timeout").Layout),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -416,9 +416,9 @@ func (p *Preferences) RenderCombatSettings(style *ui.Style, gtx layout.Context) 
 						)
 					}),
 				)
-			}),
-		)
-	})
+			})
+		}),
+	)
 }
 func (p *Preferences) RenderUpdatesSettings(style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(32)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
