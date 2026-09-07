@@ -2,7 +2,6 @@ package data
 
 import (
 	"log"
-	"strings"
 	"time"
 
 	"gioui.org/widget"
@@ -123,9 +122,11 @@ func (f *Fight) AddDamageEvent(e *DamageEvent, autoOpenYou bool) {
 	combatant, ok := f.Combatants[e.NormalizedSource]
 	if !ok {
 		combatant = NewCombatant(e.Source, e.NormalizedSource)
-		if autoOpenYou && strings.EqualFold(e.Source, "You") {
-			combatant.Open = true
-		}
+		/*
+			if autoOpenYou && strings.EqualFold(e.Source, "You") {
+				combatant.Open = true
+			}
+		*/
 		f.Combatants[e.NormalizedSource] = combatant
 	}
 	if e.Participation {

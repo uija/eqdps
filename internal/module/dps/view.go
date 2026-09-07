@@ -30,6 +30,12 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 			}
 		}
 	}
+	sort.Slice(m.displayHistory, func(i, j int) bool {
+		if m.displayHistory[i].EndReason == "" && m.displayHistory[j].EndReason != "" {
+			return false
+		}
+		return m.displayHistory[i].LastParticipate.Before(m.displayHistory[j].LastParticipate)
+	})
 
 	children := make([]layout.FlexChild, 0)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderPageHeader(style, gtx) }))
@@ -87,7 +93,7 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 				return material.Label(style.Theme, ui.Sp(ui.HEADER), "DPS Tracker").Layout(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				link := ui.IconLink(style, &m.autoOpenFirst, autoIcon, "Auto open 'You'")
+				link := ui.IconLink(style, &m.autoOpenFirst, autoIcon, "Expand latest")
 				return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, link.Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -143,6 +149,16 @@ func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.D
 }
 func (m *Module) RenderFight(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	fight := m.displayHistory[index]
+	if index == len(m.displayHistory)-1 && m.ctx.Config.AutoOpenFirstRow {
+		for i, c := range fight.Combatants {
+			if strings.EqualFold(c.Name, "you") && !c.Open {
+				fight.Combatants[i].Open = true
+				defer func() {
+					fight.Combatants[i].Open = false
+				}()
+			}
+		}
+	}
 
 	rows := make([]layout.FlexChild, 0)
 	rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderFightHeader(fight, style, gtx) }))
@@ -183,8 +199,8 @@ func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layou
 								cnt = "Active fight"
 							}
 
-							label := ui.ColorLabel(color, material.Body2(style.Theme, cnt))
-							return layout.Inset{Left: unit.Dp(8), Top: unit.Dp(4)}.Layout(gtx, label.Layout)
+							label := ui.ColorLabel(color, material.Label(style.Theme, ui.Sp(14), cnt))
+							return layout.Inset{Left: unit.Dp(16), Top: unit.Dp(8)}.Layout(gtx, label.Layout)
 						}),
 					)
 				}),
@@ -206,7 +222,9 @@ func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layou
 					minutes := int(dur.Minutes())
 					seconds := int(dur.Seconds()) % 60
 					label := ui.Label(style, fmt.Sprintf("%02d:%02d", minutes, seconds))
-					return ui.RightAlignLabel(gtx, label)
+					return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.RightAlignLabel(gtx, label)
+					})
 				}),
 			)
 		})
