@@ -54,6 +54,10 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	if context.Config != nil && context.Config.UIConfig.Palette != nil {
 		style.Style.Palette = *context.Config.UIConfig.Palette
 	}
+	if !style.Style.ValidatePalette() {
+		context.Config.UIConfig.Palette = &style.Style.Palette
+		context.Config.Save()
+	}
 
 	style.Style.Theme.Palette.Bg = style.Style.Palette.Window
 	style.Style.Theme.Palette.Fg = style.Style.Palette.Text

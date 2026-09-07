@@ -36,9 +36,10 @@ type Module struct {
 	filterEditor widget.Editor
 	filterReset  widget.Clickable
 
-	overlayClick   widget.Clickable
-	overlayClosed  chan struct{}
-	overlayTimeout time.Time
+	overlayClick     widget.Clickable
+	showAsChartClick widget.Clickable
+	overlayClosed    chan struct{}
+	overlayTimeout   time.Time
 
 	invalidateFunc func()
 
@@ -219,6 +220,10 @@ func (m *Module) Update(gtx layout.Context) {
 			m.ctx.Config.OpenOverlay = false
 			m.ctx.Config.Save()
 		}
+	}
+	if m.showAsChartClick.Clicked(gtx) {
+		m.ctx.Config.ShowDpsAsCharts = !m.ctx.Config.ShowDpsAsCharts
+		m.ctx.Config.Save()
 	}
 	select {
 	case <-m.overlayClosed:
