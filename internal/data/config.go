@@ -58,19 +58,20 @@ type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`
 }
 type Config struct {
-	LastLogfile     string        `json:"last_logfile"`
-	RecentLogFiles  []string      `json:"recent_logfiles"`
-	OpenOverlay     bool          `json:"open_overlay"`
-	ShowDpsAsCharts bool          `json:"show_dps_as_charts"`
-	Events          []EventConfig `json:"events"`
-	Volume          float32       `json:"volume"`
-	SpellIconSet    string        `json:"spell_icon_set"`
-	EQLDbConfig     EQLDbConfig   `json:"eqldb"`
-	SkyConfig       SkyConfig     `json:"sky"`
-	UIConfig        UIConfig      `json:"ui"`
-	CombatTimeout   int           `json:"combat_timeout"`
-	CheckForUpdates bool          `json:"checkforupdates"`
-	LastSeenVersion string        `json:"last_seen_version"`
+	LastLogfile      string        `json:"last_logfile"`
+	RecentLogFiles   []string      `json:"recent_logfiles"`
+	OpenOverlay      bool          `json:"open_overlay"`
+	ShowDpsAsCharts  bool          `json:"show_dps_as_charts"`
+	AutoOpenFirstRow bool          `json:"auto_open_first_row"`
+	Events           []EventConfig `json:"events"`
+	Volume           float32       `json:"volume"`
+	SpellIconSet     string        `json:"spell_icon_set"`
+	EQLDbConfig      EQLDbConfig   `json:"eqldb"`
+	SkyConfig        SkyConfig     `json:"sky"`
+	UIConfig         UIConfig      `json:"ui"`
+	CombatTimeout    int           `json:"combat_timeout"`
+	CheckForUpdates  bool          `json:"checkforupdates"`
+	LastSeenVersion  string        `json:"last_seen_version"`
 }
 
 func (c *Config) Save() error {

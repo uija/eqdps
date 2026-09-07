@@ -2,6 +2,7 @@ package data
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"gioui.org/widget"
@@ -102,7 +103,7 @@ func (f *Fight) HasParticipant(name string) bool {
 	_, ok := f.Participants[name]
 	return ok
 }
-func (f *Fight) AddDamageEvent(e *DamageEvent) {
+func (f *Fight) AddDamageEvent(e *DamageEvent, autoOpenYou bool) {
 	if f.Start.IsZero() {
 		f.Start = e.Time
 		f.End = e.Time
@@ -121,6 +122,9 @@ func (f *Fight) AddDamageEvent(e *DamageEvent) {
 	combatant, ok := f.Combatants[e.NormalizedSource]
 	if !ok {
 		combatant = NewCombatant(e.Source, e.NormalizedSource)
+		if autoOpenYou && strings.EqualFold(e.Source, "You") {
+			combatant.Open = true
+		}
 		f.Combatants[e.NormalizedSource] = combatant
 	}
 	if e.Participation {

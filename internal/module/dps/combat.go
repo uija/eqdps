@@ -30,6 +30,8 @@ type Combat struct {
 
 	lastParticipatedFight *data.Fight
 
+	AutoOpenYou bool
+
 	mu sync.RWMutex
 }
 
@@ -193,7 +195,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 	event, ok := c.damageFromLogRow(e)
 	if ok {
 		fight := c.getActiveFight(event)
-		fight.AddDamageEvent(event)
+		fight.AddDamageEvent(event, c.AutoOpenYou)
 		if event.Participation {
 			c.lastParticipatedFight = fight
 		}

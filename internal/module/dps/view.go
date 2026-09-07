@@ -79,9 +79,17 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 		if m.ctx.Config.ShowDpsAsCharts {
 			chartIcon = ui.CheckBox
 		}
+		autoIcon := ui.CheckBoxOutline
+		if m.ctx.Config.AutoOpenFirstRow {
+			autoIcon = ui.CheckBox
+		}
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return material.Label(style.Theme, ui.Sp(ui.HEADER), "DPS Tracker").Layout(gtx)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				link := ui.IconLink(style, &m.autoOpenFirst, autoIcon, "Auto open 'You'")
+				return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, link.Layout)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				link := ui.IconLink(style, &m.showAsChartClick, chartIcon, "Display as chart")

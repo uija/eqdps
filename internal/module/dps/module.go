@@ -38,6 +38,7 @@ type Module struct {
 
 	overlayClick     widget.Clickable
 	showAsChartClick widget.Clickable
+	autoOpenFirst    widget.Clickable
 	overlayClosed    chan struct{}
 	overlayTimeout   time.Time
 
@@ -89,6 +90,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	m.startOverlay = m.ctx.Config.OpenOverlay
 	m.filterEditor.SingleLine = true
 	m.combat = newCombat()
+	m.combat.AutoOpenYou = m.ctx.Config.AutoOpenFirstRow
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -166,11 +168,13 @@ func (m *Module) Shutdown() {
 
 func (m *Module) OnLogOpen(characterName string, serverName string, size int64, path string) bool {
 	m.combat = newCombat()
+	m.combat.AutoOpenYou = m.ctx.Config.AutoOpenFirstRow
 	return true
 }
 func (m *Module) OnReplayStart() {
 	m.replay.Store(true)
 	m.combat = newCombat()
+	m.combat.AutoOpenYou = m.ctx.Config.AutoOpenFirstRow
 }
 func (m *Module) OnReplayEnd() {
 	m.replay.Store(false)
@@ -224,6 +228,11 @@ func (m *Module) Update(gtx layout.Context) {
 	if m.showAsChartClick.Clicked(gtx) {
 		m.ctx.Config.ShowDpsAsCharts = !m.ctx.Config.ShowDpsAsCharts
 		m.ctx.Config.Save()
+	}
+	if m.autoOpenFirst.Clicked(gtx) {
+		m.ctx.Config.AutoOpenFirstRow = !m.ctx.Config.AutoOpenFirstRow
+		m.ctx.Config.Save()
+		m.combat.AutoOpenYou = m.ctx.Config.AutoOpenFirstRow
 	}
 	select {
 	case <-m.overlayClosed:
