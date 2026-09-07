@@ -193,6 +193,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		data.LogRowEventTypeSlainBy,
 		data.LogRowEventTypeSomeoneDied,
 		data.LogRowEventTypeYouSlain,
+		data.LogRowEventTypeFailedMeleeOthers,
 		data.LogRowEventTypeFailedMelee:
 
 		m.rows <- event

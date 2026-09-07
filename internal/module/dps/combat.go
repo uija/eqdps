@@ -294,7 +294,7 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 	return true
 }
 func resultForLogFailedMelee(e *data.LogRowEvent) data.AttackResult {
-	if e.Type != data.LogRowEventTypeFailedMelee {
+	if e.Type != data.LogRowEventTypeFailedMelee && e.Type != data.LogRowEventTypeFailedMeleeOthers {
 		return data.AttackResultHit
 	}
 	if e.Data[4] == "Riposte" {
@@ -303,13 +303,17 @@ func resultForLogFailedMelee(e *data.LogRowEvent) data.AttackResult {
 	failure := e.Data[3]
 
 	switch {
-	case strings.HasSuffix(failure, " dodges"):
+	case strings.HasSuffix(failure, " dodge"),
+		strings.HasSuffix(failure, " dodges"):
 		return data.AttackResultDodge
-	case strings.HasSuffix(failure, " parries"):
+	case strings.HasSuffix(failure, " parries"),
+		strings.HasSuffix(failure, " parry"):
 		return data.AttackResultParry
-	case strings.HasSuffix(failure, " blocks"):
+	case strings.HasSuffix(failure, " blocks"),
+		strings.HasSuffix(failure, " block"):
 		return data.AttackResultBlock
-	case strings.HasSuffix(failure, " ripostes"):
+	case strings.HasSuffix(failure, " ripostes"),
+		strings.HasSuffix(failure, " riposte"):
 		return data.AttackResultRiposte
 	case strings.HasSuffix(failure, " magical skin absorbs the blow"):
 		return data.AttackResultAbsorb
@@ -332,7 +336,13 @@ func (c *Combat) damageFromLogRow(e *data.LogRowEvent) (*data.DamageEvent, bool)
 			de.Participation = true
 		}
 		return de, true
-
+	case data.LogRowEventTypeFailedMeleeOthers:
+		result := resultForLogFailedMelee(e)
+		de := data.NewDamageEvent(result, e.Timestamp, e.Data[1], e.Data[3], e.Data[2], "0", e.Data[2], e.Data[5], e.Type)
+		if result == data.AttackResultRiposte {
+			de.Riposte = true
+		}
+		return de, true
 	case data.LogRowEventTypeDamage:
 		if len(e.Data) < 8 {
 			return nil, false

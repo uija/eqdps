@@ -69,7 +69,6 @@ func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }
 func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	//return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 	return layout.UniformInset(unit.Dp(ui.PAGE_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		icon := ui.CheckBoxOutline
 		if m.ctx.Overlay != nil {
@@ -101,7 +100,6 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 			}),
 		)
 	})
-	//})
 }
 func (m *Module) RenderFilterRow(style *ui.Style, gtx layout.Context) layout.Dimensions {
 

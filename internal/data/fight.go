@@ -65,7 +65,8 @@ func (c *Combatant) AddDamageEvent(e *DamageEvent) {
 
 	category := ""
 	switch e.Type {
-	case LogRowEventTypeFailedMelee:
+	case LogRowEventTypeFailedMelee,
+		LogRowEventTypeFailedMeleeOthers:
 		category = CATEGORY_MELEE
 	case LogRowEventTypeDamage:
 		if e.IsSpell() {

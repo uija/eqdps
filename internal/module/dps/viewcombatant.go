@@ -73,7 +73,7 @@ func (m *Module) GenerateSortedDetails(c *data.Combatant, combatantIsYou bool, s
 			barcolor = style.Palette.BarTwo
 		}
 		factor := 1.0 / float32(overall) * float32(details.DamageData.Damage)
-		showDetails := strings.EqualFold(details.Category, "melee") && combatantIsYou
+		showDetails := strings.EqualFold(details.Category, "melee")
 		rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Stack{}.Layout(gtx,
 				layout.Expanded(func(gtx layout.Context) layout.Dimensions {
@@ -94,7 +94,7 @@ func (m *Module) GenerateCategorizedDetails(c *data.Combatant, combatantIsYou bo
 	rows := make([]layout.FlexChild, 0)
 	for _, catname := range data.DamageCategories {
 		if cat, ok := c.Categories[catname]; ok {
-			showDetails := strings.EqualFold(catname, "melee") && combatantIsYou
+			showDetails := strings.EqualFold(catname, "melee")
 			rows = append(rows,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					// Spacing to the top, so Category names dont directly connect to Combatant rows
