@@ -25,6 +25,9 @@ var Style = ui.Style{
 		Inactive: color.NRGBA{R: 190, G: 155, B: 74, A: 255},
 		Done:     color.NRGBA{R: 120, G: 120, B: 120, A: 255},
 
+		BarOne: color.NRGBA{R: 71, G: 1, B: 93, A: 255},
+		BarTwo: color.NRGBA{R: 45, G: 39, B: 80, A: 255},
+
 		Yes: color.NRGBA{R: 190, G: 242, B: 199, A: 255},
 		No:  color.NRGBA{R: 242, G: 190, B: 191, A: 255},
 

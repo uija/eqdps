@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"image/color"
 	"os"
+	"reflect"
 
 	"gioui.org/font"
 	"gioui.org/font/opentype"
@@ -35,6 +37,26 @@ func (s Style) LoadFont(path string) error {
 	)
 	s.Theme.Face = font.Typeface("UserFont")
 	return nil
+}
+func (s *Style) ValidatePalette() bool {
+	paletteValue := reflect.ValueOf(&s.Palette).Elem()
+	defaultValue := reflect.ValueOf(&s.DefaultPalette).Elem()
+	paletteType := paletteValue.Type()
+	changed := false
+	for i := 0; i < paletteType.NumField(); i++ {
+		dest := paletteValue.Field(i)
+		colorValue := dest.Interface().(color.NRGBA)
+		if colorValue.R == 0 && colorValue.G == 0 && colorValue.B == 0 && colorValue.A == 0 {
+			source := defaultValue.Field(i)
+			dest.Set(source)
+			changed = true
+		}
+	}
+	if changed {
+		s.Theme.Palette.Bg = s.Palette.Window
+		s.Theme.Palette.Fg = s.Palette.Text
+	}
+	return !changed // Return if the palette was valid
 }
 func (s Style) ResetFont() {
 	s.Theme.Shaper = s.OriginalShaper

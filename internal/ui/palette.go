@@ -21,6 +21,9 @@ type Palette struct {
 	Yes color.NRGBA `json:"yes" label:"Positive"`
 	No  color.NRGBA `json:"no" label:"Negative"`
 
+	BarOne color.NRGBA `json:"bar_one" label:"Bar Color One"`
+	BarTwo color.NRGBA `json:"bar_two" label:"Bar Color Two"`
+
 	Link        color.NRGBA `json:"link" label:"Links"`
 	LinkHover   color.NRGBA `json:"link_hover" label:"Hovered links"`
 	LinkClicked color.NRGBA `json:"link_clicked" label:"Visited links"`

@@ -61,6 +61,7 @@ type Config struct {
 	LastLogfile     string        `json:"last_logfile"`
 	RecentLogFiles  []string      `json:"recent_logfiles"`
 	OpenOverlay     bool          `json:"open_overlay"`
+	ShowDpsAsCharts bool          `json:"show_dps_as_charts"`
 	Events          []EventConfig `json:"events"`
 	Volume          float32       `json:"volume"`
 	SpellIconSet    string        `json:"spell_icon_set"`
