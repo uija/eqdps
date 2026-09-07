@@ -11,6 +11,8 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/widget"
+	"gioui.org/x/markdown"
+	"gioui.org/x/richtext"
 	achievments "github.com/uija/eqdps/internal/achievements"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/module"
@@ -36,6 +38,9 @@ type Module struct {
 	macro_copy_click widget.Clickable
 	filter           widget.Editor
 	filter_clear     widget.Clickable
+
+	helplist widget.List
+	helpText richtext.InteractiveText
 }
 
 func NewModule() *Module {
@@ -53,8 +58,10 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	ctx.RegisterReplayStart(m.OnReplayStart)
 	ctx.RegisterReplayEnd(m.OnReplayEnd)
 	ctx.RegisterUpdate(m.Update)
+	//ctx.AddHelpItem("Achievements", m.LayoutHelp)
 	m.list.Axis = layout.Vertical
 	m.filter.SingleLine = true
+	m.helplist.Axis = layout.Vertical
 	return nil
 }
 func (m *Module) OnLogRow(e *data.LogRowEvent) {
@@ -108,6 +115,19 @@ func (m *Module) Update(gtx layout.Context) {
 	}
 	if m.loading.Load() {
 		return
+	}
+	for {
+		span, event, ok := m.helpText.Update(gtx)
+		if !ok {
+			break
+		}
+		if event.Type != richtext.Click {
+			continue
+		}
+		url, ok := span.Get(markdown.MetadataURL).(string)
+		if ok && url != "" {
+			native.OpenURL(url)
+		}
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
