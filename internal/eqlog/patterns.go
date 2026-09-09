@@ -23,6 +23,7 @@ type eventPattern struct {
 }
 
 var eventPatterns = []eventPattern{
+	{data.LogRowEventTypeFaction, regexp.MustCompile(`^Your faction standing with (.+?) (?:has been adjusted by ([+-]?[0-9]+)|could not possibly get any (better|worse))\.$`), []string{"Your faction standing with "}},
 	{data.LogRowEventTypeCast, regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`), []string{" begin", " cast"}},
 	{data.LogRowEventTypeDamage, regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|sting|stings|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`), []string{" for ", " point", "damage"}},
 	{data.LogRowEventTypeFailedMelee, regexp.MustCompile(`^You try to (backstab|bash|bite|cleave|claw|crush|frenzy on|hit|kick|maul|pierce|punch|reave|shoot|slash|slice|smash|smite|sting|strike) (.+?), but (miss|.+? (?:blocks|dodges|parries|ripostes)|.+? magical skin absorbs the blow)!(?: \(([^)]+)\))?$`), []string{"You try to ", ", but "}},

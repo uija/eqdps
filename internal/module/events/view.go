@@ -6,7 +6,6 @@ import (
 	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"github.com/uija/eqdps/internal/data"
 	"github.com/uija/eqdps/internal/ui"
@@ -103,22 +102,22 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 				children := make([]layout.FlexChild, 0)
 				children = append(children,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_spell_click, ui.Book, "Add Spell"))
+						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, ui.RenderLinkAsButton(style, &m.add_spell_click, ui.Book, "Add Spell"))
 					}),
 				)
 				children = append(children,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_timer_click, ui.Timer, "Add Timer"))
+						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, ui.RenderLinkAsButton(style, &m.add_timer_click, ui.Timer, "Add Timer"))
 					}),
 				)
 				children = append(children,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_text_click, ui.Text, "Add Text"))
+						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, ui.RenderLinkAsButton(style, &m.add_text_click, ui.Text, "Add Text"))
 					}),
 				)
 				children = append(children,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, RenderLinkAsButton(style, &m.add_regexp_click, ui.RegExp, "Add RegExp"))
+						return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, ui.RenderLinkAsButton(style, &m.add_regexp_click, ui.RegExp, "Add RegExp"))
 					}),
 				)
 
@@ -126,14 +125,4 @@ func (m *Module) RenderPageHeader(style *ui.Style, gtx layout.Context) layout.Di
 			}),
 		)
 	})
-}
-func RenderLinkAsButton(style *ui.Style, clickable *widget.Clickable, icon *widget.Icon, text string) layout.Widget {
-	link := ui.IconLink(style, clickable, icon, text)
-	link.Padding[ui.PADDING_TOP] = 4
-	link.Padding[ui.PADDING_BOTTOM] = 4
-	link.Padding[ui.PADDING_LEFT] = 8
-	link.Padding[ui.PADDING_RIGHT] = 8
-	return func(gtx layout.Context) layout.Dimensions {
-		return ui.ColoredBorderedRow(gtx, style.Palette.Panel, link.Layout)
-	}
 }

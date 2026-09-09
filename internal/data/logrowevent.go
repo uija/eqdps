@@ -38,6 +38,7 @@ const (
 	LogRowEventTypeFailedMelee
 	LogRowEventTypeFailedMeleeOthers
 	LogRowEventTypeAchievementExport
+	LogRowEventTypeFaction
 )
 
 type LogLandmark struct {

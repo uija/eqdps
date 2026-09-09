@@ -72,6 +72,7 @@ type Config struct {
 	CombatTimeout    int           `json:"combat_timeout"`
 	CheckForUpdates  bool          `json:"checkforupdates"`
 	LastSeenVersion  string        `json:"last_seen_version"`
+	KnownFactions    []string      `json:"known_factions"`
 }
 
 func (c *Config) Save() error {
@@ -128,6 +129,9 @@ func GetConfig() (*Config, error) {
 	}
 	if config.CombatTimeout < 20 { // Initial value
 		config.CombatTimeout = 40
+	}
+	if config.KnownFactions == nil {
+		config.KnownFactions = make([]string, 0)
 	}
 	return config, nil
 }

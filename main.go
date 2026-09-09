@@ -17,6 +17,7 @@ import (
 	"github.com/uija/eqdps/internal/module/eqldb"
 	"github.com/uija/eqdps/internal/module/equipment"
 	"github.com/uija/eqdps/internal/module/events"
+	"github.com/uija/eqdps/internal/module/faction"
 	"github.com/uija/eqdps/internal/module/macros"
 	"github.com/uija/eqdps/internal/module/sky"
 	"github.com/uija/eqdps/internal/module/statistics"
@@ -63,6 +64,7 @@ func main() {
 		context.RegisterModule(equipment.NewModule())
 		context.RegisterModule(macros.NewModule())
 		context.RegisterModule(ach.NewModule())
+		context.RegisterModule(faction.NewModule())
 		width := max(1100, context.Config.UIConfig.MainWindowWidth)
 		height := max(640, context.Config.UIConfig.MainWindowHeight)
 		window.Option(
