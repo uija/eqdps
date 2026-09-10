@@ -24,6 +24,8 @@ import (
 	"github.com/uija/eqdps/internal/ui/form"
 )
 
+const MODULE_ID = "events"
+
 type ImportSuccess struct {
 	Imported  int
 	Skipped   int
@@ -90,6 +92,8 @@ type Module struct {
 
 	export_success time.Time
 	import_success *ImportSuccess
+
+	status_click widget.Clickable
 
 	invalidateFunc func()
 }
@@ -163,7 +167,7 @@ func NewModule() *Module {
 
 func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 	m.ctx = ctx
-	ctx.AddModuleNavigation("Events", "Events", "Events", m.Layout)
+	ctx.AddModuleNavigation(MODULE_ID, "Events", "Events", m.Layout)
 	ctx.RegisterLogOpen(m.OnLogOpen)
 	ctx.RegisterLogRow(m.OnLogRow)
 	ctx.RegisterStatusWidget(m.LayoutStatus)
@@ -298,6 +302,9 @@ func (m *Module) formEventType() data.EventType {
 func (m *Module) Update(gtx layout.Context) {
 	m.event_form.Update(gtx)
 	m.spell_icon_select.Update(gtx)
+	if m.status_click.Clicked(gtx) {
+		m.ctx.ActivateModule(MODULE_ID)
+	}
 	if m.class_select.Changed() {
 		m.UpdateSpellsAndClasses()
 	}
@@ -560,9 +567,9 @@ func (m *Module) LayoutStatus(style *ui.Style, gtx layout.Context) layout.Dimens
 		}
 	}
 	if active == 0 {
-		return material.Label(style.Theme, ui.Sp(14), "No events active").Layout(gtx)
+		return ui.Link(style, &m.status_click, "No events active").Layout(gtx)
 	}
-	return material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d events active", active)).Layout(gtx)
+	return ui.Link(style, &m.status_click, fmt.Sprintf("%d events active", active)).Layout(gtx)
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) bool {
