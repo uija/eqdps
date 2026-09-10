@@ -188,12 +188,15 @@ func (m *Module) layoutFactions(style *ui.Style, gtx layout.Context) layout.Dime
 					}),
 				)
 			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.ColorLabel(style.Palette.Muted, ui.Label(style, "Faction tracking in EverQuest Legends has some limitations. The client does not write your current faction values to the log.\nThe parser can only track faction changes from quests and killing mobs.\nSwitching to a loadout with a different race or class can also affect your faction standing, but these changes are not recorded in the log.\nThis module is therefore best used to track progress while farming faction, rather than as a long-term record of your faction standing.")).Layout)
+			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := material.List(style.Theme, &m.list)
 
 				return list.Layout(gtx, len(m.factions), func(gtx layout.Context, index int) layout.Dimensions {
 					col := style.Palette.Window
-					if index%2 != 0 {
+					if index%2 == 0 {
 						col = style.Palette.Panel
 					}
 					return ui.ColoredRow(gtx, col, func(gtx layout.Context) layout.Dimensions {

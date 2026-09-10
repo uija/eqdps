@@ -553,7 +553,16 @@ func (m *Module) LayoutStatus(style *ui.Style, gtx layout.Context) layout.Dimens
 		label := ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d imported, %d skipped.", m.import_success.Imported, m.import_success.Skipped)))
 		return label.Layout(gtx)
 	}
-	return material.Label(style.Theme, ui.Sp(14), "No events active").Layout(gtx)
+	active := 0
+	for _, e := range m.ctx.Config.Events {
+		if e.Active {
+			active++
+		}
+	}
+	if active == 0 {
+		return material.Label(style.Theme, ui.Sp(14), "No events active").Layout(gtx)
+	}
+	return material.Label(style.Theme, ui.Sp(14), fmt.Sprintf("%d events active", active)).Layout(gtx)
 }
 
 func (m *Module) OnLogOpen(characterName string, serverName string, filesize int64, path string) bool {
