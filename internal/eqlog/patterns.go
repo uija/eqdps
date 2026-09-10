@@ -43,6 +43,7 @@ var eventPatterns = []eventPattern{
 	{data.LogRowEventTypeSomeoneDied, regexp.MustCompile(`^(.+) died\.$`), []string{" died"}},
 	{data.LogRowEventTypeZoneChange, zoneChangeExpression, []string{"You have entered "}},
 	{data.LogRowEventTypeLoot, regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse\.--$`), []string{"--You have looted ", " from ", "'s corpse.--"}},
+	{data.LogRowEventTypeLoot, regexp.MustCompile(`^--You have looted ((?:a|an|[0-9]+) .+) from (Reward Chest)\.--$`), []string{"--You have looted ", " from Reward Chest.--"}},
 	{data.LogRowEventTypeLootResult, regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (.+)'s corpse (and sold it for .+\.|and stored it in .+|to create (.+))$`), []string{"You looted ", " from ", "'s corpse "}},
 	{data.LogRowEventTypeLootResult, regexp.MustCompile(`^You looted ((?:a|an|[0-9]+) .+) from (Reward Chest) (and sold it for .+\.|and stored it in .+|to create (.+))$`), []string{"You looted ", " from Reward Chest "}},
 	{data.LogRowEventTypeMerchantSale, regexp.MustCompile(`^You receive (.+?) from (.+?) for the (.+?)\(s\)\.$`), []string{"You receive ", " from ", " for the ", "(s)."}},

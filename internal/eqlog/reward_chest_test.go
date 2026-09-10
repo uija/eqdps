@@ -7,6 +7,24 @@ import (
 	"github.com/uija/eqdps/internal/data"
 )
 
+func TestLootSources(t *testing.T) {
+	for _, source := range []struct{ text, capture string }{
+		{"Reward Chest", "Reward Chest"},
+		{"an essence tamer's corpse", "an essence tamer"},
+	} {
+		for _, item := range []string{"a Rib-bone Stiletto +4", "an Emerald", "6 Mote of Major Potential"} {
+			t.Run(source.text+"/"+item, func(t *testing.T) {
+				message := "--You have looted " + item + " from " + source.text + ".--"
+				kind, captures, ok := classify(message)
+				want := []string{message, item, source.capture}
+				if !ok || kind != data.LogRowEventTypeLoot || !slices.Equal(captures, want) {
+					t.Fatalf("classify = (%v, %q, %v), want Loot with %q", kind, captures, ok, want)
+				}
+			})
+		}
+	}
+}
+
 func TestLootResultSources(t *testing.T) {
 	for _, source := range []struct{ text, capture string }{
 		{"Reward Chest", "Reward Chest"},
