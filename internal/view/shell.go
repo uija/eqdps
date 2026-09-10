@@ -1,6 +1,7 @@
 package view
 
 import (
+	"fmt"
 	"log"
 	"path/filepath"
 
@@ -8,11 +9,13 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"github.com/ncruces/zenity"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/style"
 	"github.com/uija/eqdps/internal/ui"
 	"github.com/uija/eqdps/internal/ui/menu"
+	"github.com/uija/eqdps/version"
 )
 
 type fileResult struct {
@@ -42,6 +45,9 @@ type Shell struct {
 	invalidateFunc   func()
 	fileSelectResult chan fileResult
 	progressUpdate   chan progress
+
+	showVersion       bool
+	closeVersionClick widget.Clickable
 }
 
 // NewShell constructs the root application view.
@@ -109,6 +115,9 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	toolsMenu.AddSeparator()
 	toolsMenu.AddItem("Preferences", func() {
 		result.context.SetMainView(result.preferences.Layout)
+	})
+	toolsMenu.AddItem("Version", func() {
+		result.showVersion = !result.showVersion
 	})
 	result.menuBar.AddAction("Help", result.help.Open)
 
@@ -250,6 +259,23 @@ func (s *Shell) Layout(gtx layout.Context) layout.Dimensions {
 		layout.Expanded(s.help.Layout),
 		layout.Expanded(s.selectHistory.Layout),
 		layout.Expanded(s.layoutProgressOverlay),
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			if s.showVersion {
+				return ui.Overlay(gtx, 420, s.Style.Palette.Panel, s.Style.Palette.Border, func(gtx layout.Context) layout.Dimensions {
+					return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+							layout.Rigid(ui.Label(s.Style, fmt.Sprintf("Current Version: %s", version.Version)).Layout),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return ui.IconLink(s.Style, &s.closeVersionClick, ui.Close, "Close").Layout(gtx)
+								})
+							}),
+						)
+					})
+				})
+			}
+			return layout.Dimensions{}
+		}),
 	)
 }
 
@@ -280,6 +306,9 @@ func (s *Shell) update(gtx layout.Context) {
 	s.selectHistory.Update(gtx)
 	s.help.Update(gtx)
 	s.preferences.Update(gtx)
+	if s.closeVersionClick.Clicked(gtx) {
+		s.showVersion = false
+	}
 }
 
 func (s *Shell) layoutMain(gtx layout.Context) layout.Dimensions {

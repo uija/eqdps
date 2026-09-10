@@ -28,7 +28,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          go build -trimpath -ldflags="-H=windowsgui" -o dist/eqdps-gui-windows-amd64.exe .
+          $buildVersion = "development"
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $buildVersion = $env:GITHUB_REF_NAME
+          }
+          go build -trimpath -ldflags="-H=windowsgui -X github.com/uija/eqdps/version.Version=$buildVersion" -o dist/eqdps-gui-windows-amd64.exe .
 
       - name: Write SHA-256 checksum
         shell: pwsh

@@ -34,3 +34,4 @@ eqlog_*.txt
 images/
 dist/
 .env
+eqdps

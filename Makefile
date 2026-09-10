@@ -1,5 +1,7 @@
 PREFIX ?= /usr/local
 DESTDIR ?=
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo development)
+VERSION_LDFLAGS = -X github.com/uija/eqdps/version.Version=$(VERSION)
 
 DIST_DIR := dist
 BIN_DIR := $(DESTDIR)$(PREFIX)/bin
@@ -17,11 +19,11 @@ $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
 gui: | $(DIST_DIR)
-	go build -o $(GUI_BINARY) .
+	go build -ldflags="$(VERSION_LDFLAGS)" -o $(GUI_BINARY) .
 
 windows: | $(DIST_DIR)
 	env GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
-		go build -trimpath -ldflags="-s -w -H=windowsgui" -o $(WINDOWS_GUI_BINARY) .
+		go build -trimpath -ldflags="-s -w -H=windowsgui $(VERSION_LDFLAGS)" -o $(WINDOWS_GUI_BINARY) .
 
 install: all
 	install -d $(BIN_DIR) $(APP_DIR) $(ICON_DIR)
