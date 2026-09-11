@@ -348,14 +348,14 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 				)
 				if gtx.Constraints.Max.X >= DOUBLE_ROW_MIN_WIDTH {
 					if i < len(details.ChestRewards)-1 {
-						cr = details.ChestRewards[i+1]
+						cr2 := details.ChestRewards[i+1]
 						row = append(row,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("%3d", cr.Quantity)).Layout)
+									return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("%3d", cr2.Quantity)).Layout)
 								})
 							}),
-							layout.Flexed(5, ui.Label(style, cr.Item).Layout),
+							layout.Flexed(5, ui.Label(style, cr2.Item).Layout),
 						)
 					}
 				}
