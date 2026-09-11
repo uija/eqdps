@@ -57,22 +57,26 @@ type UIConfig struct {
 type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`
 }
+type StatisticsConfig struct {
+	SessionReducedDetails bool `json:"session_reduced_details"`
+}
 type Config struct {
-	LastLogfile      string        `json:"last_logfile"`
-	RecentLogFiles   []string      `json:"recent_logfiles"`
-	OpenOverlay      bool          `json:"open_overlay"`
-	ShowDpsAsCharts  bool          `json:"show_dps_as_charts"`
-	AutoOpenFirstRow bool          `json:"auto_open_first_row"`
-	Events           []EventConfig `json:"events"`
-	Volume           float32       `json:"volume"`
-	SpellIconSet     string        `json:"spell_icon_set"`
-	EQLDbConfig      EQLDbConfig   `json:"eqldb"`
-	SkyConfig        SkyConfig     `json:"sky"`
-	UIConfig         UIConfig      `json:"ui"`
-	CombatTimeout    int           `json:"combat_timeout"`
-	CheckForUpdates  bool          `json:"checkforupdates"`
-	LastSeenVersion  string        `json:"last_seen_version"`
-	KnownFactions    []string      `json:"known_factions"`
+	LastLogfile      string           `json:"last_logfile"`
+	RecentLogFiles   []string         `json:"recent_logfiles"`
+	OpenOverlay      bool             `json:"open_overlay"`
+	ShowDpsAsCharts  bool             `json:"show_dps_as_charts"`
+	AutoOpenFirstRow bool             `json:"auto_open_first_row"`
+	Events           []EventConfig    `json:"events"`
+	Volume           float32          `json:"volume"`
+	SpellIconSet     string           `json:"spell_icon_set"`
+	EQLDbConfig      EQLDbConfig      `json:"eqldb"`
+	SkyConfig        SkyConfig        `json:"sky"`
+	Statistics       StatisticsConfig `json:"statistics"`
+	UIConfig         UIConfig         `json:"ui"`
+	CombatTimeout    int              `json:"combat_timeout"`
+	CheckForUpdates  bool             `json:"checkforupdates"`
+	LastSeenVersion  string           `json:"last_seen_version"`
+	KnownFactions    []string         `json:"known_factions"`
 }
 
 func (c *Config) Save() error {

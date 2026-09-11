@@ -15,17 +15,22 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
 
+const DOUBLE_ROW_MIN_WIDTH = 1000
+
 type SessionRow struct {
-	Statistic SessionStatistics
-	Clickable widget.Clickable
-	Open      bool
-	Details   *SessionDetails
+	Statistic      SessionStatistics
+	Clickable      widget.Clickable
+	Open           bool
+	Details        *SessionDetails
+	ReducedDetails *DungeonCrawlDetails
 }
 
 type SessionsPage struct {
+	ctx      *module.Context
 	db       *sql.DB
 	tabClick widget.Clickable
 	list     widget.List
@@ -44,13 +49,16 @@ type SessionsPage struct {
 	motesClick        widget.Clickable
 	motesPerHourClick widget.Clickable
 
+	toggleViewModeClick widget.Clickable
+
 	invalidateFunc func()
 }
 
-func NewSessionsPage(invalidate func()) *SessionsPage {
+func NewSessionsPage(ctx *module.Context, invalidate func()) *SessionsPage {
 	p := &SessionsPage{invalidateFunc: invalidate}
 	p.list.Axis = layout.Vertical
 	p.filter.SingleLine = true
+	p.ctx = ctx
 	return p
 }
 
@@ -120,22 +128,15 @@ func (p *SessionsPage) Update(gtx layout.Context) {
 		sort.Slice(p.sessions, func(i, j int) bool {
 			return p.sessions[i].Statistic.MotesPerHour > p.sessions[j].Statistic.MotesPerHour
 		})
+	case p.toggleViewModeClick.Clicked(gtx):
+		p.ctx.Config.Statistics.SessionReducedDetails = !p.ctx.Config.Statistics.SessionReducedDetails
+		p.ctx.Config.Save()
 	}
 	for _, session := range p.sessions {
 		if !session.Clickable.Clicked(gtx) {
 			continue
 		}
-		if session.Details == nil {
-			details, err := GetSessionDetails(p.db, session.Statistic)
-			if err != nil {
-				log.Printf("Unable to load details for session %d. %v", session.Statistic.VisitID, err)
-				continue
-			}
-			session.Details = &details
-			session.Open = true
-		} else {
-			session.Open = !session.Open
-		}
+		session.Open = !session.Open
 		p.invalidateFunc()
 	}
 }
@@ -228,9 +229,12 @@ func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.
 				sessionTextCell(1, fmt.Sprintf("%.1f", session.Statistic.MotesPerHour), true, style),
 			)
 		})}
-		if session.Details != nil && session.Open {
+		if session.Open {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return renderSessionDetails(session, style, gtx)
+				if p.ctx.Config.Statistics.SessionReducedDetails {
+					return p.renderReducesSessionDetails(session, style, gtx)
+				}
+				return p.renderSessionDetails(session, style, gtx)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
@@ -239,16 +243,150 @@ func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.
 
 func sessionLinkCell(weight float32, session *SessionRow, style *ui.Style) layout.FlexChild {
 	icon := ui.AddBox
-	if session.Details != nil && session.Open {
+	if session.Open {
 		icon = ui.DelBox
 	}
 	return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
 		return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, ui.IconLink(style, &session.Clickable, icon, session.Statistic.Zone).Layout)
 	})
 }
+func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *ui.Style, gtx layout.Context) layout.Dimensions {
+	if session.ReducedDetails == nil {
+		d, err := GetDungeonCrawlDetails(p.db, session.Statistic)
+		if err != nil {
+			log.Printf("Unable to load reduced details for session %d. %v", session.Statistic.VisitID, err)
+			return layout.Dimensions{}
+		}
+		session.ReducedDetails = &d
+	}
+	details := session.ReducedDetails
 
-func renderSessionDetails(session *SessionRow, style *ui.Style, gtx layout.Context) layout.Dimensions {
+	children := []layout.FlexChild{
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						label := ui.HeaderLabel(style, session.Statistic.Zone)
+						label.Font.Weight = font.SemiBold
+						return label.Layout(gtx)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							icon := ui.CheckBoxOutline
+							if p.ctx.Config.Statistics.SessionReducedDetails {
+								icon = ui.CheckBox
+							}
+							return ui.IconLink(style, &p.toggleViewModeClick, icon, "Dungeon Crawl View").Layout(gtx)
+						})
+					}),
+				)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				sessionTextCell(2, fmt.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
+				sessionTextCell(1, fmt.Sprintf("Kills: %d", details.Kills), false, style),
+				sessionTextCell(1, fmt.Sprintf("XP from kills: %.2f%%", details.ExperienceGained), false, style),
+				sessionTextCell(1, fmt.Sprintf("All Motes: %d", details.Motes), false, style),
+				sessionTextCell(1, fmt.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
+			)
+		}),
+	}
+	if len(details.MoteDetails) > 0 {
+		children = append(children,
+			layout.Rigid(sessionDetailsTitle("Motes", style)),
+		)
+		for i, d := range details.MoteDetails {
+			col := style.Palette.Panel
+			if i%2 == 0 {
+				col = style.Palette.Window
+			}
+			children = append(children,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					sources := ""
+					for i, s := range d.Sources {
+						if i > 0 {
+							sources += ", "
+						}
+						sources += fmt.Sprintf("%s (%d)", s.Name, s.Quantity)
+					}
+					return ui.ColoredRow(gtx, col, func(gtx layout.Context) layout.Dimensions {
+						return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("% 2d", d.Quantity)).Layout)
+									})
+								}),
+								layout.Flexed(2, ui.Label(style, d.Item).Layout),
+								layout.Flexed(4, ui.Label(style, sources).Layout),
+							)
+						})
+					})
+				}))
+		}
+	}
+	if len(details.ChestRewards) > 0 {
+		children = append(children,
+			layout.Rigid(sessionDetailsTitle("Reward Chest", style)),
+		)
+		rc := 0
+		for i, cr := range details.ChestRewards {
+			col := style.Palette.Panel
+			if rc%2 == 0 {
+				col = style.Palette.Window
+			}
+			row := make([]layout.FlexChild, 0)
+			if gtx.Constraints.Max.X < DOUBLE_ROW_MIN_WIDTH || i%2 == 0 {
+				row = append(row,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("% 2d", cr.Quantity)).Layout)
+						})
+					}),
+					layout.Flexed(5, ui.Label(style, cr.Item).Layout),
+				)
+				if gtx.Constraints.Max.X >= DOUBLE_ROW_MIN_WIDTH {
+					if i < len(details.ChestRewards)-1 {
+						cr = details.ChestRewards[i+1]
+						row = append(row,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("% 2d", cr.Quantity)).Layout)
+								})
+							}),
+							layout.Flexed(5, ui.Label(style, cr.Item).Layout),
+						)
+					}
+				}
+				children = append(children,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return ui.ColoredRow(gtx, col, func(gtx layout.Context) layout.Dimensions {
+							return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, row...)
+							})
+						})
+					}),
+				)
+				rc++
+			}
+		}
+	}
+	return statisticsDetailsLayout(style, gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+	})
+}
+func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style, gtx layout.Context) layout.Dimensions {
+	if session.Details == nil {
+		d, err := GetSessionDetails(p.db, session.Statistic)
+		if err != nil {
+			log.Printf("Unable to load details for session %d. %v", session.Statistic.VisitID, err)
+			return layout.Dimensions{}
+		}
+		session.Details = &d
+	}
 	details := session.Details
+
 	hours := session.Statistic.Duration.Hours()
 	killsPerHour, xpPerHour, motesPerHour := 0.0, 0.0, 0.0
 	if hours > 0 {
@@ -257,7 +395,26 @@ func renderSessionDetails(session *SessionRow, style *ui.Style, gtx layout.Conte
 		motesPerHour = float64(session.Statistic.Motes) / hours
 	}
 	children := []layout.FlexChild{
-		layout.Rigid(sessionDetailsTitle("Rates", style)),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						label := ui.HeaderLabel(style, "Rates")
+						label.Font.Weight = font.SemiBold
+						return label.Layout(gtx)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							icon := ui.CheckBoxOutline
+							if p.ctx.Config.Statistics.SessionReducedDetails {
+								icon = ui.CheckBox
+							}
+							return ui.IconLink(style, &p.toggleViewModeClick, icon, "Dungeon Crawl View").Layout(gtx)
+						})
+					}),
+				)
+			})
+		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				sessionTextCell(1, fmt.Sprintf("Kills/h: %.1f", killsPerHour), false, style),
