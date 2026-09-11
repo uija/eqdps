@@ -58,7 +58,7 @@ type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`
 }
 type StatisticsConfig struct {
-	SessionReducedDetails bool `json:"session_reduced_details"`
+	SessionDungeonCrawlDetails bool `json:"session_dungeon_crawl_details"`
 }
 type Config struct {
 	LastLogfile      string           `json:"last_logfile"`

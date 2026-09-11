@@ -129,7 +129,7 @@ func (p *SessionsPage) Update(gtx layout.Context) {
 			return p.sessions[i].Statistic.MotesPerHour > p.sessions[j].Statistic.MotesPerHour
 		})
 	case p.toggleViewModeClick.Clicked(gtx):
-		p.ctx.Config.Statistics.SessionReducedDetails = !p.ctx.Config.Statistics.SessionReducedDetails
+		p.ctx.Config.Statistics.SessionDungeonCrawlDetails = !p.ctx.Config.Statistics.SessionDungeonCrawlDetails
 		p.ctx.Config.Save()
 	}
 	for _, session := range p.sessions {
@@ -231,7 +231,7 @@ func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.
 		})}
 		if session.Open {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if p.ctx.Config.Statistics.SessionReducedDetails {
+				if p.ctx.Config.Statistics.SessionDungeonCrawlDetails {
 					return p.renderReducesSessionDetails(session, style, gtx)
 				}
 				return p.renderSessionDetails(session, style, gtx)
@@ -273,7 +273,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							icon := ui.CheckBoxOutline
-							if p.ctx.Config.Statistics.SessionReducedDetails {
+							if p.ctx.Config.Statistics.SessionDungeonCrawlDetails {
 								icon = ui.CheckBox
 							}
 							return ui.IconLink(style, &p.toggleViewModeClick, icon, "Dungeon Crawl View").Layout(gtx)
@@ -286,7 +286,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				sessionTextCell(2, fmt.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
 				sessionTextCell(1, fmt.Sprintf("Kills: %d", details.Kills), false, style),
-				sessionTextCell(1, fmt.Sprintf("XP from kills: %.2f%%", details.ExperienceGained), false, style),
+				sessionTextCell(1, fmt.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
 				sessionTextCell(1, fmt.Sprintf("All Motes: %d", details.Motes), false, style),
 				sessionTextCell(1, fmt.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
 			)
@@ -315,7 +315,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("% 2d", d.Quantity)).Layout)
+										return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("%3d", d.Quantity)).Layout)
 									})
 								}),
 								layout.Flexed(2, ui.Label(style, d.Item).Layout),
@@ -341,7 +341,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 				row = append(row,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("% 2d", cr.Quantity)).Layout)
+							return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("%3d", cr.Quantity)).Layout)
 						})
 					}),
 					layout.Flexed(5, ui.Label(style, cr.Item).Layout),
@@ -352,7 +352,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 						row = append(row,
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("% 2d", cr.Quantity)).Layout)
+									return layout.E.Layout(gtx, ui.Label(style, fmt.Sprintf("%3d", cr.Quantity)).Layout)
 								})
 							}),
 							layout.Flexed(5, ui.Label(style, cr.Item).Layout),
@@ -406,7 +406,7 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							icon := ui.CheckBoxOutline
-							if p.ctx.Config.Statistics.SessionReducedDetails {
+							if p.ctx.Config.Statistics.SessionDungeonCrawlDetails {
 								icon = ui.CheckBox
 							}
 							return ui.IconLink(style, &p.toggleViewModeClick, icon, "Dungeon Crawl View").Layout(gtx)
