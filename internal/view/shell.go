@@ -116,10 +116,17 @@ func NewShell(context *module.Context, closeWindow func(), invalidate func()) *S
 	toolsMenu.AddItem("Preferences", func() {
 		result.context.SetMainView(result.preferences.Layout)
 	})
-	toolsMenu.AddItem("Version", func() {
-		result.showVersion = !result.showVersion
-	})
+	/*
+		toolsMenu.AddItem("Version", func() {
+			result.showVersion = !result.showVersion
+		})
+	*/
 	result.menuBar.AddAction("Help", result.help.Open)
+	if version.Version != "development" {
+		result.menuBar.AddAction(version.Version, func() {
+			result.showVersion = !result.showVersion
+		})
+	}
 
 	// check if there is a logfile to open
 	if context.Config.LastLogfile != "" {
