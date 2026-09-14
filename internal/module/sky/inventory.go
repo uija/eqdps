@@ -88,7 +88,7 @@ func (m *Module) RenderListRow(container *Container, index int, style *ui.Style,
 			return fmt.Sprintf("%d / %d", item.Have, item.Need)
 		})
 	} else if index == len(container.missing)+1 {
-		return m.RenderHeader("Exess Items", &m.inventory_sort_exess_item, &m.inventory_sort_exess_mob, style, gtx)
+		return m.RenderHeader("Excess Items", &m.inventory_sort_exess_item, &m.inventory_sort_exess_mob, style, gtx)
 	} else {
 		idx := index - (len(container.missing) + 2)
 		return RenderContainerRow(container.others, idx, style.Palette.Yes, style, gtx, func(item *InventoryRow) string {
