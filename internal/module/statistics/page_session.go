@@ -301,7 +301,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 	}
 	if len(details.MoteDetails) > 0 {
 		children = append(children,
-			layout.Rigid(sessionDetailsTitle("Motes", style)),
+			layout.Rigid(titleRow("Motes", style)),
 		)
 		for i, d := range details.MoteDetails {
 			col := style.Palette.Panel
@@ -335,7 +335,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 	}
 	if len(details.ChestRewards) > 0 {
 		children = append(children,
-			layout.Rigid(sessionDetailsTitle("Reward Chest", style)),
+			layout.Rigid(titleRow("Reward Chest", style)),
 		)
 		rc := 0
 		for i, cr := range details.ChestRewards {
@@ -379,6 +379,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 			}
 		}
 	}
+	children = append(children, p.factionDetailsRows(details.Factions, style)...)
 	return statisticsDetailsLayout(style, gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	})
@@ -408,6 +409,7 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						label := ui.HeaderLabel(style, "Rates")
 						label.Font.Weight = font.SemiBold
+						label.Color = style.Palette.Headline
 						return label.Layout(gtx)
 					}),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -435,13 +437,15 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 	}
 	if len(details.Mobs) > 0 {
 		children = append(children,
-			layout.Rigid(sessionDetailsTitle("Mobs", style)),
+			layout.Rigid(titleRow("Mobs", style)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					sessionTextCell(4, "Mob", false, style),
-					sessionTextCell(1, "Kills", true, style),
-					sessionTextCell(1, "Killed by you", true, style),
-				)
+				return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+						sessionTextCell(4, "Mob", false, style),
+						sessionTextCell(1, "Kills", true, style),
+						sessionTextCell(1, "Killed by you", true, style),
+					)
+				})
 			}),
 		)
 		for index, mob := range details.Mobs {
@@ -458,13 +462,15 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 	}
 	if len(details.Loot) > 0 {
 		children = append(children,
-			layout.Rigid(sessionDetailsTitle("Loot", style)),
+			layout.Rigid(titleRow("Loot", style)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					sessionTextCell(4, "Item", false, style),
-					sessionTextCell(6, "Mobs", false, style),
-					sessionTextCell(1, "Drops", true, style),
-				)
+				return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+						sessionTextCell(4, "Item", false, style),
+						sessionTextCell(6, "Mobs", false, style),
+						sessionTextCell(1, "Drops", true, style),
+					)
+				})
 			}),
 		)
 		for index, loot := range details.Loot {
@@ -481,12 +487,14 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 	}
 	if len(details.Deaths) > 0 {
 		children = append(children,
-			layout.Rigid(sessionDetailsTitle("Deaths", style)),
+			layout.Rigid(titleRow("Deaths", style)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-					sessionTextCell(4, "Killed by", false, style),
-					sessionTextCell(1, "Deaths", true, style),
-				)
+				return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+						sessionTextCell(4, "Killed by", false, style),
+						sessionTextCell(1, "Deaths", true, style),
+					)
+				})
 			}),
 		)
 		for index, death := range details.Deaths {
@@ -500,17 +508,26 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 			}))
 		}
 	}
+	children = append(children, p.factionDetailsRows(details.Factions, style)...)
 	return statisticsDetailsLayout(style, gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	})
 }
 
-func sessionDetailsTitle(title string, style *ui.Style) layout.Widget {
+func titleRow(title string, style *ui.Style) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := ui.HeaderLabel(style, title)
-			label.Font.Weight = font.SemiBold
-			return label.Layout(gtx)
+		return layout.Inset{Top: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return ui.ColoredAccentedRow(gtx, style.Palette.HeadlineBG, style.Palette.Accent, true, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							label := ui.HeaderLabel(style, title)
+							label.Font.Weight = font.Bold
+							return label.Layout(gtx)
+						})
+					}),
+				)
+			})
 		})
 	}
 }

@@ -277,11 +277,18 @@ func (p *DamagePage) renderRow(row *DamageRow, index int, style *ui.Style, gtx l
 
 func (p *DamagePage) renderDetails(s DamageStatistics, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return statisticsDetailsLayout(style, gtx, func(gtx layout.Context) layout.Dimensions {
-		children := []layout.FlexChild{layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Flex{}.Layout(gtx,
-				itemTextCell(2, "Damage", false, style), itemTextCell(1, "Count", true, style),
-				itemTextCell(1, "Min", true, style), itemTextCell(1, "Max", true, style), itemTextCell(1, "Average", true, style))
-		})}
+		children := []layout.FlexChild{
+			layout.Rigid(titleRow("Damage", style)),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
+
+					return layout.Flex{}.Layout(gtx,
+						itemTextCell(2, "Action", false, style), itemTextCell(1, "Count", true, style),
+						itemTextCell(1, "Min", true, style), itemTextCell(1, "Max", true, style), itemTextCell(1, "Average", true, style),
+					)
+				})
+			}),
+		}
 		for i, r := range []DamageRangeStatistics{s.Normal, s.Critical} {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				name := "Normal"
@@ -303,6 +310,7 @@ func (p *DamagePage) renderDetails(s DamageStatistics, style *ui.Style, gtx layo
 			}))
 		}
 		if s.Category == data.CATEGORY_MELEE {
+			children = append(children, layout.Rigid(titleRow("Failures", style)))
 			for i, f := range []struct {
 				name  string
 				count int64

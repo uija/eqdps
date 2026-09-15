@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -241,21 +240,17 @@ func (p *ItemsPage) renderRow(item *ItemRow, alternate bool, style *ui.Style, gt
 
 func (p *ItemsPage) itemDetails(details *ItemDetails, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	children := make([]layout.FlexChild, 0, len(details.Drops)+1)
+	children = append(children, layout.Rigid(titleRow("Drops", style)))
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			label := ui.HeaderLabel(style, "Drops")
-			label.Font.Weight = font.SemiBold
-			return label.Layout(gtx)
+		return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				itemDetailTextCell(4, "Mob", false, style),
+				itemDetailTextCell(3, "Zone", false, style),
+				itemDetailTextCell(1, "Kills", true, style),
+				itemDetailTextCell(1, "Drops", true, style),
+				itemDetailTextCell(1, "Chance", true, style),
+			)
 		})
-	}))
-	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			itemDetailTextCell(4, "Mob", false, style),
-			itemDetailTextCell(3, "Zone", false, style),
-			itemDetailTextCell(1, "Kills", true, style),
-			itemDetailTextCell(1, "Drops", true, style),
-			itemDetailTextCell(1, "Chance", true, style),
-		)
 	}))
 	for index, drop := range details.Drops {
 		drop := drop

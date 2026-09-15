@@ -24,6 +24,7 @@ type DungeonCrawlReward struct {
 }
 
 type DungeonCrawlDetails struct {
+	Factions         []SessionFactionDetails
 	EvacCount        int64
 	DeathCount       int64
 	Kills            int64
@@ -56,6 +57,10 @@ func GetDungeonCrawlDetails(db *sql.DB, session SessionStatistics) (DungeonCrawl
 		return DungeonCrawlDetails{}, err
 	}
 	result.EvacCount = evacs
+	result.Factions, err = GetSessionFactionDetails(db, session)
+	if err != nil {
+		return DungeonCrawlDetails{}, err
+	}
 	if err := db.QueryRow(`
 		WITH bounds AS (SELECT ? AS zone_id, ? AS start_at, ? AS end_at)
 		SELECT

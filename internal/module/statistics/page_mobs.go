@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -249,21 +248,16 @@ func (p *MobsPage) renderRow(mob *MobRow, alternate bool, style *ui.Style, gtx l
 func (p *MobsPage) mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	children := make([]layout.FlexChild, 0)
 	if len(details.Zones) > 0 {
-		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := ui.HeaderLabel(style, "Zones")
-				label.Font.Weight = font.SemiBold
-				return label.Layout(gtx)
-			})
-		}))
+		children = append(children, layout.Rigid(titleRow("Zones", style)))
+
 		for index, z := range details.Zones {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return statisticsDetailsRow(index, style, gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.Label(style, p.ctx.Sprintf("%d", z.Kills)).Layout(gtx)
+									return ui.Label(style, p.ctx.Sprintf("%5d", z.Kills)).Layout(gtx)
 								})
 							})
 						}),
@@ -278,21 +272,15 @@ func (p *MobsPage) mobDetails(details *MobDetails, style *ui.Style, gtx layout.C
 		}
 	}
 	if len(details.Items) > 0 {
-		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := ui.HeaderLabel(style, "Items")
-				label.Font.Weight = font.SemiBold
-				return label.Layout(gtx)
-			})
-		}))
+		children = append(children, layout.Rigid(titleRow("Items", style)))
 		for index, i := range details.Items {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return statisticsDetailsRow(index, style, gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.Label(style, p.ctx.Sprintf("%d", i.Quantity)).Layout(gtx)
+									return ui.Label(style, p.ctx.Sprintf("%5d", i.Quantity)).Layout(gtx)
 								})
 							})
 						}),

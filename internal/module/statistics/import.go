@@ -79,6 +79,9 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	})
 
 	switch e.Type {
+	case data.LogRowEventTypeFaction:
+		return m.importFaction(e)
+
 	case data.LogRowEventTypeDamage, data.LogRowEventTypeYourDamageOverTime,
 		data.LogRowEventTypeDamageOverTime, data.LogRowEventTypeFailedMelee,
 		data.LogRowEventTypeFailedMeleeOthers:

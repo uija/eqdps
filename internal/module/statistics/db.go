@@ -40,6 +40,7 @@ func DropTables(db *sql.DB) error {
 	defer tx.Rollback()
 
 	tables := []string{
+		"faction_adjustments",
 		"evacuation_casts",
 		"attack_statistics",
 		"item_dispositions",
@@ -80,6 +81,15 @@ func PrepareDb(db *sql.DB) error {
 	defer tx.Rollback()
 
 	statements := []string{
+		`CREATE TABLE IF NOT EXISTS faction_adjustments (
+			id INTEGER PRIMARY KEY,
+			name TEXT NOT NULL COLLATE NOCASE,
+			zone_id INTEGER REFERENCES zones(id),
+			observed_at DATETIME NOT NULL,
+			adjustment INTEGER NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS faction_adjustments_zone_time_idx
+		 ON faction_adjustments (zone_id, observed_at)`,
 		`CREATE TABLE IF NOT EXISTS evacuation_casts (
 			id INTEGER PRIMARY KEY,
 			zone_id INTEGER NOT NULL REFERENCES zones(id),

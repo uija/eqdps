@@ -14,6 +14,10 @@ type Palette struct {
 	Accent     color.NRGBA `json:"accent" label:"Accent"`
 	Border     color.NRGBA `json:"border" label:"Borders"`
 
+	Headline        color.NRGBA `json:"headline" label:"Headlines"`
+	HeadlineBG      color.NRGBA `json:"headline_bg" label:"Headline Background"`
+	HeadlineBGMuted color.NRGBA `json:"headline_bg_muted" label:"Headline Background2"`
+
 	Active   color.NRGBA `json:"active" label:"Active"`
 	Inactive color.NRGBA `json:"inactive" label:"Inactive"`
 	Done     color.NRGBA `json:"done" label:"Completed"`

@@ -21,6 +21,10 @@ var Style = ui.Style{
 		Accent:     color.NRGBA{R: 190, G: 155, B: 74, A: 255},
 		Border:     color.NRGBA{R: 200, G: 200, B: 200, A: 255},
 
+		Headline:        color.NRGBA{R: 0x91, G: 0xAE, B: 0xC4, A: 0xFF},
+		HeadlineBG:      color.NRGBA{R: 60, G: 60, B: 70, A: 255},
+		HeadlineBGMuted: color.NRGBA{R: 45, G: 45, B: 55, A: 255},
+
 		Active:   color.NRGBA{R: 109, G: 178, B: 124, A: 255},
 		Inactive: color.NRGBA{R: 190, G: 155, B: 74, A: 255},
 		Done:     color.NRGBA{R: 120, G: 120, B: 120, A: 255},
