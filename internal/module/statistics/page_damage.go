@@ -209,7 +209,7 @@ func (p *DamagePage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensio
 			)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+			return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{}.Layout(gtx,
 					itemHeaderCell(3, "Name", &p.headers[0], false, style),
 					itemHeaderCell(1, "Category", &p.headers[1], false, style),

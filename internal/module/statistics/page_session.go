@@ -202,7 +202,7 @@ func (p *SessionsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 }
 
 func (p *SessionsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			sessionHeaderCell(5, "Zone", &p.zoneClick, false, style),
 			sessionHeaderCell(2, "Entered", &p.enteredClick, false, style),

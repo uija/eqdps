@@ -144,7 +144,7 @@ func (p *ZonesPage) SetDb(db *sql.DB) {
 	p.db = db
 }
 func (p *ZonesPage) RenderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {

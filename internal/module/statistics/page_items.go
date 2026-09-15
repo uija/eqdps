@@ -199,7 +199,7 @@ func (p *ItemsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimension
 }
 
 func (p *ItemsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			itemHeaderCell(5, "Item", &p.nameClick, false, style),
 			itemHeaderCell(1, "Drops", &p.dropsClick, true, style),

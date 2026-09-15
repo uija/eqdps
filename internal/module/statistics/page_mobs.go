@@ -207,7 +207,7 @@ func (p *MobsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimensions
 }
 
 func (p *MobsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			mobHeaderCell(4, "Mob", &p.nameClick, false, style),
 			mobHeaderCell(1, "Killed", &p.killedByPlayerClick, true, style),

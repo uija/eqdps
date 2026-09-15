@@ -95,7 +95,7 @@ func (m *Module) RenderList(data *achievments.Export, style *ui.Style, gtx layou
 	})
 }
 func (m *Module) RenderCategory(c *achievments.Category, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.LightPanel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredAccentedRow(gtx, style.Palette.HeadlineBGMuted, style.Palette.Accent, true, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.HeaderLabel(style, c.Name).Layout)
@@ -107,7 +107,7 @@ func (m *Module) RenderSubCategory(c *achievments.Subcategory, style *ui.Style, 
 	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.Label(style, c.Name).Layout)
+				return layout.UniformInset(unit.Dp(8)).Layout(gtx, ui.HeaderLabel(style, c.Name).Layout)
 			}),
 		)
 	})
@@ -126,7 +126,7 @@ func (m *Module) RenderAchievement(c *achievments.Achievement, style *ui.Style, 
 func (m *Module) RenderObjective(c *achievments.Objective, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(24)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			layout.Flexed(3, func(gtx layout.Context) layout.Dimensions {
 				col := style.Palette.Text
 				if c.Complete {
 					col = style.Palette.Yes

@@ -146,33 +146,37 @@ func (m *Module) RenderList(style *ui.Style, gtx layout.Context) layout.Dimensio
 	})
 }
 func (m *Module) RenderTableHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 
-	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-				return ui.IconLink(style, &m.nameSort, ui.Sort, "Name").Layout(gtx)
-			}),
-			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return ui.Label(style, "Class").Layout(gtx)
-				})
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return ui.Label(style, "Slot").Layout(gtx)
-				})
-			}),
-			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-				return ui.Label(style, "Location").Layout(gtx)
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				value := "Stats"
-				if selectedStat := m.stats.Value(); selectedStat != "" {
-					value = selectedStat
-				}
-				return layout.E.Layout(gtx, ui.IconLink(style, &m.statSort, ui.Sort, value).Layout)
-			}),
-		)
+		return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
+			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+					layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+						return ui.IconLink(style, &m.nameSort, ui.Sort, "Name").Layout(gtx)
+					}),
+					layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return ui.Label(style, "Class").Layout(gtx)
+						})
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Left: unit.Dp(4), Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return ui.Label(style, "Slot").Layout(gtx)
+						})
+					}),
+					layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+						return ui.Label(style, "Location").Layout(gtx)
+					}),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						value := "Stats"
+						if selectedStat := m.stats.Value(); selectedStat != "" {
+							value = selectedStat
+						}
+						return layout.E.Layout(gtx, ui.IconLink(style, &m.statSort, ui.Sort, value).Layout)
+					}),
+				)
+			})
+		})
 	})
 }
 func (m *Module) RenderRow(index int, style *ui.Style, gtx layout.Context) layout.Dimensions {

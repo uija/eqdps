@@ -55,77 +55,83 @@ func (m *Module) RenderEventsTableRow(index int, style *ui.Style, gtx layout.Con
 	if event.Sound != "" {
 		sound = event.Sound
 	}
-	return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+	rowColor := style.Palette.Window
+	if index%2 != 0 {
+		rowColor = style.Palette.Panel
+	}
+	return ui.ColoredRow(gtx, rowColor, func(gtx layout.Context) layout.Dimensions {
 
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						link := ui.IconLink(style, &m.activate_click[index], icon, "")
-						link.TextColor = icon_color
-						return link.Layout(gtx)
+		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							link := ui.IconLink(style, &m.activate_click[index], icon, "")
+							link.TextColor = icon_color
+							return link.Layout(gtx)
+						})
 					})
-				})
-			}),
-			layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
-				link := ui.Link(style, &m.row_click[index], event.Title)
-				return layout.Inset{Left: unit.Dp(0)}.Layout(gtx, link.Layout)
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				str := "Unknown"
-				switch event.Type {
-				case data.EventTypeRegexp:
-					str = "RegExp"
-				case data.EventTypeSpell:
-					str = "Spell"
-				case data.EventTypeString:
-					str = "Text"
-				case data.EventTypeTimer:
-					str = "Timer"
-				}
-				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(14), str).Layout)
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ui.Icon(gtx, style.Palette.Text, not_icon)
+				}),
+				layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
+					link := ui.Link(style, &m.row_click[index], event.Title)
+					return layout.Inset{Left: unit.Dp(0)}.Layout(gtx, link.Layout)
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					str := "Unknown"
+					switch event.Type {
+					case data.EventTypeRegexp:
+						str = "RegExp"
+					case data.EventTypeSpell:
+						str = "Spell"
+					case data.EventTypeString:
+						str = "Text"
+					case data.EventTypeTimer:
+						str = "Timer"
+					}
+					return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(14), str).Layout)
+				}),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					return layout.W.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return ui.Icon(gtx, style.Palette.Text, not_icon)
+						})
 					})
-				})
-			}),
-			layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(14), sound).Layout)
-			}),
-		)
+				}),
+				layout.Flexed(2, func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, material.Label(style.Theme, ui.Sp(14), sound).Layout)
+				}),
+			)
+		})
 	})
 }
 func (m *Module) RenderEventsTableHeader(style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.HeadlineBGMuted, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx,
-						material.Label(style.Theme, ui.Sp(14), "ACTIVE").Layout,
+						material.Label(style.Theme, ui.Sp(14), "Active").Layout,
 					)
 				},
 			),
 			layout.Flexed(4,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, ui.Sp(14), "TITLE").Layout,
+						material.Label(style.Theme, ui.Sp(14), "Title").Layout,
 					)
 				},
 			),
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, ui.Sp(14), "TYPE").Layout,
+						material.Label(style.Theme, ui.Sp(14), "Type").Layout,
 					)
 				},
 			),
 			layout.Flexed(1,
 				func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx,
-						material.Label(style.Theme, ui.Sp(14), "NOTIFY").Layout,
+						material.Label(style.Theme, ui.Sp(14), "Notify").Layout,
 					)
 				},
 			),

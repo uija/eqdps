@@ -49,7 +49,9 @@ func (m *Module) RenderMainPageHeader(style *ui.Style, gtx layout.Context) layou
 			for _, p := range m.Pages {
 				tabs = append(tabs, layout.Rigid(func(gtx layout.Context) layout.Dimensions { return m.RenderTab(p, style, gtx) }))
 			}
-			return layout.Flex{}.Layout(gtx, tabs...)
+			return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{}.Layout(gtx, tabs...)
+			})
 		}),
 	)
 }
