@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"database/sql"
-	"fmt"
 	"image"
 	"log"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -25,6 +25,7 @@ type ItemRow struct {
 }
 
 type ItemsPage struct {
+	ctx            *module.Context
 	db             *sql.DB
 	tabClick       widget.Clickable
 	list           widget.List
@@ -42,8 +43,8 @@ type ItemsPage struct {
 	invalidateFn   func()
 }
 
-func NewItemsPage(invalidate func()) *ItemsPage {
-	p := &ItemsPage{invalidateFn: invalidate}
+func NewItemsPage(ctx *module.Context, invalidate func()) *ItemsPage {
+	p := &ItemsPage{ctx: ctx, invalidateFn: invalidate}
 	p.list.Axis = layout.Vertical
 	p.filter.SingleLine = true
 	return p
@@ -221,24 +222,24 @@ func (p *ItemsPage) renderRow(item *ItemRow, alternate bool, style *ui.Style, gt
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					itemLinkCell(5, item, style),
-					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Drops), true, style),
-					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.AutoSold), true, style),
-					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Sold), true, style),
-					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Destroyed), true, style),
-					itemTextCell(1, fmt.Sprintf("%d", item.Statistic.Parceled), true, style),
+					itemTextCell(1, p.ctx.Sprintf("%d", item.Statistic.Drops), true, style),
+					itemTextCell(1, p.ctx.Sprintf("%d", item.Statistic.AutoSold), true, style),
+					itemTextCell(1, p.ctx.Sprintf("%d", item.Statistic.Sold), true, style),
+					itemTextCell(1, p.ctx.Sprintf("%d", item.Statistic.Destroyed), true, style),
+					itemTextCell(1, p.ctx.Sprintf("%d", item.Statistic.Parceled), true, style),
 				)
 			}),
 		}
 		if item.Details != nil && item.Open {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return itemDetails(item.Details, style, gtx)
+				return p.itemDetails(item.Details, style, gtx)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	})
 }
 
-func itemDetails(details *ItemDetails, style *ui.Style, gtx layout.Context) layout.Dimensions {
+func (p *ItemsPage) itemDetails(details *ItemDetails, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	children := make([]layout.FlexChild, 0, len(details.Drops)+1)
 	children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -263,9 +264,9 @@ func itemDetails(details *ItemDetails, style *ui.Style, gtx layout.Context) layo
 				return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 					itemDetailTextCell(4, drop.Mob, false, style),
 					itemDetailTextCell(3, drop.Zone, false, style),
-					itemDetailTextCell(1, fmt.Sprintf("%d", drop.Kills), true, style),
-					itemDetailTextCell(1, fmt.Sprintf("%d", drop.Drops), true, style),
-					itemDetailTextCell(1, fmt.Sprintf("%.02f%%", drop.DropChance), true, style),
+					itemDetailTextCell(1, p.ctx.Sprintf("%d", drop.Kills), true, style),
+					itemDetailTextCell(1, p.ctx.Sprintf("%d", drop.Drops), true, style),
+					itemDetailTextCell(1, p.ctx.Sprintf("%.02f%%", drop.DropChance), true, style),
 				)
 			})
 		}))

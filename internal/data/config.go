@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/uija/eqdps/internal/ui"
+	"golang.org/x/text/language"
 )
 
 type EventType int8
@@ -52,7 +53,8 @@ type UIConfig struct {
 	OverlayOpacity      float32 `json:"overlay_opacity"`
 	OverlayPlaced       bool    `json:"overlay_placed"`
 	FontPath            string
-	Palette             *ui.Palette `json:"palette,omitempty"`
+	Palette             *ui.Palette  `json:"palette,omitempty"`
+	NumberFormat        language.Tag `json:"number_format"`
 }
 type SkyConfig struct {
 	ParseInventoryData bool `json:"parse_inventory_data"`

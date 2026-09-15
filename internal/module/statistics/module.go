@@ -81,11 +81,11 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 	m.invalidateFunc = invalidFunc
 	m.helpList.Axis = layout.Vertical
 
-	m.Pages = append(m.Pages, NewOverviewPage())
-	m.Pages = append(m.Pages, NewZonesPage())
+	m.Pages = append(m.Pages, NewOverviewPage(m.ctx))
+	m.Pages = append(m.Pages, NewZonesPage(m.ctx))
 	m.Pages = append(m.Pages, NewSessionsPage(m.ctx, invalidFunc))
-	m.Pages = append(m.Pages, NewMobsPage(invalidFunc))
-	m.Pages = append(m.Pages, NewItemsPage(invalidFunc))
+	m.Pages = append(m.Pages, NewMobsPage(m.ctx, invalidFunc))
+	m.Pages = append(m.Pages, NewItemsPage(m.ctx, invalidFunc))
 	m.currentPage = m.Pages[0]
 
 	return nil

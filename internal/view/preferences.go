@@ -18,6 +18,8 @@ import (
 	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/style"
 	"github.com/uija/eqdps/internal/ui"
+	"github.com/uija/eqdps/internal/ui/form"
+	"golang.org/x/text/language"
 )
 
 type Preferences struct {
@@ -45,16 +47,36 @@ type Preferences struct {
 	select_font_click widget.Clickable
 	reset_font_click  widget.Clickable
 
+	numberFormatSelect *form.SelectBox
+
 	color_pick_idx int
 
 	stop chan struct{}
 }
 
+var numberFormats = map[string]language.Tag{
+	"1234.56":  language.Und,
+	"1,234.56": language.AmericanEnglish,
+	"1.234,56": language.German,
+	"1 234,56": language.French,
+}
+
 func NewPreferences(ctx *module.Context) *Preferences {
+	options := make([]string, 0)
+	selected := 0
+	idx := 0
+	for name := range numberFormats {
+		options = append(options, name)
+		if numberFormats[name] == ctx.Config.UIConfig.NumberFormat {
+			selected = idx
+		}
+		idx++
+	}
 	p := &Preferences{
-		ctx:            ctx,
-		stop:           make(chan struct{}),
-		color_pick_idx: -1,
+		ctx:                ctx,
+		stop:               make(chan struct{}),
+		color_pick_idx:     -1,
+		numberFormatSelect: form.NewSelectBox(options, selected),
 	}
 	p.list.Axis = layout.Vertical
 	p.overlay_font_scale.Value = (ctx.Config.UIConfig.OverlayFontScale - 0.8) / 0.4
@@ -148,6 +170,14 @@ func (p *Preferences) Layout(style *ui.Style, gtx layout.Context) layout.Dimensi
 	)
 }
 func (p *Preferences) Update(gtx layout.Context) {
+	p.numberFormatSelect.Update(gtx)
+	if p.numberFormatSelect.Changed() {
+		idx := p.numberFormatSelect.Value()
+		tag := numberFormats[idx]
+		p.ctx.Config.UIConfig.NumberFormat = tag
+		p.ctx.Config.Save()
+
+	}
 	if p.overlay_font_scale.Dragging() {
 		p.ctx.Config.UIConfig.OverlayFontScale = 0.8 + (p.overlay_font_scale.Value * 0.4)
 		p.config_changed.Store(true)
@@ -270,6 +300,7 @@ func (p *Preferences) RenderFontSettings(style *ui.Style, gtx layout.Context) la
 				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							gtx.Constraints.Min.X = min(200, gtx.Constraints.Max.X)
 							return layout.Inset{Right: unit.Dp(16)}.Layout(gtx, ui.Label(style, "User font:").Layout)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -290,6 +321,19 @@ func (p *Preferences) RenderFontSettings(style *ui.Style, gtx layout.Context) la
 								return layout.Inset{Left: unit.Dp(16)}.Layout(gtx, ui.IconLink(style, &p.select_font_click, ui.Open, "Select").Layout)
 							}))
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
+						}),
+					)
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							gtx.Constraints.Min.X = min(200, gtx.Constraints.Max.X)
+							return layout.Inset{Right: unit.Dp(16), Top: unit.Dp(6)}.Layout(gtx, ui.Label(style, "Number format:").Layout)
+						}),
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return p.numberFormatSelect.Layout(style, gtx, 400)
 						}),
 					)
 				})

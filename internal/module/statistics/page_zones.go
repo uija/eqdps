@@ -12,10 +12,12 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
 
 type ZonesPage struct {
+	ctx      *module.Context
 	tabClick widget.Clickable
 	list     widget.List
 	db       *sql.DB
@@ -34,8 +36,8 @@ type ZonesPage struct {
 	Sum ZoneStatistics
 }
 
-func NewZonesPage() *ZonesPage {
-	p := ZonesPage{}
+func NewZonesPage(ctx *module.Context) *ZonesPage {
+	p := ZonesPage{ctx: ctx}
 	p.list.Axis = layout.Vertical
 	return &p
 }
@@ -219,7 +221,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := ui.Label(style, fmt.Sprintf("%d", zone.Visits))
+						label := ui.Label(style, p.ctx.Sprintf("%d", zone.Visits))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -237,7 +239,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := ui.Label(style, fmt.Sprintf("%d", zone.MobsKilled))
+						label := ui.Label(style, p.ctx.Sprintf("%d", zone.MobsKilled))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -246,7 +248,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := ui.Label(style, fmt.Sprintf("%d", zone.MotesDropped))
+						label := ui.Label(style, p.ctx.Sprintf("%d", zone.MotesDropped))
 						label.Font.Weight = weight
 						return label.Layout(gtx)
 					})
@@ -257,7 +259,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						val := ""
 						if zone.Name != "" {
-							val = fmt.Sprintf("%.01f", zone.MotesPerHour)
+							val = p.ctx.Sprintf("%.01f", zone.MotesPerHour)
 						}
 						label := ui.Label(style, val)
 						label.Font.Weight = weight
@@ -270,7 +272,7 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 					return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						val := ""
 						if zone.Name != "" {
-							val = fmt.Sprintf("%.01f%%", zone.MoteDropChance)
+							val = p.ctx.Sprintf("%.01f%%", zone.MoteDropChance)
 						}
 						label := ui.Label(style, val)
 						label.Font.Weight = weight

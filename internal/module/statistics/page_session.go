@@ -227,11 +227,11 @@ func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.
 				sessionLinkCell(5, session, style),
 				sessionTextCell(2, session.Statistic.EnteredAt.Format("2006-01-02 15:04"), false, style),
 				sessionTextCell(2, session.Statistic.Duration.Round(time.Second).String(), true, style),
-				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.Kills), true, style),
-				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.DeathCount), true, style),
-				sessionTextCell(1, fmt.Sprintf("%.1f%%", session.Statistic.ExperienceGained), true, style),
-				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.Motes), true, style),
-				sessionTextCell(1, fmt.Sprintf("%.1f", session.Statistic.MotesPerHour), true, style),
+				sessionTextCell(1, p.ctx.Sprintf("%d", session.Statistic.Kills), true, style),
+				sessionTextCell(1, p.ctx.Sprintf("%d", session.Statistic.DeathCount), true, style),
+				sessionTextCell(1, p.ctx.Sprintf("%.1f%%", session.Statistic.ExperienceGained), true, style),
+				sessionTextCell(1, p.ctx.Sprintf("%d", session.Statistic.Motes), true, style),
+				sessionTextCell(1, p.ctx.Sprintf("%.1f", session.Statistic.MotesPerHour), true, style),
 			)
 		})}
 		if session.Open {
@@ -289,12 +289,12 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				sessionTextCell(1, fmt.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
-				sessionTextCell(1, fmt.Sprintf("Kills: %d", details.Kills), false, style),
-				sessionTextCell(1, fmt.Sprintf("Deaths: %d", details.DeathCount), false, style),
-				sessionTextCell(1, fmt.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
-				sessionTextCell(1, fmt.Sprintf("All Motes: %d", details.Motes), false, style),
-				sessionTextCell(1, fmt.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Kills: %d", details.Kills), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Deaths: %d", details.DeathCount), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("All Motes: %d", details.Motes), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
 			)
 		}),
 	}
@@ -423,11 +423,11 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				sessionTextCell(1, fmt.Sprintf("Kills/h: %.1f", killsPerHour), false, style),
-				sessionTextCell(1, fmt.Sprintf("XP/h: %.2f%%", xpPerHour), false, style),
-				sessionTextCell(1, fmt.Sprintf("Motes/h: %.1f", motesPerHour), false, style),
-				sessionTextCell(1, "Money: "+FormatMoney(details.Money), false, style),
-				sessionTextCell(1, fmt.Sprintf("Deaths: %d", details.DeathCount), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Kills/h: %.1f", killsPerHour), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("XP/h: %.2f%%", xpPerHour), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Motes/h: %.1f", motesPerHour), false, style),
+				sessionTextCell(1, "Money: "+FormatMoneyCallback(details.Money, p.ctx.Sprintf), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Deaths: %d", details.DeathCount), false, style),
 			)
 		}),
 	}
@@ -447,8 +447,8 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 				return statisticsDetailsRow(index, style, gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						sessionTextCell(4, mob.Name, false, style),
-						sessionTextCell(1, fmt.Sprintf("%d", mob.Kills), true, style),
-						sessionTextCell(1, fmt.Sprintf("%d", mob.KilledByYou), true, style),
+						sessionTextCell(1, p.ctx.Sprintf("%d", mob.Kills), true, style),
+						sessionTextCell(1, p.ctx.Sprintf("%d", mob.KilledByYou), true, style),
 					)
 				})
 			}))
@@ -471,7 +471,7 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 						sessionTextCell(4, loot.Item, false, style),
 						sessionTextCell(6, loot.Mob, false, style),
-						sessionTextCell(1, fmt.Sprintf("%d", loot.Quantity), true, style),
+						sessionTextCell(1, p.ctx.Sprintf("%d", loot.Quantity), true, style),
 					)
 				})
 			}))

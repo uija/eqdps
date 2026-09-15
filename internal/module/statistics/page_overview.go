@@ -2,25 +2,26 @@ package statistics
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
 	"gioui.org/layout"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
 
 type OverviewPage struct {
+	ctx      *module.Context
 	db       *sql.DB
 	tabClick widget.Clickable
 	list     widget.List
 	stats    *OverviewStatistics
 }
 
-func NewOverviewPage() *OverviewPage {
-	o := OverviewPage{}
+func NewOverviewPage(ctx *module.Context) *OverviewPage {
+	o := OverviewPage{ctx: ctx}
 	o.list.Axis = layout.Vertical
 	return &o
 }
@@ -50,23 +51,23 @@ func (p *OverviewPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 	return list.Layout(gtx, 9, func(gtx layout.Context, index int) layout.Dimensions {
 		switch index {
 		case 0:
-			return RenderIntStatsRow("Zones visited", p.stats.ZonesVisited, index%2 == 0, style, gtx)
+			return p.RenderIntStatsRow("Zones visited", p.stats.ZonesVisited, index%2 == 0, style, gtx)
 		case 1:
-			return RenderIntStatsRow("Mobs killed", p.stats.MobsKilled, index%2 == 0, style, gtx)
+			return p.RenderIntStatsRow("Mobs killed", p.stats.MobsKilled, index%2 == 0, style, gtx)
 		case 2:
-			return RenderIntStatsRow("Items looted", p.stats.ItemsLooted, index%2 == 0, style, gtx)
+			return p.RenderIntStatsRow("Items looted", p.stats.ItemsLooted, index%2 == 0, style, gtx)
 		case 3:
-			return RenderStatsRow("Money collected", FormatMoney(p.stats.MoneyCollected), index%2 == 0, style, gtx)
+			return RenderStatsRow("Money collected", FormatMoneyCallback(p.stats.MoneyCollected, p.ctx.Sprintf), index%2 == 0, style, gtx)
 		case 4:
-			return RenderFloatStatsRow("Experience gained", p.stats.ExperienceGained, index%2 == 0, style, gtx)
+			return RenderStatsRow("Experience gained", p.ctx.Sprintf("%.02f%%", p.stats.ExperienceGained), index%2 == 0, style, gtx)
 		case 5:
-			return RenderFloatStatsRow("Levels gained", float64(p.stats.LevelsGained), index%2 == 0, style, gtx)
+			return p.RenderFloatStatsRow("Levels gained", float64(p.stats.LevelsGained), index%2 == 0, style, gtx)
 		case 6:
-			return RenderIntStatsRow("Motes collected", p.stats.MotesCollected, index%2 == 0, style, gtx)
+			return p.RenderIntStatsRow("Motes collected", p.stats.MotesCollected, index%2 == 0, style, gtx)
 		case 7:
-			return RenderIntStatsRow("Chat messages sent", p.stats.ChatMessagesSent, index%2 == 0, style, gtx)
+			return p.RenderIntStatsRow("Chat messages sent", p.stats.ChatMessagesSent, index%2 == 0, style, gtx)
 		case 8:
-			return RenderIntStatsRow("Deaths", p.stats.DeathCount, index%2 == 0, style, gtx)
+			return p.RenderIntStatsRow("Deaths", p.stats.DeathCount, index%2 == 0, style, gtx)
 		default:
 			return ui.Label(style, "Index missing").Layout(gtx)
 		}
@@ -82,11 +83,11 @@ func (p *OverviewPage) Reset() {
 	p.stats = nil
 }
 
-func RenderIntStatsRow(name string, num int64, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return RenderStatsRow(name, fmt.Sprintf("%d", num), odd, style, gtx)
+func (p *OverviewPage) RenderIntStatsRow(name string, num int64, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return RenderStatsRow(name, p.ctx.Sprintf("%d", num), odd, style, gtx)
 }
-func RenderFloatStatsRow(name string, num float64, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return RenderStatsRow(name, fmt.Sprintf("%.02f", num), odd, style, gtx)
+func (p *OverviewPage) RenderFloatStatsRow(name string, num float64, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
+	return RenderStatsRow(name, p.ctx.Sprintf("%.02f", num), odd, style, gtx)
 }
 func RenderStatsRow(name string, num string, odd bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	color := style.Palette.Panel

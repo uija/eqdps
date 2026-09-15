@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"database/sql"
-	"fmt"
 	"image"
 	"log"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
 
@@ -25,6 +25,7 @@ type MobRow struct {
 }
 
 type MobsPage struct {
+	ctx          *module.Context
 	db           *sql.DB
 	tabClick     widget.Clickable
 	list         widget.List
@@ -45,8 +46,9 @@ type MobsPage struct {
 	invalidateFunc func()
 }
 
-func NewMobsPage(iv func()) *MobsPage {
+func NewMobsPage(ctx *module.Context, iv func()) *MobsPage {
 	p := &MobsPage{
+		ctx:            ctx,
 		invalidateFunc: iv,
 	}
 	p.list.Axis = layout.Vertical
@@ -228,23 +230,23 @@ func (p *MobsPage) renderRow(mob *MobRow, alternate bool, style *ui.Style, gtx l
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				mobLinkCell(4, mob, style),
-				mobTextCell(1, fmt.Sprintf("%d", mob.Statistic.KilledByPlayer), true, style),
-				mobTextCell(1, fmt.Sprintf("%d", mob.Statistic.KilledPlayer), true, style),
-				mobTextCell(2, FormatMoney(mob.Statistic.MoneyLooted), true, style),
-				mobTextCell(1, fmt.Sprintf("%d", mob.Statistic.ItemsLooted), true, style),
-				mobTextCell(1, fmt.Sprintf("%d", mob.Statistic.DifferentItems), true, style),
+				mobTextCell(1, p.ctx.Sprintf("%d", mob.Statistic.KilledByPlayer), true, style),
+				mobTextCell(1, p.ctx.Sprintf("%d", mob.Statistic.KilledPlayer), true, style),
+				mobTextCell(2, FormatMoneyCallback(mob.Statistic.MoneyLooted, p.ctx.Sprintf), true, style),
+				mobTextCell(1, p.ctx.Sprintf("%d", mob.Statistic.ItemsLooted), true, style),
+				mobTextCell(1, p.ctx.Sprintf("%d", mob.Statistic.DifferentItems), true, style),
 			)
 		}))
 		if mob.Details != nil && mob.Open {
 			children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return mobDetails(mob.Details, style, gtx)
+				return p.mobDetails(mob.Details, style, gtx)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 	})
 }
 
-func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout.Dimensions {
+func (p *MobsPage) mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout.Dimensions {
 	children := make([]layout.FlexChild, 0)
 	if len(details.Zones) > 0 {
 		children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -261,7 +263,7 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.Label(style, fmt.Sprintf("%d", z.Kills)).Layout(gtx)
+									return ui.Label(style, p.ctx.Sprintf("%d", z.Kills)).Layout(gtx)
 								})
 							})
 						}),
@@ -290,13 +292,13 @@ func mobDetails(details *MobDetails, style *ui.Style, gtx layout.Context) layout
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ui.Label(style, fmt.Sprintf("%d", i.Quantity)).Layout(gtx)
+									return ui.Label(style, p.ctx.Sprintf("%d", i.Quantity)).Layout(gtx)
 								})
 							})
 						}),
 						layout.Flexed(4, func(gtx layout.Context) layout.Dimensions {
 							return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ui.Label(style, fmt.Sprintf("%s (%.02f%%)", i.Name, i.DropChance)).Layout(gtx)
+								return ui.Label(style, p.ctx.Sprintf("%s (%.02f%%)", i.Name, i.DropChance)).Layout(gtx)
 							})
 						}),
 					)

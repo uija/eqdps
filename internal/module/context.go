@@ -24,6 +24,8 @@ import (
 	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/overlay"
 	"github.com/uija/eqdps/internal/ui"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 const PREFERENCE_ID = "Preferences"
@@ -107,6 +109,8 @@ type Context struct {
 	updateBodyList   widget.List
 	updateLinkClick  widget.Clickable
 	updateCloseClick widget.Clickable
+
+	printers map[language.Tag]*message.Printer
 }
 
 type ReplayRequest struct {
@@ -144,6 +148,7 @@ func NewContext(invalidateFunc func()) *Context {
 		invalidateFunc:  invalidateFunc,
 		Config:          config,
 		updateFound:     make(chan github.Release, 1),
+		printers:        make(map[language.Tag]*message.Printer),
 	}
 	audioDir := func() string {
 		ad, err := audio.AudioPath()
@@ -179,6 +184,20 @@ func NewContext(invalidateFunc func()) *Context {
 	}
 
 	return ctx
+}
+
+func (c *Context) Sprintf(format string, a ...any) string {
+	if c.Config.UIConfig.NumberFormat != language.Und {
+		printer, ok := c.printers[c.Config.UIConfig.NumberFormat]
+		if !ok {
+			printer = message.NewPrinter(c.Config.UIConfig.NumberFormat)
+			c.printers[c.Config.UIConfig.NumberFormat] = printer
+		}
+		if printer != nil {
+			return printer.Sprintf(format, a...)
+		}
+	}
+	return fmt.Sprintf(format, a...)
 }
 func (c *Context) ParserLogFileOpened(path string) {
 	// Extract Character and Servername
