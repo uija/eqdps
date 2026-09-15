@@ -244,7 +244,7 @@ func (c *Context) CompactStatusElements(style *ui.Style, gtx layout.Context) []l
 				} else if c.isReplay.Load() {
 					label = ui.ColorLabel(style.Palette.Accent, material.Label(style.Theme, ui.Sp(14), "Replay"))
 				} else {
-					label = ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), "Livede"))
+					label = ui.ColorLabel(style.Palette.Yes, material.Label(style.Theme, ui.Sp(14), "Live"))
 				}
 				return label.Layout(gtx)
 			})
