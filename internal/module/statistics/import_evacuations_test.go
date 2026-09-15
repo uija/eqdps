@@ -11,11 +11,20 @@ func TestSessionEvacuations(t *testing.T) {
 	for _, scenario := range []struct {
 		name                                                           string
 		caster                                                         string
+		spell                                                          string
 		interrupted, noLoading, stale, differentZone, duplicate, split bool
 		want                                                           int64
 	}{
 		{name: "self", caster: "You", want: 1},
 		{name: "other", caster: "Gigglemage", want: 1},
+		{name: "ranked self", caster: "You", spell: "Lesser Evacuate II", want: 1},
+		{name: "ranked other", caster: "Gigglemage", spell: "Lesser Succor IV", want: 1},
+		{name: "ranked evacuate", caster: "You", spell: "Evacuate III", want: 1},
+		{name: "ranked succor", caster: "You", spell: "Succor VI", want: 1},
+		{name: "ranked destination", caster: "You", spell: "Evacuate: North Karana II", want: 1},
+		{name: "ranked self interrupted", caster: "You", spell: "Lesser Evacuate II", interrupted: true},
+		{name: "ranked other interrupted", caster: "Gigglemage", spell: "Lesser Succor IV", interrupted: true},
+		{name: "unrelated suffix", caster: "You", spell: "Lesser Evacuate Something"},
 		{name: "self interrupted", caster: "You", interrupted: true},
 		{name: "other interrupted", caster: "Gigglemage", interrupted: true},
 		{name: "no loading", caster: "You", noLoading: true},
@@ -30,14 +39,18 @@ func TestSessionEvacuations(t *testing.T) {
 			zone := "The Ruins of Old Guk 4 (Refined)"
 			sessionTestRow(t, m, start, "", data.LogRowEventTypeZoneChange, "", zone)
 			zoneID := m.currentZone
-			sessionTestRow(t, m, start.Add(time.Minute), "", data.LogRowEventTypeCast, "", scenario.caster, "Lesser Evacuate")
+			spell := scenario.spell
+			if spell == "" {
+				spell = "Lesser Evacuate"
+			}
+			sessionTestRow(t, m, start.Add(time.Minute), "", data.LogRowEventTypeCast, "", scenario.caster, spell)
 			if scenario.duplicate {
 				sessionTestRow(t, m, start.Add(time.Minute), "", data.LogRowEventTypeCast, "", "Gigglemage", "Lesser Succor")
 			}
 			if scenario.interrupted {
-				message := scenario.caster + "'s Lesser Evacuate spell is interrupted."
+				message := scenario.caster + "'s " + spell + " spell is interrupted."
 				if scenario.caster == "You" {
-					message = "Your Lesser Evacuate spell is interrupted."
+					message = "Your " + spell + " spell is interrupted."
 				}
 				sessionTestRow(t, m, start.Add(62*time.Second), message, data.LogRowEventTypeUnknown)
 			}

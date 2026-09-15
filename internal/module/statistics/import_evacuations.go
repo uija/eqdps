@@ -30,6 +30,14 @@ func (m *Module) importEvacuation(e *data.LogRowEvent) error {
 	if isCast {
 		spell := strings.TrimSpace(e.Data[2])
 		name := strings.ToLower(spell)
+		// Ignore a trailing Roman-numeral rank for recognition, but retain
+		// spell verbatim below so ranked interruption messages still match.
+		if separator := strings.LastIndexByte(name, ' '); separator >= 0 {
+			rank := name[separator+1:]
+			if rank != "" && strings.Trim(rank, "ivxlcdm") == "" {
+				name = strings.TrimSpace(name[:separator])
+			}
+		}
 		if name != "lesser evacuate" && name != "lesser succor" && name != "evacuate" && name != "succor" &&
 			!strings.HasPrefix(name, "evacuate: ") && !strings.HasPrefix(name, "succor: ") {
 			return nil
