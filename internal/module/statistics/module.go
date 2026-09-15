@@ -48,11 +48,12 @@ type Module struct {
 	lastCoinID     int64
 	importDone     chan struct{}
 
-	logPath     string
-	updateClick widget.Clickable
-	reloadClick widget.Clickable
-	Pages       []StatsPage
-	currentPage StatsPage
+	logPath       string
+	characterName string
+	updateClick   widget.Clickable
+	reloadClick   widget.Clickable
+	Pages         []StatsPage
+	currentPage   StatsPage
 
 	replayProgress *eqlog.ReplayProgress
 
@@ -86,11 +87,13 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 	m.Pages = append(m.Pages, NewSessionsPage(m.ctx, invalidFunc))
 	m.Pages = append(m.Pages, NewMobsPage(m.ctx, invalidFunc))
 	m.Pages = append(m.Pages, NewItemsPage(m.ctx, invalidFunc))
+	m.Pages = append(m.Pages, NewDamagePage(m.ctx, invalidFunc))
 	m.currentPage = m.Pages[0]
 
 	return nil
 }
 func (m *Module) OnLogOpen(characterName, serverName string, filesize int64, path string) bool {
+	m.characterName = characterName
 	m.lastLogfileOffset = filesize
 	logdir := filepath.Dir(path)
 	database_dir := filepath.Join(logdir, fmt.Sprintf("eqdps_%s_%s.sqlite", characterName, serverName))

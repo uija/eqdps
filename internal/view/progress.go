@@ -34,7 +34,7 @@ func (s *Shell) layoutProgressContent(gtx layout.Context) layout.Dimensions {
 		value = float32(s.progress.value) / float32(s.progress.max)
 	}
 	percent := int(value*100 + 0.5)
-	detail := fmt.Sprintf("%d / %d (%d%%", s.progress.value, s.progress.max, percent)
+	detail := fmt.Sprintf("%d / %d (%d%%)", s.progress.value, s.progress.max, percent)
 
 	return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{

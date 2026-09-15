@@ -76,6 +76,11 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	})
 
 	switch e.Type {
+	case data.LogRowEventTypeDamage, data.LogRowEventTypeYourDamageOverTime,
+		data.LogRowEventTypeDamageOverTime, data.LogRowEventTypeFailedMelee,
+		data.LogRowEventTypeFailedMeleeOthers:
+		return m.importAttack(e)
+
 	case data.LogRowEventTypeZoneChange:
 		if len(e.Data) < 2 {
 			return unsupportedObservation("statistics zone event has no zone name")

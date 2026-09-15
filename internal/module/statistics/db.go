@@ -40,6 +40,7 @@ func DropTables(db *sql.DB) error {
 	defer tx.Rollback()
 
 	tables := []string{
+		"attack_statistics",
 		"item_dispositions",
 		"loot",
 		"money",
@@ -78,6 +79,40 @@ func PrepareDb(db *sql.DB) error {
 	defer tx.Rollback()
 
 	statements := []string{
+		// Overall per-character totals. Counts and sums keep averages mergeable;
+		// NULL bounds mean no hits of that kind have been observed yet.
+		`CREATE TABLE IF NOT EXISTS attack_statistics (
+			id INTEGER PRIMARY KEY,
+			name TEXT NOT NULL COLLATE NOCASE,
+			category TEXT NOT NULL CHECK (category IN ('Melee', 'Spells', 'DoTs', 'Procs', 'Damage Shield')),
+			normal_count INTEGER NOT NULL DEFAULT 0 CHECK (normal_count >= 0),
+			normal_damage INTEGER NOT NULL DEFAULT 0 CHECK (normal_damage >= 0),
+			normal_min INTEGER,
+			normal_max INTEGER,
+			crit_count INTEGER NOT NULL DEFAULT 0 CHECK (crit_count >= 0),
+			crit_damage INTEGER NOT NULL DEFAULT 0 CHECK (crit_damage >= 0),
+			crit_min INTEGER,
+			crit_max INTEGER,
+			miss_count INTEGER NOT NULL DEFAULT 0 CHECK (miss_count >= 0),
+			dodge_count INTEGER NOT NULL DEFAULT 0 CHECK (dodge_count >= 0),
+			parry_count INTEGER NOT NULL DEFAULT 0 CHECK (parry_count >= 0),
+			block_count INTEGER NOT NULL DEFAULT 0 CHECK (block_count >= 0),
+			riposte_count INTEGER NOT NULL DEFAULT 0 CHECK (riposte_count >= 0),
+			absorb_count INTEGER NOT NULL DEFAULT 0 CHECK (absorb_count >= 0),
+			CHECK (
+				(normal_count = 0 AND normal_damage = 0 AND normal_min IS NULL AND normal_max IS NULL)
+				OR (normal_count > 0 AND normal_min IS NOT NULL AND normal_max IS NOT NULL
+					AND normal_min >= 0 AND normal_max >= normal_min
+					AND normal_damage >= normal_max)
+			),
+			CHECK (
+				(crit_count = 0 AND crit_damage = 0 AND crit_min IS NULL AND crit_max IS NULL)
+				OR (crit_count > 0 AND crit_min IS NOT NULL AND crit_max IS NOT NULL
+					AND crit_min >= 0 AND crit_max >= crit_min
+					AND crit_damage >= crit_max)
+			),
+			UNIQUE (category, name)
+		)`,
 		`CREATE TABLE IF NOT EXISTS zones (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL COLLATE NOCASE UNIQUE
