@@ -2,6 +2,7 @@ package data
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"gioui.org/widget"
@@ -18,7 +19,11 @@ const CATEGORY_DOTS = "DoTs"
 const CATEGORY_PROCS = "Procs"
 const CATEGORY_DS = "Damage Shield"
 
+const HEAL_OVER_TIME = "Heal over Time"
+const DIRECT_HEAL = "Direct Heal"
+
 var DamageCategories = []string{CATEGORY_MELEE, CATEGORY_SPELLS, CATEGORY_DOTS, CATEGORY_PROCS, CATEGORY_DS}
+var HealingCategories = []string{DIRECT_HEAL, HEAL_OVER_TIME}
 
 type Fight struct {
 	Name         string
@@ -38,8 +43,10 @@ type Combatant struct {
 	Name       string
 	Normalized string
 
-	Overall    *CombatDamageData
-	Categories map[string]CombatDamageCategory
+	Overall           *CombatDamageData
+	OverallHealing    *HealingData
+	Categories        map[string]CombatDamageCategory
+	HealingCategories map[string]HealingCategory
 
 	FirstParticipation time.Time
 
@@ -49,11 +56,24 @@ type Combatant struct {
 
 func NewCombatant(name, normalized string) *Combatant {
 	return &Combatant{
-		Name:       name,
-		Normalized: normalized,
-		Overall:    NewCombatDamageData(name),
-		Categories: make(map[string]CombatDamageCategory),
+		Name:              name,
+		Normalized:        normalized,
+		Overall:           NewCombatDamageData(name),
+		Categories:        make(map[string]CombatDamageCategory),
+		OverallHealing:    NewHealingData(name),
+		HealingCategories: make(map[string]HealingCategory),
 	}
+}
+func (c *Combatant) AddHealing(ability string, amount int64, hot bool, crit bool) {
+	c.OverallHealing.AddHealing(amount, crit)
+	catname := DIRECT_HEAL
+	if hot {
+		catname = HEAL_OVER_TIME
+	}
+	if _, ok := c.HealingCategories[catname]; !ok {
+		c.HealingCategories[catname] = NewHealingCategory(catname)
+	}
+	c.HealingCategories[catname].AddHealing(ability, amount, crit)
 }
 
 func (c *Combatant) AddDamageEvent(e *DamageEvent) {
@@ -103,11 +123,22 @@ func (f *Fight) HasParticipant(name string) bool {
 	_, ok := f.Participants[name]
 	return ok
 }
+func (f *Fight) AddHealing(source string, target string, ability string, amount int, hot bool, crit bool) {
+	normalizedSource := strings.ToLower(strings.TrimSpace(source))
+
+	combatant, ok := f.Combatants[normalizedSource]
+	if !ok {
+		combatant = NewCombatant(source, normalizedSource)
+		f.Combatants[normalizedSource] = combatant
+	}
+	combatant.AddHealing(ability, int64(amount), hot, crit)
+}
 func (f *Fight) AddDamageEvent(e *DamageEvent, autoOpenYou bool) {
 	if f.Start.IsZero() {
 		f.Start = e.Time
 		f.End = e.Time
 	}
+	f.LastUpdate = e.Time
 	switch e.Type {
 	case LogRowEventTypeDamageOverTime,
 		LogRowEventTypeYourDamageOverTime,

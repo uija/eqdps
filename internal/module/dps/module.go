@@ -48,6 +48,7 @@ type Module struct {
 	displaySize    int
 	displayFilter  string
 	displayCombat  *Combat
+	overallWeight  int
 }
 
 func NewModule() *Module {
@@ -78,6 +79,7 @@ func (m *Module) Init(ctx *module.Context, invalidateFunc func()) error {
 	m.columns = append(m.columns, column{title: "SDps", weight: 1})
 	m.columns = append(m.columns, column{title: "Hits", weight: 1})
 	m.columns = append(m.columns, column{title: "Crits", weight: 1})
+	m.columns = append(m.columns, column{title: "Hps", weight: 1})
 	m.columns = append(m.columns, column{title: "Active", weight: 1})
 	m.invalidateFunc = invalidateFunc
 	ctx.AddModuleNavigation("DPS", "DPS Meter", "DPS", m.MainView)
@@ -194,6 +196,7 @@ func (m *Module) OnLogRow(event *data.LogRowEvent) {
 		data.LogRowEventTypeSomeoneDied,
 		data.LogRowEventTypeYouSlain,
 		data.LogRowEventTypeFailedMeleeOthers,
+		data.LogRowEventTypeHealing,
 		data.LogRowEventTypeFailedMelee:
 
 		m.rows <- event

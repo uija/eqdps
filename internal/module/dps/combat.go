@@ -2,6 +2,8 @@ package dps
 
 import (
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -202,6 +204,26 @@ func (c *Combat) AddEvent(e *data.LogRowEvent) bool {
 		return true
 	}
 	switch e.Type {
+	case data.LogRowEventTypeHealing:
+		amount, err := strconv.Atoi(e.Data[4])
+		if err != nil {
+			log.Printf("Unable to parse healing amount. %v", err)
+			return false
+		}
+		var fight *data.Fight = nil
+		for _, f := range c.activeFights {
+			if fight == nil {
+				fight = f
+			} else {
+				if fight.LastParticipate.Before(f.LastParticipate) {
+					fight = f
+				}
+			}
+		}
+		if fight != nil {
+			fight.AddHealing(e.Data[1], e.Data[2], e.Data[6], amount, e.Data[3] != "", strings.EqualFold(e.Data[7], "critical"))
+		}
+
 	case data.LogRowEventTypeFailedMelee:
 		//fight := c.getActiveFight(event)
 		//fight.AddFailEvent(e)

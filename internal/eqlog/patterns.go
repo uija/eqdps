@@ -23,6 +23,9 @@ type eventPattern struct {
 }
 
 var eventPatterns = []eventPattern{
+	// Healing captures: healer, target, optional "over time", amount,
+	// optional parenthesized amount, full spell name (including rank), annotation.
+	{data.LogRowEventTypeHealing, regexp.MustCompile(`^(.+?) healed (.+?)(?: (over time))? for ([0-9]+)(?: \(([0-9]+)\))? hit points? by (.+?)\.(?: \(([^)]+)\))?$`), []string{" healed ", " for ", " hit point", " by "}},
 	{data.LogRowEventTypeFaction, regexp.MustCompile(`^Your faction standing with (.+?) (?:has been adjusted by ([+-]?[0-9]+)|could not possibly get any (better|worse))\.$`), []string{"Your faction standing with "}},
 	{data.LogRowEventTypeCast, regexp.MustCompile(`^(.+?) (?:begin|begins) (?:casting|to cast) (.+)\.$`), []string{" begin", " cast"}},
 	{data.LogRowEventTypeDamage, regexp.MustCompile(`^(.+?) (backstab|backstabs|bash|bashes|bite|bites|cleave|cleaves|claw|claws|crush|crushes|frenzy on|frenzies on|hit|hits|kick|kicks|maul|mauls|pierce|pierces|punch|punches|reave|reaves|shoot|shoots|slash|slashes|slice|slices|smash|smashes|smite|smites|sting|stings|strike|strikes) (.+?) for ([0-9]+) points? of ((?:[A-Za-z-]+ )?damage)(?: by ([^.]+))?\.(?: \(([^)]+)\))?$`), []string{" for ", " point", "damage"}},

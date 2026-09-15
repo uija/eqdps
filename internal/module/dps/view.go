@@ -15,6 +15,11 @@ import (
 )
 
 func (m *Module) MainView(style *ui.Style, gtx layout.Context) layout.Dimensions {
+	m.overallWeight = 0
+	for _, c := range m.columns {
+		m.overallWeight += c.weight
+	}
+
 	combat := m.combat
 	combat.mu.RLock()
 	defer combat.mu.RUnlock()
@@ -166,7 +171,7 @@ func (m *Module) RenderFight(index int, style *ui.Style, gtx layout.Context) lay
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, rows...)
 }
 func (m *Module) RenderFightHeader(fight *data.Fight, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	return ui.ColoredRow(gtx, style.Palette.Panel, func(gtx layout.Context) layout.Dimensions {
+	return ui.ColoredRow(gtx, style.Palette.HeadlineBG, func(gtx layout.Context) layout.Dimensions {
 		return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(16)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(
 				gtx,
@@ -242,8 +247,9 @@ func (m *Module) GenerateFightCombatantRows(fight *data.Fight, style *ui.Style, 
 		}
 		return fight.Combatants[names[i]].Overall.Damage > fight.Combatants[names[j]].Overall.Damage
 	})
+	fightDuration := fight.LastUpdate.Sub(fight.Start)
 	for idx, name := range names {
-		rows = append(rows, m.GenerateFightCombatantDetails(fight.Combatants[name], idx, style, gtx)...)
+		rows = append(rows, m.GenerateFightCombatantDetails(fight.Combatants[name], idx, fightDuration, style, gtx)...)
 	}
 	return rows
 }
