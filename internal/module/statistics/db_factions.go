@@ -17,6 +17,34 @@ type SessionFactionDetails struct {
 
 func (s SessionFactionDetails) NetChange() int64 { return s.Gained + s.Lost }
 
+// GetFactionStatistics includes all imported adjustments, even when the zone
+// was unknown. Capped observations are not adjustments and are not stored.
+func GetFactionStatistics(db *sql.DB) ([]SessionFactionDetails, error) {
+	if db == nil {
+		return nil, fmt.Errorf("get faction statistics: database is nil")
+	}
+	rows, err := db.Query(`SELECT name,
+		SUM(CASE WHEN adjustment > 0 THEN adjustment ELSE 0 END),
+		SUM(CASE WHEN adjustment < 0 THEN adjustment ELSE 0 END)
+		FROM faction_adjustments GROUP BY name COLLATE NOCASE ORDER BY name COLLATE NOCASE`)
+	if err != nil {
+		return nil, fmt.Errorf("get faction statistics: %w", err)
+	}
+	defer rows.Close()
+	result := make([]SessionFactionDetails, 0)
+	for rows.Next() {
+		var s SessionFactionDetails
+		if err := rows.Scan(&s.Name, &s.Gained, &s.Lost); err != nil {
+			return nil, fmt.Errorf("scan faction statistics: %w", err)
+		}
+		result = append(result, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read faction statistics: %w", err)
+	}
+	return result, nil
+}
+
 func (m *Module) importFaction(e *data.LogRowEvent) error {
 	if len(e.Data) < 3 {
 		return unsupportedObservation("statistics faction event has incomplete data")

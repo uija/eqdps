@@ -88,6 +88,7 @@ func (m *Module) Init(ctx *module.Context, invalidFunc func()) error {
 	m.Pages = append(m.Pages, NewMobsPage(m.ctx, invalidFunc))
 	m.Pages = append(m.Pages, NewItemsPage(m.ctx, invalidFunc))
 	m.Pages = append(m.Pages, NewDamagePage(m.ctx, invalidFunc))
+	m.Pages = append(m.Pages, NewFactionsPage(m.ctx, invalidFunc))
 	m.currentPage = m.Pages[0]
 
 	return nil

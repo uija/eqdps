@@ -44,6 +44,7 @@ var StatisticsSessions *widget.Icon
 var StatisticsMobs *widget.Icon
 var StatisticsItems *widget.Icon
 var StatisticsDamage *widget.Icon
+var StatisticsFactions *widget.Icon
 
 var Copy *widget.Icon
 var Chart *widget.Icon
@@ -85,6 +86,7 @@ func Init() {
 	StatisticsMobs = loadIcon(icons.ActionPets)
 	StatisticsItems = loadIcon(icons.ActionLoyalty)
 	StatisticsDamage = loadIcon(icons.ImageFlashOn)
+	StatisticsFactions = loadIcon(icons.SocialGroup)
 
 	Copy = loadIcon(icons.ContentContentCopy)
 	Chart = loadIcon(icons.AVEqualizer)
