@@ -48,6 +48,7 @@ type SessionsPage struct {
 	xpClick           widget.Clickable
 	motesClick        widget.Clickable
 	motesPerHourClick widget.Clickable
+	deathClick        widget.Clickable
 
 	toggleViewModeClick widget.Clickable
 
@@ -118,6 +119,8 @@ func (p *SessionsPage) Update(gtx layout.Context) {
 		sort.Slice(p.sessions, func(i, j int) bool { return p.sessions[i].Statistic.Duration > p.sessions[j].Statistic.Duration })
 	case p.killsClick.Clicked(gtx):
 		sort.Slice(p.sessions, func(i, j int) bool { return p.sessions[i].Statistic.Kills > p.sessions[j].Statistic.Kills })
+	case p.deathClick.Clicked(gtx):
+		sort.Slice(p.sessions, func(i, j int) bool { return p.sessions[i].Statistic.DeathCount > p.sessions[j].Statistic.DeathCount })
 	case p.xpClick.Clicked(gtx):
 		sort.Slice(p.sessions, func(i, j int) bool {
 			return p.sessions[i].Statistic.ExperienceGained > p.sessions[j].Statistic.ExperienceGained
@@ -205,6 +208,7 @@ func (p *SessionsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.
 			sessionHeaderCell(2, "Entered", &p.enteredClick, false, style),
 			sessionHeaderCell(2, "Duration", &p.durationClick, true, style),
 			sessionHeaderCell(1, "Kills", &p.killsClick, true, style),
+			sessionHeaderCell(1, "Deaths", &p.deathClick, true, style),
 			sessionHeaderCell(1, "XP", &p.xpClick, true, style),
 			sessionHeaderCell(1, "Motes", &p.motesClick, true, style),
 			sessionHeaderCell(1, "/h", &p.motesPerHourClick, true, style),
@@ -224,6 +228,7 @@ func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.
 				sessionTextCell(2, session.Statistic.EnteredAt.Format("2006-01-02 15:04"), false, style),
 				sessionTextCell(2, session.Statistic.Duration.Round(time.Second).String(), true, style),
 				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.Kills), true, style),
+				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.DeathCount), true, style),
 				sessionTextCell(1, fmt.Sprintf("%.1f%%", session.Statistic.ExperienceGained), true, style),
 				sessionTextCell(1, fmt.Sprintf("%d", session.Statistic.Motes), true, style),
 				sessionTextCell(1, fmt.Sprintf("%.1f", session.Statistic.MotesPerHour), true, style),
@@ -284,8 +289,9 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
-				sessionTextCell(2, fmt.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
+				sessionTextCell(1, fmt.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
 				sessionTextCell(1, fmt.Sprintf("Kills: %d", details.Kills), false, style),
+				sessionTextCell(1, fmt.Sprintf("Deaths: %d", details.DeathCount), false, style),
 				sessionTextCell(1, fmt.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
 				sessionTextCell(1, fmt.Sprintf("All Motes: %d", details.Motes), false, style),
 				sessionTextCell(1, fmt.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
@@ -421,6 +427,7 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 				sessionTextCell(1, fmt.Sprintf("XP/h: %.2f%%", xpPerHour), false, style),
 				sessionTextCell(1, fmt.Sprintf("Motes/h: %.1f", motesPerHour), false, style),
 				sessionTextCell(1, "Money: "+FormatMoney(details.Money), false, style),
+				sessionTextCell(1, fmt.Sprintf("Deaths: %d", details.DeathCount), false, style),
 			)
 		}),
 	}

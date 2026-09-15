@@ -24,6 +24,7 @@ type DungeonCrawlReward struct {
 }
 
 type DungeonCrawlDetails struct {
+	DeathCount       int64
 	Kills            int64
 	ExperienceGained float64 // Summed XP percentages, as in the session overview.
 	Motes            int64
@@ -61,8 +62,11 @@ func GetDungeonCrawlDetails(db *sql.DB, session SessionStatistics) (DungeonCrawl
 			   AND received_at >= start_at AND received_at < end_at),
 			(SELECT COALESCE(SUM(amount_copper), 0) FROM money, bounds
 			 WHERE money.zone_id = bounds.zone_id
-			   AND received_at >= start_at AND received_at < end_at)
-	`, arguments...).Scan(&result.Kills, &result.ExperienceGained, &result.Money); err != nil {
+			   AND received_at >= start_at AND received_at < end_at),
+			(SELECT COUNT(*) FROM player_deaths, bounds
+			 WHERE player_deaths.zone_id = bounds.zone_id
+			   AND died_at >= start_at AND died_at < end_at)
+	`, arguments...).Scan(&result.Kills, &result.ExperienceGained, &result.Money, &result.DeathCount); err != nil {
 		return DungeonCrawlDetails{}, fmt.Errorf("get dungeon crawl totals: %w", err)
 	}
 

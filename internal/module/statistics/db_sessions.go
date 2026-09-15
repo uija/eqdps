@@ -14,6 +14,7 @@ type SessionStatistics struct {
 	EnteredAt        time.Time
 	Duration         time.Duration
 	Kills            int64
+	DeathCount       int64
 	ExperienceGained float64
 	Motes            int64
 	MotesPerHour     float64
@@ -37,10 +38,11 @@ type SessionDeathDetails struct {
 }
 
 type SessionDetails struct {
-	Money  int64
-	Mobs   []SessionMobDetails
-	Loot   []SessionLootDetails
-	Deaths []SessionDeathDetails
+	DeathCount int64
+	Money      int64
+	Mobs       []SessionMobDetails
+	Loot       []SessionLootDetails
+	Deaths     []SessionDeathDetails
 }
 
 // GetSessionStatistics returns zone sessions lasting at least one minute in
@@ -125,6 +127,13 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 					AND loot.looted_at >= visits.entered_at
 					AND loot.looted_at < visits.ended_at
 					AND items.name LIKE 'Mote of %'
+			),
+			(
+				SELECT COUNT(*)
+				FROM player_deaths
+				WHERE player_deaths.zone_id = visits.zone_id
+					AND player_deaths.died_at >= visits.entered_at
+					AND player_deaths.died_at < visits.ended_at
 			)
 		FROM visits
 		WHERE visits.ended_at IS NOT NULL
@@ -158,6 +167,7 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 			&value.Kills,
 			&value.ExperienceGained,
 			&value.Motes,
+			&value.DeathCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan session statistics: %w", err)
 		}
@@ -284,6 +294,7 @@ func GetSessionDetails(db *sql.DB, session SessionStatistics) (SessionDetails, e
 			return SessionDetails{}, fmt.Errorf("scan session death: %w", err)
 		}
 		result.Deaths = append(result.Deaths, value)
+		result.DeathCount += value.Deaths
 	}
 	if err := rows.Err(); err != nil {
 		return SessionDetails{}, fmt.Errorf("read session deaths: %w", err)

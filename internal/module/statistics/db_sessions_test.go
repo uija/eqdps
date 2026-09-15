@@ -94,6 +94,9 @@ func TestGetSessionStatisticsFiltersAndAggregatesVisits(t *testing.T) {
 		t.Fatalf("got %d sessions, want 1", len(statistics))
 	}
 	got := statistics[0]
+	if got.DeathCount != 1 {
+		t.Fatalf("got %d session deaths, want 1", got.DeathCount)
+	}
 	if got.Zone != "Befallen 4 (Refined)" || got.Duration != 10*time.Minute || got.Kills != 2 || got.ExperienceGained != 1.25 || got.Motes != 5 {
 		t.Fatalf("unexpected session statistics: %#v", got)
 	}

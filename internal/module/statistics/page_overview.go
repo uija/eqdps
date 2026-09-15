@@ -47,7 +47,7 @@ func (p *OverviewPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 	}
 	list := material.List(style.Theme, &p.list)
 
-	return list.Layout(gtx, 8, func(gtx layout.Context, index int) layout.Dimensions {
+	return list.Layout(gtx, 9, func(gtx layout.Context, index int) layout.Dimensions {
 		switch index {
 		case 0:
 			return RenderIntStatsRow("Zones visited", p.stats.ZonesVisited, index%2 == 0, style, gtx)
@@ -65,6 +65,8 @@ func (p *OverviewPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 			return RenderIntStatsRow("Motes collected", p.stats.MotesCollected, index%2 == 0, style, gtx)
 		case 7:
 			return RenderIntStatsRow("Chat messages sent", p.stats.ChatMessagesSent, index%2 == 0, style, gtx)
+		case 8:
+			return RenderIntStatsRow("Deaths", p.stats.DeathCount, index%2 == 0, style, gtx)
 		default:
 			return ui.Label(style, "Index missing").Layout(gtx)
 		}

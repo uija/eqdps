@@ -7,6 +7,7 @@ import (
 )
 
 type OverviewStatistics struct {
+	DeathCount       int64
 	ZonesVisited     int64
 	MobsKilled       int64
 	ItemsLooted      int64
@@ -37,7 +38,8 @@ func GetOverviewStatistics(db *sql.DB) (OverviewStatistics, error) {
 				JOIN items ON items.id = loot.item_id
 				WHERE items.name LIKE 'Mote of %'
 			),
-			(SELECT COUNT(*) FROM chat WHERE direction = 'sent')
+			(SELECT COUNT(*) FROM chat WHERE direction = 'sent'),
+			(SELECT COUNT(*) FROM player_deaths)
 	`).Scan(
 		&result.ZonesVisited,
 		&result.MobsKilled,
@@ -47,6 +49,7 @@ func GetOverviewStatistics(db *sql.DB) (OverviewStatistics, error) {
 		&result.LevelsGained,
 		&result.MotesCollected,
 		&result.ChatMessagesSent,
+		&result.DeathCount,
 	)
 	if err != nil {
 		return OverviewStatistics{}, fmt.Errorf("get overview statistics: %w", err)
