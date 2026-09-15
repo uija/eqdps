@@ -35,3 +35,4 @@ images/
 dist/
 .env
 eqdps
+*.md

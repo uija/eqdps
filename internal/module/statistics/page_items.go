@@ -212,9 +212,9 @@ func (p *ItemsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dim
 }
 
 func (p *ItemsPage) renderRow(item *ItemRow, alternate bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	color := style.Palette.Window
+	color := style.Palette.Panel
 	if alternate {
-		color = style.Palette.Panel
+		color = style.Palette.Window
 	}
 	return ui.ColoredRow(gtx, color, func(gtx layout.Context) layout.Dimensions {
 		children := []layout.FlexChild{

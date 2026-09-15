@@ -189,9 +189,7 @@ func (p *SessionsPage) Layout(style *ui.Style, gtx layout.Context) layout.Dimens
 			)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Bottom: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return p.renderHeader(style, gtx)
-			})
+			return p.renderHeader(style, gtx)
 		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			return list.Layout(gtx, len(p.sessions), func(gtx layout.Context, index int) layout.Dimensions {
@@ -217,9 +215,9 @@ func (p *SessionsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.
 }
 
 func (p *SessionsPage) renderRow(session *SessionRow, alternate bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	color := style.Palette.Window
+	color := style.Palette.Panel
 	if alternate {
-		color = style.Palette.Panel
+		color = style.Palette.Window
 	}
 	return ui.ColoredRow(gtx, color, func(gtx layout.Context) layout.Dimensions {
 		children := []layout.FlexChild{layout.Rigid(func(gtx layout.Context) layout.Dimensions {

@@ -220,9 +220,9 @@ func (p *MobsPage) renderHeader(style *ui.Style, gtx layout.Context) layout.Dime
 }
 
 func (p *MobsPage) renderRow(mob *MobRow, alternate bool, style *ui.Style, gtx layout.Context) layout.Dimensions {
-	color := style.Palette.Window
+	color := style.Palette.Panel
 	if alternate {
-		color = style.Palette.Panel
+		color = style.Palette.Window
 	}
 	return ui.ColoredRow(gtx, color, func(gtx layout.Context) layout.Dimensions {
 		children := make([]layout.FlexChild, 0)

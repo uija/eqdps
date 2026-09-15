@@ -205,9 +205,9 @@ func (p *ZonesPage) RenderZoneRow(idx int, odd bool, style *ui.Style, gtx layout
 		zone = p.Sum
 		weight = font.SemiBold
 	}
-	color := style.Palette.Window
+	color := style.Palette.Panel
 	if odd {
-		color = style.Palette.Panel
+		color = style.Palette.Window
 	}
 	return ui.ColoredRow(gtx, color, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
