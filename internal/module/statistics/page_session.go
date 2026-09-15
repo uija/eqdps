@@ -292,6 +292,7 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 				sessionTextCell(1, p.ctx.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Kills: %d", details.Kills), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Deaths: %d", details.DeathCount), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Evacs: %d", details.EvacCount), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("All Motes: %d", details.Motes), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
@@ -428,6 +429,7 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 				sessionTextCell(1, p.ctx.Sprintf("Motes/h: %.1f", motesPerHour), false, style),
 				sessionTextCell(1, "Money: "+FormatMoneyCallback(details.Money, p.ctx.Sprintf), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Deaths: %d", details.DeathCount), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Evacs: %d", details.EvacCount), false, style),
 			)
 		}),
 	}

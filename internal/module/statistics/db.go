@@ -40,6 +40,7 @@ func DropTables(db *sql.DB) error {
 	defer tx.Rollback()
 
 	tables := []string{
+		"evacuation_casts",
 		"attack_statistics",
 		"item_dispositions",
 		"loot",
@@ -79,6 +80,18 @@ func PrepareDb(db *sql.DB) error {
 	defer tx.Rollback()
 
 	statements := []string{
+		`CREATE TABLE IF NOT EXISTS evacuation_casts (
+			id INTEGER PRIMARY KEY,
+			zone_id INTEGER NOT NULL REFERENCES zones(id),
+			raw_zone_name TEXT NOT NULL,
+			caster TEXT NOT NULL,
+			spell TEXT NOT NULL,
+			cast_at DATETIME NOT NULL,
+			loading_at DATETIME,
+			completed_at DATETIME,
+			cancelled INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE INDEX IF NOT EXISTS evacuation_casts_zone_time_idx ON evacuation_casts(zone_id, cast_at)`,
 		// Overall per-character totals. Counts and sums keep averages mergeable;
 		// NULL bounds mean no hits of that kind have been observed yet.
 		`CREATE TABLE IF NOT EXISTS attack_statistics (

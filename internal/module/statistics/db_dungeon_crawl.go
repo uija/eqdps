@@ -24,6 +24,7 @@ type DungeonCrawlReward struct {
 }
 
 type DungeonCrawlDetails struct {
+	EvacCount        int64
 	DeathCount       int64
 	Kills            int64
 	ExperienceGained float64 // Summed XP percentages, as in the session overview.
@@ -50,6 +51,11 @@ func GetDungeonCrawlDetails(db *sql.DB, session SessionStatistics) (DungeonCrawl
 		MoteDetails:  make([]DungeonCrawlMote, 0),
 		ChestRewards: make([]DungeonCrawlReward, 0),
 	}
+	evacs, err := getSessionEvacCount(db, session)
+	if err != nil {
+		return DungeonCrawlDetails{}, err
+	}
+	result.EvacCount = evacs
 	if err := db.QueryRow(`
 		WITH bounds AS (SELECT ? AS zone_id, ? AS start_at, ? AS end_at)
 		SELECT

@@ -60,6 +60,9 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 		return nil
 	}
 	previousTimestamp := m.lastImportRow
+	if err := m.importEvacuation(e); err != nil {
+		return err
+	}
 	defer func() {
 		// Log timestamps can move backwards between client sessions. Keep the
 		// timestamp of the previous row in file order rather than the greatest

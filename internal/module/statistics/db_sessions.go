@@ -38,6 +38,7 @@ type SessionDeathDetails struct {
 }
 
 type SessionDetails struct {
+	EvacCount  int64
 	DeathCount int64
 	Money      int64
 	Mobs       []SessionMobDetails
@@ -193,6 +194,11 @@ func GetSessionDetails(db *sql.DB, session SessionStatistics) (SessionDetails, e
 	arguments := []any{session.ZoneID, session.EnteredAt, endedAt}
 
 	var result SessionDetails
+	evacs, err := getSessionEvacCount(db, session)
+	if err != nil {
+		return SessionDetails{}, err
+	}
+	result.EvacCount = evacs
 	if err := db.QueryRow(`
 		SELECT COALESCE(SUM(amount_copper), 0)
 		FROM money
