@@ -12,6 +12,9 @@ func TestHealingPattern(t *testing.T) {
 		message string
 		fields  []string
 	}{
+		{"You healed Wyrmberg for 33 hit points.", []string{"You", "Wyrmberg", "", "33", "", "", ""}},
+		{"You healed Wyrmberg for 134 hit points. (Critical)", []string{"You", "Wyrmberg", "", "134", "", "", "Critical"}},
+		{"You healed Wyrmberg over time for 3 (100) hit points. (Critical)", []string{"You", "Wyrmberg", "over time", "3", "100", "", "Critical"}},
 		{"You healed Wyrmberg for 14 hit points by Minor Healing.", []string{"You", "Wyrmberg", "", "14", "", "Minor Healing", ""}},
 		{"You healed Wyrmberg over time for 62 hit points by Sprouting Heal. (Critical)", []string{"You", "Wyrmberg", "over time", "62", "", "Sprouting Heal", "Critical"}},
 		{"You healed Wyrmberg for 3 (100) hit points by Sprouting Heal Trigger.", []string{"You", "Wyrmberg", "", "3", "100", "Sprouting Heal Trigger", ""}},

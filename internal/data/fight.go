@@ -124,6 +124,9 @@ func (f *Fight) HasParticipant(name string) bool {
 	return ok
 }
 func (f *Fight) AddHealing(source string, target string, ability string, amount int, hot bool, crit bool) {
+	if strings.TrimSpace(ability) == "" {
+		ability = "Unknown"
+	}
 	normalizedSource := strings.ToLower(strings.TrimSpace(source))
 
 	combatant, ok := f.Combatants[normalizedSource]
