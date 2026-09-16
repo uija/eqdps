@@ -8,6 +8,9 @@
 *.so
 *.dylib
 
+# Generated Windows executable icon resource
+/rsrc_windows_amd64.syso
+
 # Test binary, built with `go test -c`
 *.test
 

@@ -24,6 +24,10 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Generate Windows icon resource
+        shell: pwsh
+        run: go generate windows_resources_generate.go
+
       - name: Build Windows executable
         shell: pwsh
         run: |

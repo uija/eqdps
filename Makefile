@@ -22,6 +22,7 @@ gui: | $(DIST_DIR)
 	go build -ldflags="$(VERSION_LDFLAGS)" -o $(GUI_BINARY) .
 
 windows: | $(DIST_DIR)
+	go generate windows_resources_generate.go
 	env GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
 		go build -trimpath -ldflags="-s -w -H=windowsgui $(VERSION_LDFLAGS)" -o $(WINDOWS_GUI_BINARY) .
 
