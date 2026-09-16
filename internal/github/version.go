@@ -52,7 +52,7 @@ func checkNewVersion(client *http.Client, endpoint, currentVersion string) (Rele
 	}
 
 	if strings.TrimSpace(currentVersion) == strings.TrimSpace(release.TagName) {
-		return Release{}, false, nil
+		return Release{TagName: release.TagName}, false, nil
 	}
 	return release, true, nil
 }

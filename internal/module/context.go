@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/uija/eqdps/internal/native"
 	"github.com/uija/eqdps/internal/overlay"
 	"github.com/uija/eqdps/internal/ui"
+	"github.com/uija/eqdps/version"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
@@ -174,7 +176,7 @@ func NewContext(invalidateFunc func()) *Context {
 			if !newUpdate {
 				return
 			}
-			if ctx.Config.LastSeenVersion != "" {
+			if ctx.Config.LastSeenVersion != "" && !strings.EqualFold(result.TagName, version.Version) {
 				ctx.updateFound <- result
 				invalidateFunc()
 			}
