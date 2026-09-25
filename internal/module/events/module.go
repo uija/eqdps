@@ -180,6 +180,11 @@ func (m *Module) Init(ctx *module.Context, invalidate func()) error {
 		panic("Uanble to load spells")
 	}
 	m.spells = spells
+	if repairLegacySpellEvents(m.ctx.Config.Events, m.spells) {
+		if err := m.ctx.Config.Save(); err != nil {
+			log.Printf("Unable to save repaired spell events: %v", err)
+		}
+	}
 	m.events_list.Axis = layout.Vertical
 	m.helpList.Axis = layout.Vertical
 	m.UpdateSpellsAndClasses()
@@ -515,7 +520,7 @@ func (m *Module) OnSave() {
 				if m.target_select.Value() == "Self" || m.target_select.Value() == "Both" {
 					val.Expression = spell.FadeMessage
 				}
-				if m.target_select.Value() == "Other" || m.target_select.Value() == "Both" {
+				if m.target_select.Value() == "Others" || m.target_select.Value() == "Both" {
 					val.ExpressionOthers = spell.FadeMessageOthers
 				}
 			}
@@ -524,6 +529,8 @@ func (m *Module) OnSave() {
 		val.Expression = m.text_field.Text()
 		val.FullExpression = m.full_message_check.Value
 	}
+	val.RegExp = nil
+	val.RegExpOthers = nil
 	text := strings.TrimSpace(m.duration_field.Text())
 	if text == "" {
 		val.Duration = -1
@@ -611,23 +618,9 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 	events := slices.Clone(m.ctx.Config.Events)
 	for idx := range events {
 		event := &events[idx]
-		if event.Type != data.EventTypeRegexp {
-			continue
-		}
-		if event.Expression != "" && event.RegExp == nil {
-			compiled, err := regexp.Compile(event.Expression)
-			if err == nil {
-				event.RegExp = compiled
-				m.ctx.Config.Events[idx].RegExp = compiled
-			}
-		}
-		if event.ExpressionOthers != "" && event.RegExpOthers == nil {
-			compiled, err := regexp.Compile(event.ExpressionOthers)
-			if err == nil {
-				event.RegExpOthers = compiled
-				m.ctx.Config.Events[idx].RegExpOthers = compiled
-			}
-		}
+		prepareEventPatterns(event)
+		m.ctx.Config.Events[idx].RegExp = event.RegExp
+		m.ctx.Config.Events[idx].RegExpOthers = event.RegExpOthers
 	}
 	m.mu.Unlock()
 
@@ -639,23 +632,9 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) {
 			continue
 		}
 		switch event.Type {
-		case data.EventTypeString,
-			data.EventTypeSpell:
-			if event.FullExpression && strings.EqualFold(event.Expression, e.Message) {
+		case data.EventTypeString, data.EventTypeSpell, data.EventTypeRegexp:
+			if matchesEvent(event, e.Message) {
 				m.Notify(event)
-			} else if strings.Contains(e.Message, event.Expression) {
-				m.Notify(event)
-			}
-		case data.EventTypeRegexp:
-			if event.RegExp != nil {
-				if event.RegExp.Match([]byte(e.Message)) {
-					m.Notify(event)
-				}
-			}
-			if event.RegExpOthers != nil {
-				if event.RegExpOthers.Match([]byte(e.Message)) {
-					m.Notify(event)
-				}
 			}
 		case data.EventTypeTimer:
 			switch e.Type {

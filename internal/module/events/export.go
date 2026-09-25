@@ -89,6 +89,7 @@ func (m *Module) ImportEvents() {
 		log.Printf("Wrong file selected. %v", err)
 		return
 	}
+	repairLegacySpellEvents(events.Events, m.spells)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	importSuccess := ImportSuccess{

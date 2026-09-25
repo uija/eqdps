@@ -40,14 +40,14 @@ func TestReadSpellsFiltersClassesByMaximumLevel(t *testing.T) {
 	if got, want := spells[0].IconID, 4; got != want {
 		t.Fatalf("icon ID = %d, want %d", got, want)
 	}
-	if got, want := spells[0].FadeMessageOthers, `^Your Example Spell spell has worn off of .+\.$`; got != want {
+	if got, want := spells[0].FadeMessageOthers, `^Your (?:Example Spell(?: [IVXLCDM]+)? spell has worn off of .+|pet's Example Spell(?: [IVXLCDM]+)? spell has worn off)\.$`; got != want {
 		t.Fatalf("fade message for others = %q, want %q", got, want)
 	}
 }
 
 func TestFadeMessageOthersEscapesSpellName(t *testing.T) {
 	got := fadeMessageOthers("Example (Rk. II)+")
-	want := `^Your Example \(Rk\. II\)\+ spell has worn off of .+\.$`
+	want := `^Your (?:Example \(Rk\. II\)\+(?: [IVXLCDM]+)? spell has worn off of .+|pet's Example \(Rk\. II\)\+(?: [IVXLCDM]+)? spell has worn off)\.$`
 	if got != want {
 		t.Fatalf("fade message for others = %q, want %q", got, want)
 	}
@@ -131,7 +131,7 @@ func TestRunWritesSharedCatalogueSchema(t *testing.T) {
 	if len(generated) != 1 ||
 		generated[0].Name != "Example Spell" ||
 		generated[0].FadeMessage != "The effect fades." ||
-		generated[0].FadeMessageOthers != `^Your Example Spell spell has worn off of .+\.$` ||
+		generated[0].FadeMessageOthers != `^Your (?:Example Spell(?: [IVXLCDM]+)? spell has worn off of .+|pet's Example Spell(?: [IVXLCDM]+)? spell has worn off)\.$` ||
 		generated[0].IconID != 7 {
 		t.Fatalf("generated catalogue = %#v", generated)
 	}

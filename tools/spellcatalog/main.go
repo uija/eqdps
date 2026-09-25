@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -194,7 +193,7 @@ func readSpells(r io.Reader, fades map[string]string, maxLevel int) ([]spell, er
 }
 
 func fadeMessageOthers(spellName string) string {
-	return `^Your ` + regexp.QuoteMeta(spellName) + ` spell has worn off of .+\.$`
+	return spellicon.FadeMessageOthersPattern(spellName)
 }
 
 func scanLines(r io.Reader, visit func(lineNumber int, line string) error) error {
