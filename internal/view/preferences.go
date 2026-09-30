@@ -499,7 +499,7 @@ func (p *Preferences) RenderSkyMarkAsDone(style *ui.Style, gtx layout.Context) l
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.CheckBox(style.Theme, &p.sky_mark_as_done, "Enable 'Mark as done' link for PoS Quests.").Layout),
-			layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Enables a link to mark quests as done.")).Layout),
+			layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Enables a link to mark quests as done. Disable it after you are done, so you dont accidently remove a quest from tracking.")).Layout),
 		)
 	})
 }
