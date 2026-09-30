@@ -146,12 +146,14 @@ type QuestStatus struct {
 	MissingItems int
 	Items        []ItemStatus
 
-	WatchClick       widget.Clickable
-	WatchTooltip     component.TipArea
-	UnwatchClick     widget.Clickable
-	RedoQuestClick   widget.Clickable
-	RedoQuestTooptip component.TipArea
-	RewardClick      widget.Clickable
+	WatchClick        widget.Clickable
+	WatchTooltip      component.TipArea
+	UnwatchClick      widget.Clickable
+	RedoQuestClick    widget.Clickable
+	RedoQuestTooptip  component.TipArea
+	RewardClick       widget.Clickable
+	MarkAsDoneClick   widget.Clickable
+	MarkAsDoneTooltip component.TipArea
 }
 type ClassStatus struct {
 	Name        string
@@ -411,6 +413,11 @@ func (m *Module) Update(gtx layout.Context) {
 						delete(m.config.RedoQuests, quest.Key)
 					}
 				}
+				m.RecalculateStatus()
+			}
+			if m.status[cidx].Quests[qidx].MarkAsDoneClick.Clicked(gtx) {
+				m.config.Quests[quest.Key] = 1
+				m.config.Save()
 				m.RecalculateStatus()
 			}
 		}

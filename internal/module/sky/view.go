@@ -353,6 +353,17 @@ func (m *Module) RenderQuest(index int, qidx int, fullname bool, style *ui.Style
 									})
 								}))
 							}
+							if m.ctx.Config.SkyConfig.ActivateMarkAsDoneLink && !quest.Done && m.config.RedoQuests[quest.Key].IsZero() {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									link := ui.IconLink(style, &m.status[index].Quests[qidx].MarkAsDoneClick, ui.Close, "")
+									link.TextColor = highlight_color
+									tip := component.PlatformTooltip(style.Theme, "Mark quest as done.")
+									return layout.Inset{Right: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ui.LayoutTooltip(gtx, &m.status[index].Quests[qidx].MarkAsDoneTooltip, tip, link.Layout)
+									})
+
+								}))
+							}
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 						}),
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {

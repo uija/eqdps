@@ -37,6 +37,7 @@ type Preferences struct {
 	upload_sky_items          widget.Bool
 	allow_eqldb_contribution  widget.Bool
 	sky_parse_inventory       widget.Bool
+	sky_mark_as_done          widget.Bool
 
 	color_buttons       []widget.Clickable
 	color_reset_buttons []widget.Clickable
@@ -88,6 +89,7 @@ func NewPreferences(ctx *module.Context) *Preferences {
 	p.sky_parse_inventory.Value = ctx.Config.SkyConfig.ParseInventoryData
 	p.mainwindow_font_scale.Value = (ctx.Config.UIConfig.MainWindowFontScale - 0.5) * 0.9
 	p.combat_timeout.Value = float32(ctx.Config.CombatTimeout-20) / 60.0
+	p.sky_mark_as_done.Value = ctx.Config.SkyConfig.ActivateMarkAsDoneLink
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -206,6 +208,10 @@ func (p *Preferences) Update(gtx layout.Context) {
 	}
 	if p.upload_sky_items.Value != p.ctx.Config.EQLDbConfig.UploadSkyData {
 		p.ctx.Config.EQLDbConfig.UploadSkyData = p.upload_sky_items.Value
+		p.ctx.Config.Save()
+	}
+	if p.sky_mark_as_done.Value != p.ctx.Config.SkyConfig.ActivateMarkAsDoneLink {
+		p.ctx.Config.SkyConfig.ActivateMarkAsDoneLink = p.sky_mark_as_done.Value
 		p.ctx.Config.Save()
 	}
 	if p.check_for_updates.Value != p.ctx.Config.CheckForUpdates {
@@ -469,6 +475,7 @@ func (p *Preferences) RenderUpdatesSettings(style *ui.Style, gtx layout.Context)
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			p.RenderCheckForUpdates(style, gtx),
 			p.RenderSkyParseInventory(style, gtx),
+			p.RenderSkyMarkAsDone(style, gtx),
 		)
 	})
 }
@@ -485,6 +492,14 @@ func (p *Preferences) RenderSkyParseInventory(style *ui.Style, gtx layout.Contex
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(material.CheckBox(style.Theme, &p.sky_parse_inventory, "Parse Inventory for Plane of Sky Items").Layout),
 			layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Parses inventory exports you do and updates your plane of sky items with items found in your inventory. Does not work for Wind Runes.")).Layout),
+		)
+	})
+}
+func (p *Preferences) RenderSkyMarkAsDone(style *ui.Style, gtx layout.Context) layout.FlexChild {
+	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(material.CheckBox(style.Theme, &p.sky_mark_as_done, "Enable 'Mark as done' link for PoS Quests.").Layout),
+			layout.Rigid(ui.ColorLabel(style.Palette.Muted, material.Label(style.Theme, ui.Sp(14), "Enables a link to mark quests as done.")).Layout),
 		)
 	})
 }

@@ -57,7 +57,8 @@ type UIConfig struct {
 	NumberFormat        language.Tag `json:"number_format"`
 }
 type SkyConfig struct {
-	ParseInventoryData bool `json:"parse_inventory_data"`
+	ParseInventoryData     bool `json:"parse_inventory_data"`
+	ActivateMarkAsDoneLink bool `json:"activate_mark_as_done"`
 }
 type StatisticsConfig struct {
 	SessionDungeonCrawlDetails bool `json:"session_dungeon_crawl_details"`
