@@ -19,7 +19,7 @@ import (
 	"github.com/uija/eqdps/internal/module"
 )
 
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 2
 
 var zoneVariantSuffixRE = regexp.MustCompile(`(?: - (?:Group|Solo)(?: [0-9]+)?(?: \([^)]+\))?| [0-9]+ \([^)]+\))$`)
 

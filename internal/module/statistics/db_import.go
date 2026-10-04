@@ -10,6 +10,7 @@ import (
 type Import struct {
 	tx       *sql.Tx
 	finished bool
+	combat   *visitCombatTracker
 }
 
 func (i *Import) activeTx() (*sql.Tx, error) {
@@ -42,6 +43,9 @@ func (i *Import) Commit(offset int64, lastTimestamp time.Time) error {
 	}
 	if offset < 0 {
 		return fmt.Errorf("commit statistics import: offset %d is negative", offset)
+	}
+	if err := i.flushCombat(); err != nil {
+		return err
 	}
 	var timestamp any
 	if !lastTimestamp.IsZero() {

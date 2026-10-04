@@ -15,6 +15,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 	"github.com/uija/eqdps/internal/module"
 	"github.com/uija/eqdps/internal/ui"
 )
@@ -49,6 +50,9 @@ type SessionsPage struct {
 	motesClick        widget.Clickable
 	motesPerHourClick widget.Clickable
 	deathClick        widget.Clickable
+
+	avgDpsTooltip     component.TipArea
+	sessionDpsTooltip component.TipArea
 
 	toggleViewModeClick widget.Clickable
 
@@ -290,8 +294,14 @@ func (p *SessionsPage) renderReducesSessionDetails(session *SessionRow, style *u
 				sessionTextCell(1, p.ctx.Sprintf("Duration: %s", session.Statistic.Duration.Round(time.Second).String()), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Kills: %d", details.Kills), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Deaths: %d", details.DeathCount), false, style),
+				sessionTextCellWithTooltip(1, p.ctx.Sprintf("Avg Dps: %.1f", details.Combat.CombatDPS), false, style, "Average in-combat DPS", &p.avgDpsTooltip),
+				sessionTextCellWithTooltip(1, p.ctx.Sprintf("Session Dps: %.1f", details.Combat.SessionDPS), false, style, "Damage over session time", &p.sessionDpsTooltip),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				sessionTextCell(1, p.ctx.Sprintf("Evacs: %d", details.EvacCount), false, style),
-				sessionTextCell(1, p.ctx.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
+				sessionTextCell(2, p.ctx.Sprintf("Kill XP: %.2f%%", details.ExperienceGained), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("All Motes: %d", details.Motes), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("+5 or higher: %d", details.Motes5Plus), false, style),
 			)
@@ -425,11 +435,17 @@ func (p *SessionsPage) renderSessionDetails(session *SessionRow, style *ui.Style
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				sessionTextCell(1, p.ctx.Sprintf("Kills/h: %.1f", killsPerHour), false, style),
+				sessionTextCellWithTooltip(1, p.ctx.Sprintf("Avg Dps: %.1f", details.Combat.CombatDPS), false, style, "Average in-combat DPS", &p.avgDpsTooltip),
+				sessionTextCellWithTooltip(1, p.ctx.Sprintf("Session Dps: %.1f", details.Combat.SessionDPS), false, style, "Damage over session time", &p.sessionDpsTooltip),
 				sessionTextCell(1, p.ctx.Sprintf("XP/h: %.2f%%", xpPerHour), false, style),
-				sessionTextCell(1, p.ctx.Sprintf("Motes/h: %.1f", motesPerHour), false, style),
+			)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 				sessionTextCell(1, "Money: "+FormatMoneyCallback(details.Money, p.ctx.Sprintf), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Deaths: %d", details.DeathCount), false, style),
 				sessionTextCell(1, p.ctx.Sprintf("Evacs: %d", details.EvacCount), false, style),
+				sessionTextCell(1, p.ctx.Sprintf("Motes/h: %.1f", motesPerHour), false, style),
 			)
 		}),
 	}
@@ -546,6 +562,20 @@ func sessionTextCell(weight float32, value string, alignEnd bool, style *ui.Styl
 	return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
 		content := func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, ui.Label(style, value).Layout)
+		}
+		if alignEnd {
+			return layout.E.Layout(gtx, content)
+		}
+		return content(gtx)
+	})
+}
+
+func sessionTextCellWithTooltip(weight float32, value string, alignEnd bool, style *ui.Style, tiptext string, area *component.TipArea) layout.FlexChild {
+	return layout.Flexed(weight, func(gtx layout.Context) layout.Dimensions {
+		content := func(gtx layout.Context) layout.Dimensions {
+			return layout.UniformInset(unit.Dp(ROW_PADDING)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return ui.LayoutTooltip(gtx, area, component.PlatformTooltip(style.Theme, tiptext), ui.Label(style, value).Layout)
+			})
 		}
 		if alignEnd {
 			return layout.E.Layout(gtx, content)

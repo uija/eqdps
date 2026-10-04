@@ -146,6 +146,9 @@ func PrepareDb(db *sql.DB) error {
 			entered_at DATETIME NOT NULL,
 			left_at DATETIME,
 			raw_zone_name TEXT NOT NULL,
+			total_damage INTEGER NOT NULL DEFAULT 0 CHECK (total_damage >= 0),
+			combat_seconds INTEGER NOT NULL DEFAULT 0 CHECK (combat_seconds >= 0),
+			combat_checkpoint TEXT NOT NULL DEFAULT '{}',
 			CHECK (left_at IS NULL OR left_at >= entered_at),
 			FOREIGN KEY (zone_id) REFERENCES zones(id)
 		)`,

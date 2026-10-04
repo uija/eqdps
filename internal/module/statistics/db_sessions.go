@@ -8,6 +8,7 @@ import (
 )
 
 type SessionStatistics struct {
+	Combat           SessionCombatStatistics
 	VisitID          int64
 	ZoneID           int64
 	Zone             string
@@ -38,6 +39,7 @@ type SessionDeathDetails struct {
 }
 
 type SessionDetails struct {
+	Combat     SessionCombatStatistics
 	Factions   []SessionFactionDetails
 	EvacCount  int64
 	DeathCount int64
@@ -64,6 +66,8 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 				zone_visits.zone_id,
 				zone_visits.raw_zone_name,
 				zone_visits.entered_at,
+				zone_visits.total_damage,
+				zone_visits.combat_seconds,
 				COALESCE(
 					zone_visits.left_at,
 					CASE
@@ -96,7 +100,9 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 				zone_id,
 				MIN(raw_zone_name) AS raw_zone_name,
 				MIN(entered_at) AS entered_at,
-				MAX(ended_at) AS ended_at
+				MAX(ended_at) AS ended_at,
+				SUM(total_damage) AS total_damage,
+				SUM(combat_seconds) AS combat_seconds
 			FROM numbered_visits
 			GROUP BY session_number, zone_id
 		)
@@ -104,6 +110,8 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 			visits.id,
 			visits.zone_id,
 			visits.raw_zone_name,
+			visits.total_damage,
+			visits.combat_seconds,
 			unixepoch(visits.entered_at),
 			unixepoch(visits.ended_at) - unixepoch(visits.entered_at),
 			(
@@ -160,10 +168,13 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 		var value SessionStatistics
 		var enteredAtSeconds int64
 		var durationSeconds int64
+		var combatSeconds int64
 		if err := rows.Scan(
 			&value.VisitID,
 			&value.ZoneID,
 			&value.Zone,
+			&value.Combat.TotalDamage,
+			&combatSeconds,
 			&enteredAtSeconds,
 			&durationSeconds,
 			&value.Kills,
@@ -175,6 +186,7 @@ func GetSessionStatistics(db *sql.DB) ([]SessionStatistics, error) {
 		}
 		value.EnteredAt = time.Unix(enteredAtSeconds, 0).In(time.Local)
 		value.Duration = time.Duration(durationSeconds) * time.Second
+		value.Combat = sessionCombatStatistics(value.Combat.TotalDamage, combatSeconds, value.Duration)
 		value.MotesPerHour = float64(value.Motes) / float64(value.Duration.Hours())
 		result = append(result, value)
 	}
@@ -195,6 +207,11 @@ func GetSessionDetails(db *sql.DB, session SessionStatistics) (SessionDetails, e
 	arguments := []any{session.ZoneID, session.EnteredAt, endedAt}
 
 	var result SessionDetails
+	combat, err := GetSessionCombatStatistics(db, session)
+	if err != nil {
+		return SessionDetails{}, err
+	}
+	result.Combat = combat
 	evacs, err := getSessionEvacCount(db, session)
 	if err != nil {
 		return SessionDetails{}, err

@@ -72,6 +72,9 @@ func (m *Module) OnLogRow(e *data.LogRowEvent) error {
 	if err := m.updateSessionState(e, previousTimestamp); err != nil {
 		return err
 	}
+	if err := m.importSessionCombat(e); err != nil {
+		return err
+	}
 
 	m.pendingKills = slices.DeleteFunc(m.pendingKills, func(kill pendingStatisticsKill) bool {
 		age := e.Timestamp.Sub(kill.killedAt)
@@ -294,6 +297,9 @@ func (m *Module) closeCurrentZoneVisit(leftAt time.Time) error {
 		leftAt = m.currentVisitAt
 	}
 	if err := m.activeImport.CloseZoneVisit(m.currentVisit, leftAt); err != nil {
+		return err
+	}
+	if err := m.activeImport.closeVisitCombat(m.currentVisit, leftAt, m.combatTimeout()); err != nil {
 		return err
 	}
 	m.currentVisit = 0

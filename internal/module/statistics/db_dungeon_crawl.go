@@ -24,6 +24,7 @@ type DungeonCrawlReward struct {
 }
 
 type DungeonCrawlDetails struct {
+	Combat           SessionCombatStatistics
 	Factions         []SessionFactionDetails
 	EvacCount        int64
 	DeathCount       int64
@@ -52,6 +53,11 @@ func GetDungeonCrawlDetails(db *sql.DB, session SessionStatistics) (DungeonCrawl
 		MoteDetails:  make([]DungeonCrawlMote, 0),
 		ChestRewards: make([]DungeonCrawlReward, 0),
 	}
+	combat, err := GetSessionCombatStatistics(db, session)
+	if err != nil {
+		return DungeonCrawlDetails{}, err
+	}
+	result.Combat = combat
 	evacs, err := getSessionEvacCount(db, session)
 	if err != nil {
 		return DungeonCrawlDetails{}, err
