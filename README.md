@@ -75,6 +75,7 @@ tested, and changed where necessary rather than accepted as an authority.
 ### DPS meter
 
 ![eqdps DPS meter](img/eqdps_mainwindow_dps.png)
+![eqdps DPS meter](img/eqdps_mainwindow_dps_bars.png)
 
 ### Plane of Sky quest tracker
 
@@ -91,6 +92,15 @@ tested, and changed where necessary rather than accepted as an authority.
 ### Statistics
 
 ![eqdps Events configuration](img/eqdps_mainwindow_stats.png)
+![eqdps Events configuration](img/eqdps_mainwindow_stats_dc.png)
+
+### Equipment
+
+![eqdps Events configuration](img/eqdps_mainwindow_equip.png)
+
+### Achievements
+
+![eqdps Events configuration](img/eqdps_mainwindow_achievements.png)
 
 ### DPS overlay
 
